@@ -17,3 +17,4 @@ export {InventoryIcon} from './InventoryIcon';
 export {SettingsIcon} from './SettingsIcon';
 export {ChevronDownIcon} from './ChevronDownIcon';
 export {ChevronRightIcon} from './ChevronRightIcon';
+export {FileTextIcon} from './FileTextIcon';

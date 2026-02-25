@@ -3,15 +3,17 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {DashboardScreen} from '../screens/DashboardScreen';
 import {InventoryScreen} from '../screens/InventoryScreen';
 import {StockScreen} from '../screens/StockScreen';
-import {SettingsScreen} from '../screens/SettingsScreen';
-import {HomeIcon, InventoryIcon, BoxIcon, SettingsIcon} from '../components/icons';
+import {InvoicesScreen} from '../screens/InvoicesScreen';
+import {AccountScreen} from '../screens/AccountScreen';
+import {HomeIcon, InventoryIcon, BoxIcon, FileTextIcon, UserIcon} from '../components/icons';
 import {theme} from '../theme';
 
 export type MainTabParamList = {
   Home: undefined;
   Inventory: undefined;
   Stock: undefined;
-  Settings: undefined;
+  Invoices: undefined;
+  Account: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -64,11 +66,20 @@ export const MainTabNavigator = () => {
         }}
       />
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="Invoices"
+        component={InvoicesScreen}
         options={{
           tabBarIcon: ({color, size}) => (
-            <SettingsIcon size={size} color={color} />
+            <FileTextIcon size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Account"
+        component={AccountScreen}
+        options={{
+          tabBarIcon: ({color, size}) => (
+            <UserIcon size={size} color={color} />
           ),
         }}
       />
