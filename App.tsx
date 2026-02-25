@@ -5,10 +5,10 @@
  */
 
 import React from 'react';
-import {StatusBar, StyleSheet} from 'react-native';
+import {StatusBar} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {AuthProvider} from './src/contexts/AuthContext';
-import {LoginScreen} from './src/screens/LoginScreen';
+import {AppNavigator} from './src/navigation/AppNavigator';
 import {theme} from './src/theme';
 
 function App(): React.JSX.Element {
@@ -19,7 +19,7 @@ function App(): React.JSX.Element {
           barStyle="dark-content"
           backgroundColor={theme.colors.gray[50]}
         />
-        <LoginScreen />
+        <AppNavigator />
       </AuthProvider>
     </SafeAreaProvider>
   );

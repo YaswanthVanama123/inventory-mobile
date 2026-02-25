@@ -1400,6 +1400,8 @@ PODS:
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
+  - react-native-encrypted-storage (4.0.3):
+    - React-Core
   - react-native-safe-area-context (5.7.0):
     - hermes-engine
     - RCTRequired
@@ -1854,6 +1856,53 @@ PODS:
     - React-utils (= 0.84.0)
     - ReactNativeDependencies
   - ReactNativeDependencies (0.84.0)
+  - RNScreens (4.24.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-RCTImage
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNScreens/common (= 4.24.0)
+    - Yoga
+  - RNScreens/common (4.24.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-RCTImage
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNSVG (15.15.3):
     - hermes-engine
     - RCTRequired
@@ -1941,6 +1990,7 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
+  - react-native-encrypted-storage (from `../node_modules/react-native-encrypted-storage`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-networking (from `../node_modules/react-native/ReactCommon/react/networking`)
@@ -1976,6 +2026,7 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
+  - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -2057,6 +2108,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
+  react-native-encrypted-storage:
+    :path: "../node_modules/react-native-encrypted-storage"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
   React-NativeModulesApple:
@@ -2127,6 +2180,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   ReactNativeDependencies:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
+  RNScreens:
+    :path: "../node_modules/react-native-screens"
   RNSVG:
     :path: "../node_modules/react-native-svg"
   Yoga:
@@ -2171,6 +2226,7 @@ SPEC CHECKSUMS:
   React-logger: 9e51e01455f15cb3ef87a09a1ec773cdb22d56c1
   React-Mapbuffer: 92b99e450e8ff598b27d6e4db3a75e04fd45e9a9
   React-microtasksnativemodule: 2fe0f2bd2840dedbd66c0ac249c64f977f39cc18
+  react-native-encrypted-storage: 569d114e329b1c2c2d9f8c84bcdbe4478dda2258
   react-native-safe-area-context: ae7587b95fb580d1800c5b0b2a7bd48c2868e67a
   React-NativeModulesApple: 44a9474594566cd03659f92e38f42599c6b9dee4
   React-networking: db73d91466cb134fcbdaaa579fb2de14e2c2ea01
@@ -2206,6 +2262,7 @@ SPEC CHECKSUMS:
   ReactCodegen: c5e5343f6691b0cd76913b9be5e89e5a83ff3315
   ReactCommon: 92b53b0bd7f7d86154dc9f512c1ea5dee717cc72
   ReactNativeDependencies: 0d26832c805563a48bdc35bcd566243097bd71f2
+  RNScreens: 6cb648bdad8fe9bee9259fe144df95b6d1d5b707
   RNSVG: 507bf2685de6b3d49449efd4aae7e7471bb9c433
   Yoga: 772166513f9cd2d61a6251d0dacbbfaa5b537479
 

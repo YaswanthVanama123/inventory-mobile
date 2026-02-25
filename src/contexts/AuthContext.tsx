@@ -1,9 +1,10 @@
 import React, {createContext, useState, useContext, ReactNode, useEffect} from 'react';
 import {User, AuthState} from '../types';
 import authService from '../services/authService';
+import storageService from '../services/storageService';
 
 interface AuthContextType extends AuthState {
-  login: (username: string, password: string, loginType: 'admin' | 'employee') => Promise<{success: boolean; error?: string}>;
+  login: (username: string, password: string, loginType: 'admin' | 'employee', rememberMe?: boolean) => Promise<{success: boolean; error?: string}>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -26,13 +27,21 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({children}) => {
 
   const checkAuthToken = async () => {
     try {
-      // TODO: Check AsyncStorage for token
-      // const token = await AsyncStorage.getItem('authToken');
-      // if (token) {
-      //   // Validate token with backend
-      // }
-      setAuthState(prev => ({...prev, loading: false}));
+      const token = await storageService.getAuthToken();
+      const user = await storageService.getUserData();
+
+      if (token && user) {
+        setAuthState({
+          user,
+          token,
+          isAuthenticated: true,
+          loading: false,
+        });
+      } else {
+        setAuthState(prev => ({...prev, loading: false}));
+      }
     } catch (error) {
+      console.error('Error checking auth token:', error);
       setAuthState(prev => ({...prev, loading: false}));
     }
   };
@@ -41,6 +50,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({children}) => {
     username: string,
     password: string,
     loginType: 'admin' | 'employee',
+    rememberMe: boolean = false,
   ): Promise<{success: boolean; error?: string}> => {
     try {
       const result =
@@ -49,8 +59,15 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({children}) => {
           : await authService.loginEmployee(username, password);
 
       if (result.success && result.token && result.user) {
-        // TODO: Store token in AsyncStorage
-        // await AsyncStorage.setItem('authToken', result.token);
+        await storageService.setAuthToken(result.token);
+        await storageService.setUserData(result.user);
+        await storageService.setRememberMe(rememberMe);
+
+        if (rememberMe) {
+          await storageService.setSavedCredentials({username, password});
+        } else {
+          await storageService.removeSavedCredentials();
+        }
 
         setAuthState({
           user: result.user,
@@ -77,8 +94,9 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({children}) => {
   const logout = async () => {
     try {
       await authService.logout();
-      // TODO: Clear AsyncStorage
-      // await AsyncStorage.removeItem('authToken');
+
+      await storageService.removeAuthToken();
+      await storageService.removeUserData();
 
       setAuthState({
         user: null,

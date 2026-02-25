@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {Button} from '../components/atoms/Button';
 import {TextInput} from '../components/atoms/TextInput';
 import {Typography} from '../components/atoms/Typography';
@@ -17,6 +18,7 @@ import {ToggleButtonGroup} from '../components/molecules/ToggleButtonGroup';
 import {ErrorAlert} from '../components/molecules/ErrorAlert';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
+import storageService from '../services/storageService';
 import {
   BoxIcon,
   ShieldIcon,
@@ -56,6 +58,27 @@ export const LoginScreen = () => {
       icon: <UserIcon size={16} color={loginType === 'employee' ? theme.colors.primary[600] : theme.colors.gray[600]} />,
     },
   ];
+
+  useEffect(() => {
+    loadSavedCredentials();
+  }, []);
+
+  const loadSavedCredentials = async () => {
+    try {
+      const rememberMePreference = await storageService.getRememberMe();
+      const savedCreds = await storageService.getSavedCredentials();
+
+      if (rememberMePreference && savedCreds) {
+        setFormData({
+          username: savedCreds.username,
+          password: savedCreds.password,
+        });
+        setRememberMe(true);
+      }
+    } catch (error) {
+      console.error('Error loading saved credentials:', error);
+    }
+  };
 
   const validateForm = () => {
     const errors: {username?: string; password?: string} = {};
@@ -108,12 +131,11 @@ export const LoginScreen = () => {
         formData.username,
         formData.password,
         loginType,
+        rememberMe,
       );
 
       if (result.success) {
-        // TODO: Save rememberMe to AsyncStorage if needed
-        // TODO: Navigate to Dashboard
-        Alert.alert('Success', 'Login successful!');
+        // Navigation handled by AuthContext
       } else {
         setError(result.error || 'Invalid credentials. Please try again.');
       }
@@ -130,9 +152,10 @@ export const LoginScreen = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.background}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -269,10 +292,15 @@ export const LoginScreen = () => {
         </ScrollView>
       </View>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.gray[50],
+  },
   container: {
     flex: 1,
   },
