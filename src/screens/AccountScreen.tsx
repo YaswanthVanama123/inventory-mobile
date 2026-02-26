@@ -1,15 +1,17 @@
-import React from 'react';
-import {View, StyleSheet, Alert, ScrollView} from 'react-native';
+import React, {useState} from 'react';
+import {View, StyleSheet, Alert, ScrollView, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
-import {LogoutIcon, UserIcon} from '../components/icons';
+import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon} from '../components/icons';
+import {SalesReportScreen} from './SalesReportScreen';
 
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
+  const [salesReportVisible, setSalesReportVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -74,6 +76,23 @@ export const AccountScreen = () => {
           </Card>
         )}
 
+        {/* Menu Items */}
+        <Card variant="elevated" padding="none" style={styles.menuCard}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setSalesReportVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <FileTextIcon size={20} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Sales Report
+              </Typography>
+            </View>
+            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+        </Card>
+
         {/* Logout Button */}
         <Button
           title="Logout"
@@ -83,6 +102,12 @@ export const AccountScreen = () => {
           leftIcon={<LogoutIcon size={20} color={theme.colors.white} />}
         />
       </ScrollView>
+
+      {/* Sales Report Modal */}
+      <SalesReportScreen
+        visible={salesReportVisible}
+        onClose={() => setSalesReportVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -131,5 +156,29 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.primary[100],
+  },
+  menuCard: {
+    marginBottom: theme.spacing.lg,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing.lg,
+    backgroundColor: theme.colors.white,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: theme.colors.primary[100],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
