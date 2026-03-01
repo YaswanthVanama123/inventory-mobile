@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   ScrollView,
@@ -6,6 +6,7 @@ import {
   Dimensions,
   RefreshControl,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {LineChart, BarChart, PieChart} from 'react-native-chart-kit';
@@ -21,6 +22,9 @@ import {
   DollarIcon,
   TagIcon,
   ClipboardIcon,
+  FileTextIcon,
+  InventoryIcon,
+  ArrowRightIcon,
 } from '../components/icons';
 import dashboardService from '../services/dashboardService';
 
@@ -32,6 +36,16 @@ export const DashboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
+
+  // Animation values
+  const fadeAnim1 = useRef(new Animated.Value(0)).current;
+  const fadeAnim2 = useRef(new Animated.Value(0)).current;
+  const fadeAnim3 = useRef(new Animated.Value(0)).current;
+  const slideAnim1 = useRef(new Animated.Value(30)).current;
+  const slideAnim2 = useRef(new Animated.Value(30)).current;
+  const slideAnim3 = useRef(new Animated.Value(30)).current;
+  const statsOpacity = useRef(new Animated.Value(0)).current;
+  const statsScale = useRef(new Animated.Value(0.9)).current;
 
   const fetchDashboardData = async () => {
     try {
@@ -58,6 +72,79 @@ export const DashboardScreen = () => {
   useEffect(() => {
     fetchDashboardData();
   }, [token]);
+
+  // Animate charts when data loads
+  useEffect(() => {
+    if (dashboardData && !loading) {
+      // Reset animations on data change
+      fadeAnim1.setValue(0);
+      fadeAnim2.setValue(0);
+      fadeAnim3.setValue(0);
+      slideAnim1.setValue(30);
+      slideAnim2.setValue(30);
+      slideAnim3.setValue(30);
+      statsOpacity.setValue(0);
+      statsScale.setValue(0.9);
+
+      // Animate stat cards first
+      Animated.parallel([
+        Animated.timing(statsOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.spring(statsScale, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      // Then stagger chart animations
+      Animated.stagger(150, [
+        Animated.parallel([
+          Animated.timing(fadeAnim1, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.spring(slideAnim1, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(fadeAnim2, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.spring(slideAnim2, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(fadeAnim3, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.spring(slideAnim3, {
+            toValue: 0,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    }
+  }, [dashboardData, loading]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -95,9 +182,11 @@ export const DashboardScreen = () => {
       labels: ['Bulk Soap', 'Paper Towels', 'Tissue', 'Napkins', 'Cleaners'],
       datasets: [{data: [8500, 7200, 6800, 5900, 5200]}],
     },
-    salesByChannel: [
-      {name: 'RouteStar', population: 65, color: '#3B82F6', legendFontColor: '#64748B'},
-      {name: 'CustomerConnect', population: 35, color: '#10B981', legendFontColor: '#64748B'},
+    statusDistribution: [
+      {name: 'Completed', population: 65, color: '#10B981', legendFontColor: '#64748B'},
+      {name: 'Pending', population: 20, color: '#F59E0B', legendFontColor: '#64748B'},
+      {name: 'Closed', population: 12, color: '#3B82F6', legendFontColor: '#64748B'},
+      {name: 'Cancelled', population: 3, color: '#EF4444', legendFontColor: '#64748B'},
     ],
   });
 
@@ -106,22 +195,32 @@ export const DashboardScreen = () => {
   const chartConfig = {
     backgroundColor: '#ffffff',
     backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
+    backgroundGradientTo: '#f8fafc',
+    backgroundGradientFromOpacity: 0,
+    backgroundGradientToOpacity: 0,
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(100, 116, 139, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(71, 85, 105, ${opacity})`,
     style: {
       borderRadius: 16,
     },
     propsForLabels: {
       fontSize: 11,
-      fontWeight: '500',
+      fontWeight: '600',
     },
     propsForBackgroundLines: {
-      strokeDasharray: '',
+      strokeDasharray: '3 3',
       stroke: '#e2e8f0',
       strokeWidth: 1,
     },
+    propsForDots: {
+      r: '5',
+      strokeWidth: '2',
+      stroke: '#ffffff',
+    },
+    strokeWidth: 3,
+    fillShadowGradient: theme.colors.primary[600],
+    fillShadowGradientOpacity: 0.1,
   };
 
   if (loading) {
@@ -144,21 +243,15 @@ export const DashboardScreen = () => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
-        {/* Header */}
-        <View style={styles.header}>
-          <Typography variant="h2" weight="bold" style={styles.headerTitle}>
-            Dashboard
-          </Typography>
-          <Typography
-            variant="body"
-            color={theme.colors.text.tertiary}
-            style={styles.headerSubtitle}>
-            Welcome back! Here's your inventory overview
-          </Typography>
-        </View>
-
         {/* Stats Grid - Modern Gradient Cards */}
-        <View style={styles.statsGrid}>
+        <Animated.View
+          style={[
+            styles.statsGrid,
+            {
+              opacity: statsOpacity,
+              transform: [{scale: statsScale}],
+            },
+          ]}>
           <View style={styles.statCardWrapper}>
             <GradientStatCard
               title="Total Revenue"
@@ -204,77 +297,132 @@ export const DashboardScreen = () => {
               size="md"
             />
           </View>
-        </View>
+        </Animated.View>
 
         {/* Revenue & Profit Trend */}
-        <Card variant="elevated" padding="lg" style={styles.chartCard}>
-          <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
-            Revenue & Profit Trend
-          </Typography>
-          <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 16}}>
-            Last 6 months performance
-          </Typography>
-          <LineChart
-            data={data.revenueTrend}
-            width={screenWidth - 64}
-            height={220}
-            chartConfig={chartConfig}
-            bezier
-            style={styles.chart}
-            withInnerLines
-            withOuterLines
-            withVerticalLines
-            withHorizontalLines
-            withVerticalLabels
-            withHorizontalLabels
-            withDots
-            withShadow
-            fromZero
-          />
-        </Card>
+        <Animated.View
+          style={{
+            opacity: fadeAnim1,
+            transform: [{translateY: slideAnim1}],
+          }}>
+          <Card variant="elevated" padding="lg" style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <View style={{flex: 1}}>
+                <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
+                  Revenue & Profit Trend
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                  Last 6 months performance
+                </Typography>
+              </View>
+              <View style={styles.growthBadge}>
+                <ArrowRightIcon size={14} color={theme.colors.success[600]} style={{transform: [{rotate: '-45deg'}]}} />
+                <Typography variant="caption" weight="semibold" color={theme.colors.success[600]}>
+                  +24.5%
+                </Typography>
+              </View>
+            </View>
+            <LineChart
+              data={data.revenueTrend}
+              width={screenWidth - 72}
+              height={200}
+              chartConfig={chartConfig}
+              bezier
+              style={styles.chart}
+              withInnerLines
+              withOuterLines
+              withVerticalLines={false}
+              withHorizontalLines
+              withVerticalLabels
+              withHorizontalLabels
+              withDots
+              withShadow={false}
+              fromZero
+            />
+          </Card>
+        </Animated.View>
 
         {/* Top Selling Products */}
-        <Card variant="elevated" padding="lg" style={styles.chartCard}>
-          <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
-            Top Selling Products
-          </Typography>
-          <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 16}}>
-            Best performers this month
-          </Typography>
-          <BarChart
-            data={data.topProducts}
-            width={screenWidth - 64}
-            height={220}
-            chartConfig={chartConfig}
-            style={styles.chart}
-            withInnerLines
-            fromZero
-            showValuesOnTopOfBars
-            yAxisLabel="$"
-            yAxisSuffix="k"
-          />
-        </Card>
+        <Animated.View
+          style={{
+            opacity: fadeAnim2,
+            transform: [{translateY: slideAnim2}],
+          }}>
+          <Card variant="elevated" padding="lg" style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <View style={{flex: 1}}>
+                <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
+                  Top Selling Products
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                  Best performers this month
+                </Typography>
+              </View>
+              <View style={[styles.growthBadge, {backgroundColor: theme.colors.primary[50]}]}>
+                <InventoryIcon size={14} color={theme.colors.primary[600]} />
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]} style={{marginLeft: 4}}>
+                  Top 5
+                </Typography>
+              </View>
+            </View>
+            <BarChart
+              data={data.topProducts}
+              width={screenWidth - 72}
+              height={240}
+              chartConfig={{
+                ...chartConfig,
+                barPercentage: 0.7,
+                fillShadowGradientFrom: theme.colors.primary[500],
+                fillShadowGradientTo: theme.colors.primary[600],
+                fillShadowGradientOpacity: 1,
+              }}
+              style={styles.chart}
+              withInnerLines={false}
+              fromZero
+              showValuesOnTopOfBars
+              yAxisLabel="$"
+              yAxisSuffix=""
+              segments={4}
+            />
+          </Card>
+        </Animated.View>
 
-        {/* Sales by Channel */}
-        <Card variant="elevated" padding="lg" style={styles.chartCard}>
-          <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
-            Sales by Channel
-          </Typography>
-          <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 16}}>
-            Distribution across platforms
-          </Typography>
-          <PieChart
-            data={data.salesByChannel}
-            width={screenWidth - 64}
-            height={220}
-            chartConfig={chartConfig}
-            accessor="population"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            style={styles.chart}
-            hasLegend
-          />
-        </Card>
+        {/* Invoice Status */}
+        <Animated.View
+          style={{
+            opacity: fadeAnim3,
+            transform: [{translateY: slideAnim3}],
+          }}>
+          <Card variant="elevated" padding="lg" style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <View style={{flex: 1}}>
+                <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
+                  Invoice Status
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                  Order status distribution
+                </Typography>
+              </View>
+              <View style={[styles.growthBadge, {backgroundColor: theme.colors.primary[50]}]}>
+                <ClipboardIcon size={14} color={theme.colors.primary[600]} />
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]} style={{marginLeft: 4}}>
+                  {data.statusDistribution?.length || 0} Types
+                </Typography>
+              </View>
+            </View>
+            <PieChart
+              data={data.statusDistribution}
+              width={screenWidth - 72}
+              height={220}
+              chartConfig={chartConfig}
+              accessor="population"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              style={styles.chart}
+              hasLegend
+            />
+          </Card>
+        </Animated.View>
 
         {/* Recent Activity */}
         <Card variant="elevated" padding="lg" style={styles.activityCard}>
@@ -322,24 +470,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     paddingTop: theme.spacing.xl,
     paddingBottom: theme.spacing.xxxl,
-  },
-  header: {
-    marginBottom: theme.spacing.xl,
-  },
-  headerTitle: {
-    marginBottom: theme.spacing.xs,
-    color: theme.colors.text.primary,
-  },
-  headerSubtitle: {
-    fontSize: theme.typography.fontSizes.md,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -theme.spacing.xs,
+    marginHorizontal: 0,
     marginBottom: theme.spacing.xl,
   },
   statCardWrapper: {
@@ -348,9 +486,26 @@ const styles = StyleSheet.create({
   },
   chartCard: {
     marginBottom: theme.spacing.lg,
+    marginHorizontal: theme.spacing.sm,
+    borderRadius: theme.borderRadius.xl,
+    ...theme.shadows.md,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing.lg,
+  },
+  growthBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: theme.colors.success[50],
+    borderRadius: theme.borderRadius.lg,
   },
   chartTitle: {
-    marginBottom: theme.spacing.xs,
     fontSize: theme.typography.fontSizes.xl,
     color: theme.colors.text.primary,
   },
@@ -360,6 +515,8 @@ const styles = StyleSheet.create({
   },
   activityCard: {
     marginBottom: theme.spacing.lg,
+    marginHorizontal: theme.spacing.sm,
+    ...theme.shadows.sm,
   },
   sectionTitle: {
     marginBottom: theme.spacing.md,

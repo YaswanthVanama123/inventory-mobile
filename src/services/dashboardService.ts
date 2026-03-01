@@ -37,13 +37,26 @@ class DashboardService {
   }
 
   transformDashboardData(data: any) {
-    const { summary, categoryStats, recentActivity, topSellingItems, salesTrend } = data;
+    const { summary, recentActivity, topSellingItems, topSellingItemsDetailed, salesTrend, invoiceStatusStats } = data;
 
-    // Calculate sales channels
-    const totalSales = summary.totalRevenue || 0;
-    const totalPurchases = summary.totalPurchaseAmount || 0;
-    const routeStarPercentage = totalSales > 0 ? (totalSales / (totalSales + totalPurchases)) * 100 : 50;
-    const customerConnectPercentage = 100 - routeStarPercentage;
+    // Transform invoice status stats into pie chart data
+    const statusColors: {[key: string]: string} = {
+      'Pending': '#F59E0B', // Amber
+      'Completed': '#10B981', // Green
+      'Closed': '#3B82F6', // Blue
+      'Cancelled': '#EF4444', // Red
+    };
+
+    const statusDistribution = invoiceStatusStats ? Object.keys(invoiceStatusStats)
+      .filter(status => invoiceStatusStats[status] > 0)
+      .map((status) => ({
+        name: status,
+        population: invoiceStatusStats[status],
+        color: statusColors[status] || '#64748B',
+        legendFontColor: '#64748B',
+      })) : [
+        {name: 'Completed', population: 100, color: '#10B981', legendFontColor: '#64748B'},
+      ];
 
     return {
       kpis: {
@@ -72,26 +85,11 @@ class DashboardService {
         ],
         legend: ['Revenue', 'Profit'],
       },
-      topProducts: {
-        labels: (topSellingItems || []).slice(0, 5).map((item: any) => item.itemName),
-        datasets: [{
-          data: (topSellingItems || []).slice(0, 5).map((item: any) => item.value || 0),
-        }],
+      topProducts: topSellingItems || {
+        labels: [],
+        datasets: [{data: []}],
       },
-      salesByChannel: [
-        {
-          name: 'RouteStar',
-          population: Math.round(routeStarPercentage),
-          color: '#3B82F6',
-          legendFontColor: '#64748B',
-        },
-        {
-          name: 'CustomerConnect',
-          population: Math.round(customerConnectPercentage),
-          color: '#10B981',
-          legendFontColor: '#64748B',
-        },
-      ].filter(channel => channel.population > 0),
+      statusDistribution: statusDistribution,
       recentActivity: (recentActivity || []).slice(0, 10).map((activity: any) => ({
         id: activity._id || activity.id,
         type: activity.type || 'update',
