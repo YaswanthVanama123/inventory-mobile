@@ -35,15 +35,15 @@ const styles = StyleSheet.create({
   },
   card_elevated: {
     backgroundColor: theme.colors.white,
-    ...theme.shadows.md,
+    ...theme.shadows.sm,
   },
   card_outlined: {
     backgroundColor: theme.colors.white,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.colors.gray[200],
   },
   card_filled: {
-    backgroundColor: theme.colors.gray[50],
+    backgroundColor: theme.colors.background.secondary,
   },
   padding_sm: {
     padding: theme.spacing.md,

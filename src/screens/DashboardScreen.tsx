@@ -11,6 +11,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {LineChart, BarChart, PieChart} from 'react-native-chart-kit';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {GradientStatCard} from '../components/molecules/GradientStatCard';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
@@ -102,37 +103,6 @@ export const DashboardScreen = () => {
 
   const data = dashboardData || getMockData();
 
-  const stats = [
-    {
-      title: 'Total Revenue',
-      value: `$${(data.kpis?.totalRevenue / 1000).toFixed(1)}K`,
-      subtitle: data.kpis?.revenueChange || '+12.5%',
-      backgroundColor: '#3b82f6',
-      icon: <DollarIcon size={20} color="#ffffff" />,
-    },
-    {
-      title: 'Total Orders',
-      value: data.kpis?.totalOrders?.toLocaleString() || '1,234',
-      subtitle: data.kpis?.ordersChange || '+8.3%',
-      backgroundColor: '#8b5cf6',
-      icon: <ClipboardIcon size={20} color="#ffffff" />,
-    },
-    {
-      title: 'Low Stock',
-      value: data.kpis?.lowStock?.toString() || '23',
-      subtitle: 'Needs attention',
-      backgroundColor: '#f59e0b',
-      icon: <WarningIcon size={20} color="#ffffff" />,
-    },
-    {
-      title: 'Inventory Value',
-      value: `$${(data.kpis?.inventoryValue / 1000).toFixed(1)}K`,
-      subtitle: 'Total worth',
-      backgroundColor: '#10b981',
-      icon: <BoxIcon size={20} color="#ffffff" />,
-    },
-  ];
-
   const chartConfig = {
     backgroundColor: '#ffffff',
     backgroundGradientFrom: '#ffffff',
@@ -158,7 +128,7 @@ export const DashboardScreen = () => {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-        <Typography variant="body" color={theme.colors.gray[600]} style={{marginTop: 16}}>
+        <Typography variant="body" color={theme.colors.text.tertiary} style={{marginTop: 16}}>
           Loading dashboard...
         </Typography>
       </SafeAreaView>
@@ -181,40 +151,59 @@ export const DashboardScreen = () => {
           </Typography>
           <Typography
             variant="body"
-            color={theme.colors.gray[500]}
+            color={theme.colors.text.tertiary}
             style={styles.headerSubtitle}>
-            Welcome to your inventory management dashboard
+            Welcome back! Here's your inventory overview
           </Typography>
         </View>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Modern Gradient Cards */}
         <View style={styles.statsGrid}>
-          {stats.map((stat, index) => (
-            <View key={index} style={styles.statCardWrapper}>
-              <View
-                style={[
-                  styles.statCard,
-                  {backgroundColor: stat.backgroundColor},
-                ]}>
-                <View style={styles.statCardTop}>
-                  <Typography
-                    variant="caption"
-                    style={styles.statTitle}>
-                    {stat.title}
-                  </Typography>
-                  <View style={styles.iconContainer}>{stat.icon}</View>
-                </View>
-                <Typography variant="h2" weight="bold" style={styles.statValue}>
-                  {stat.value}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  style={styles.statSubtitle}>
-                  {stat.subtitle}
-                </Typography>
-              </View>
-            </View>
-          ))}
+          <View style={styles.statCardWrapper}>
+            <GradientStatCard
+              title="Total Revenue"
+              value={`$${(data.kpis?.totalRevenue / 1000).toFixed(1)}K`}
+              subtitle={data.kpis?.revenueChange || '+12.5%'}
+              gradientColor="blue"
+              icon={<DollarIcon size={22} color="#ffffff" />}
+              trend="up"
+              size="md"
+            />
+          </View>
+
+          <View style={styles.statCardWrapper}>
+            <GradientStatCard
+              title="Total Orders"
+              value={data.kpis?.totalOrders?.toLocaleString() || '1,234'}
+              subtitle={data.kpis?.ordersChange || '+8.3%'}
+              gradientColor="purple"
+              icon={<ClipboardIcon size={22} color="#ffffff" />}
+              trend="up"
+              size="md"
+            />
+          </View>
+
+          <View style={styles.statCardWrapper}>
+            <GradientStatCard
+              title="Low Stock"
+              value={data.kpis?.lowStock?.toString() || '23'}
+              subtitle="Needs attention"
+              gradientColor="orange"
+              icon={<WarningIcon size={22} color="#ffffff" />}
+              size="md"
+            />
+          </View>
+
+          <View style={styles.statCardWrapper}>
+            <GradientStatCard
+              title="Inventory Value"
+              value={`$${(data.kpis?.inventoryValue / 1000).toFixed(1)}K`}
+              subtitle="Total worth"
+              gradientColor="green"
+              icon={<BoxIcon size={22} color="#ffffff" />}
+              size="md"
+            />
+          </View>
         </View>
 
         {/* Revenue & Profit Trend */}
@@ -321,13 +310,13 @@ export const DashboardScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.gray[50],
+    backgroundColor: theme.colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.gray[50],
+    backgroundColor: theme.colors.background.secondary,
   },
   scrollView: {
     flex: 1,
@@ -335,73 +324,38 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: theme.spacing.lg,
     paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.xxxl,
   },
   header: {
     marginBottom: theme.spacing.xl,
   },
   headerTitle: {
     marginBottom: theme.spacing.xs,
+    color: theme.colors.text.primary,
   },
   headerSubtitle: {
-    fontSize: theme.typography.fontSizes.sm,
+    fontSize: theme.typography.fontSizes.md,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -6,
-    marginBottom: theme.spacing.lg,
+    marginHorizontal: -theme.spacing.xs,
+    marginBottom: theme.spacing.xl,
   },
   statCardWrapper: {
     width: '50%',
-    padding: 6,
-  },
-  statCard: {
-    borderRadius: 16,
-    padding: 16,
-    minHeight: 140,
-    justifyContent: 'space-between',
-    ...theme.shadows.md,
-  },
-  statCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statTitle: {
-    color: '#ffffff',
-    fontSize: 13,
-    opacity: 0.95,
-    fontWeight: '500',
-  },
-  statValue: {
-    color: '#ffffff',
-    fontSize: 28,
-    lineHeight: 34,
-    marginBottom: 4,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statSubtitle: {
-    color: '#ffffff',
-    fontSize: 12,
-    opacity: 0.9,
+    padding: theme.spacing.xs,
   },
   chartCard: {
     marginBottom: theme.spacing.lg,
   },
   chartTitle: {
     marginBottom: theme.spacing.xs,
-    fontSize: 18,
+    fontSize: theme.typography.fontSizes.xl,
+    color: theme.colors.text.primary,
   },
   chart: {
-    marginVertical: 8,
+    marginVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.lg,
   },
   activityCard: {
@@ -409,7 +363,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: theme.spacing.md,
-    fontSize: 18,
+    fontSize: theme.typography.fontSizes.xl,
+    color: theme.colors.text.primary,
   },
   activityList: {
     gap: theme.spacing.sm,
@@ -419,7 +374,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.gray[50],
+    backgroundColor: theme.colors.background.secondary,
   },
   activityIcon: {
     width: 40,
@@ -434,6 +389,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activityTime: {
-    marginTop: 2,
+    marginTop: theme.spacing.xs,
   },
 });

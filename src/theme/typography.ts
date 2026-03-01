@@ -1,13 +1,13 @@
 export const typography = {
   fontSizes: {
-    xs: 11,      // Caption - very small text, labels
-    sm: 13,      // Small - secondary text, metadata
-    md: 15,      // Body - default text (iOS standard)
-    lg: 17,      // Large body - emphasized content
-    xl: 18,      // H4 - card titles, section headers
-    xxl: 20,     // H3 - modal titles, page sections
-    xxxl: 24,    // H2 - important sections
-    xxxxl: 28,   // H1 - main page titles (reduced from 40)
+    xs: 10,      // Caption - very small text, labels
+    sm: 12,      // Small - secondary text, metadata
+    md: 14,      // Body - default text
+    lg: 15,      // Large body - emphasized content
+    xl: 16,      // H4 - card titles, section headers
+    xxl: 17,     // H3 - modal titles, page sections
+    xxxl: 20,    // H2 - important sections
+    xxxxl: 24,   // H1 - main page titles
   },
 
   fontWeights: {

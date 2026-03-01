@@ -12,6 +12,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
 import invoiceService from '../services/invoiceService';
 import {AlertCircleIcon, FileTextIcon} from '../components/icons';
@@ -28,6 +29,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   onClose,
 }) => {
   const {token} = useAuth();
+  const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
   const [invoice, setInvoice] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,20 +37,56 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   useEffect(() => {
     if (visible && invoiceId && token) {
       fetchInvoiceDetails();
+    } else if (visible && !invoiceId) {
+      setError('No invoice ID provided');
     }
   }, [visible, invoiceId, token]);
 
   const fetchInvoiceDetails = async () => {
-    if (!invoiceId || !token) return;
+    if (!invoiceId || !token) {
+      console.log('Cannot fetch: missing invoiceId or token');
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
-      const data = await invoiceService.getInvoiceById(token, invoiceId);
-      setInvoice(data.invoice || data);
+      console.log('Fetching invoice details for:', invoiceId);
+
+      // Check if it's an invoice number (contains letters) or MongoDB ID (only hex)
+      const isInvoiceNumber = /[A-Za-z]/.test(invoiceId);
+      console.log('Is invoice number:', isInvoiceNumber);
+
+      let data;
+      if (isInvoiceNumber) {
+        // Use RouteStar invoice endpoint with invoice number
+        data = await invoiceService.getInvoiceByNumber(token, invoiceId);
+      } else {
+        // Use regular invoice endpoint with MongoDB ID
+        data = await invoiceService.getInvoiceById(token, invoiceId);
+      }
+
+      console.log('Invoice data received:', data);
+
+      // Log items structure for debugging
+      if (data.items && data.items.length > 0) {
+        console.log('First item structure:', JSON.stringify(data.items[0], null, 2));
+        console.log('First item fields:', Object.keys(data.items[0]));
+      } else if (data.lineItems && data.lineItems.length > 0) {
+        console.log('First lineItem structure:', JSON.stringify(data.lineItems[0], null, 2));
+        console.log('First lineItem fields:', Object.keys(data.lineItems[0]));
+      }
+
+      setInvoice(data);
     } catch (error: any) {
       console.error('Failed to fetch invoice details:', error);
+
+      // Check if token expired and handle auto-logout
+      const wasHandled = await handleApiError(error);
+      if (wasHandled) return;
+
       setError(error.message || 'Failed to load invoice details');
+      setInvoice(null);
     } finally {
       setLoading(false);
     }
@@ -331,51 +369,60 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
             )}
 
             {/* Line Items */}
-            {invoice.items && invoice.items.length > 0 && (
+            {((invoice.items && invoice.items.length > 0) || (invoice.lineItems && invoice.lineItems.length > 0)) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
                 <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
-                  Line Items ({invoice.items.length})
+                  Line Items ({(invoice.items || invoice.lineItems).length})
                 </Typography>
-                {invoice.items.map((item: any, index: number) => (
-                  <View key={index} style={styles.lineItem}>
-                    <View style={styles.lineItemHeader}>
-                      <Typography variant="body" weight="semibold" style={{flex: 1}}>
-                        {item.item || item.itemName || item.sku || 'Item'}
-                      </Typography>
-                      <Typography variant="body" weight="bold" color={theme.colors.success[600]}>
-                        {formatCurrency(item.amount || item.total || item.subtotal || 0)}
-                      </Typography>
-                    </View>
-                    <View style={styles.lineItemDetails}>
-                      {item.description && (
-                        <Typography variant="small" color={theme.colors.gray[600]}>
-                          {item.description}
+                {(invoice.items || invoice.lineItems).map((item: any, index: number) => {
+                  console.log(`Item ${index}:`, JSON.stringify(item, null, 2));
+
+                  // Try multiple field name variations
+                  const itemName = item.item || item.itemName || item.name || item.description ||
+                                   item.product || item.service || item.sku || item.itemCode ||
+                                   'Item';
+
+                  return (
+                    <View key={index} style={styles.lineItem}>
+                      <View style={styles.lineItemHeader}>
+                        <Typography variant="body" weight="semibold" style={{flex: 1}}>
+                          {itemName}
                         </Typography>
-                      )}
-                      <View style={styles.lineItemMeta}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Qty: {item.qty || item.quantity || 0}
+                        <Typography variant="body" weight="bold" color={theme.colors.success[600]}>
+                          {formatCurrency(item.amount || item.total || item.subtotal || item.lineTotal || 0)}
                         </Typography>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          •
-                        </Typography>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Rate: {formatCurrency(item.rate || item.price || item.unitPrice || 0)}
-                        </Typography>
-                        {item.class && (
-                          <>
-                            <Typography variant="caption" color={theme.colors.gray[500]}>
-                              •
-                            </Typography>
-                            <Typography variant="caption" color={theme.colors.gray[500]}>
-                              {item.class}
-                            </Typography>
-                          </>
+                      </View>
+                      <View style={styles.lineItemDetails}>
+                        {(item.description && item.description !== itemName) && (
+                          <Typography variant="small" color={theme.colors.gray[600]}>
+                            {item.description}
+                          </Typography>
                         )}
+                        <View style={styles.lineItemMeta}>
+                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                            Qty: {item.qty || item.quantity || item.count || 0}
+                          </Typography>
+                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                            •
+                          </Typography>
+                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                            Rate: {formatCurrency(item.rate || item.price || item.unitPrice || item.priceEach || 0)}
+                          </Typography>
+                          {(item.class || item.category) && (
+                            <>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                •
+                              </Typography>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                {item.class || item.category}
+                              </Typography>
+                            </>
+                          )}
+                        </View>
                       </View>
                     </View>
-                  </View>
-                ))}
+                  );
+                })}
               </Card>
             )}
 
@@ -496,10 +543,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray[200],
+    borderBottomColor: theme.colors.gray[100],
     backgroundColor: theme.colors.white,
+    ...theme.shadows.xs,
   },
   modalHeaderLeft: {
     width: 60,
@@ -543,9 +591,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.xxxl,
   },
   invoiceHeaderCard: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    borderRadius: theme.borderRadius.xl,
+    ...theme.shadows.md,
   },
   invoiceHeaderTop: {
     flexDirection: 'row',
@@ -558,60 +609,63 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.full,
   },
   invoiceNumber: {
     fontFamily: 'monospace',
     marginBottom: theme.spacing.xs,
   },
   section: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    borderRadius: theme.borderRadius.xl,
+    ...theme.shadows.sm,
   },
   sectionTitle: {
-    marginBottom: theme.spacing.md,
-    color: theme.colors.gray[700],
+    marginBottom: theme.spacing.lg,
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.fontSizes.lg,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
   },
   lineItem: {
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray[200],
+    borderBottomColor: theme.colors.gray[100],
   },
   lineItemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
   },
   lineItemDetails: {
-    gap: 4,
+    gap: 6,
   },
   lineItemMeta: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
+    gap: 10,
+    marginTop: 6,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
   },
   totalDivider: {
-    height: 1,
-    backgroundColor: theme.colors.gray[300],
-    marginVertical: theme.spacing.md,
+    height: 1.5,
+    backgroundColor: theme.colors.gray[200],
+    marginVertical: theme.spacing.lg,
   },
   stockStatusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.full,
   },
 });

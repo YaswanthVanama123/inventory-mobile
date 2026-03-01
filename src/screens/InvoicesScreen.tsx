@@ -75,6 +75,12 @@ export const InvoicesScreen = () => {
         if (paymentStatusFilter) params.paymentStatus = paymentStatusFilter;
 
         const response = await invoiceService.getInvoices(token, params);
+        console.log('Fetched invoices response:', response);
+        console.log('Number of invoices:', response.invoices?.length);
+
+        if (response.invoices && response.invoices.length > 0) {
+          console.log('First invoice structure:', JSON.stringify(response.invoices[0], null, 2));
+        }
 
         if (isMounted) {
           setInvoices(response.invoices || []);
@@ -106,7 +112,16 @@ export const InvoicesScreen = () => {
   };
 
   const handleInvoicePress = (invoice: any) => {
-    setSelectedInvoiceId(invoice._id);
+    console.log('Invoice pressed - Full invoice object:', JSON.stringify(invoice, null, 2));
+    console.log('Invoice _id:', invoice._id);
+    console.log('Invoice id:', invoice.id);
+    console.log('Invoice invoiceNumber:', invoice.invoiceNumber);
+
+    // Use invoice number for RouteStar invoices
+    const invoiceIdentifier = invoice.invoiceNumber || invoice._id || invoice.id;
+    console.log('Using invoice identifier:', invoiceIdentifier);
+
+    setSelectedInvoiceId(invoiceIdentifier);
     setDetailModalVisible(true);
   };
 
@@ -445,26 +460,29 @@ const styles = StyleSheet.create({
     paddingTop: theme.spacing.xl,
   },
   header: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
   },
   headerTitle: {
     marginBottom: theme.spacing.xs,
+    color: theme.colors.text.primary,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSizes.md,
+    color: theme.colors.text.tertiary,
   },
   searchContainer: {
     marginBottom: theme.spacing.md,
   },
   searchInput: {
     backgroundColor: theme.colors.white,
-    borderRadius: 12,
+    borderRadius: theme.borderRadius.xl,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    borderWidth: 1,
+    paddingVertical: 14,
+    fontSize: theme.typography.fontSizes.md,
+    borderWidth: 1.5,
     borderColor: theme.colors.gray[200],
-    color: theme.colors.gray[900],
+    color: theme.colors.text.primary,
+    ...theme.shadows.sm,
   },
   filterSection: {
     marginBottom: theme.spacing.md,
@@ -482,13 +500,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: theme.colors.gray[200],
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: theme.colors.gray[100],
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
   },
   filterChipActive: {
     backgroundColor: theme.colors.primary[600],
+    borderColor: theme.colors.primary[600],
+    ...theme.shadows.sm,
   },
   errorCard: {
     marginBottom: theme.spacing.lg,
@@ -516,14 +538,16 @@ const styles = StyleSheet.create({
   invoiceCard: {
     marginBottom: 0,
     overflow: 'hidden',
+    borderRadius: theme.borderRadius.xl,
+    ...theme.shadows.sm,
   },
   invoiceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: theme.spacing.md,
+    padding: theme.spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray[200],
+    borderBottomColor: theme.colors.gray[100],
   },
   invoiceHeaderLeft: {
     flexDirection: 'row',
@@ -532,10 +556,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: theme.colors.primary[100],
+    width: 48,
+    height: 48,
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.primary[50],
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -549,8 +573,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   invoiceDetails: {
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.gray[50],
   },
   detailRow: {
     flexDirection: 'row',
@@ -558,8 +583,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.full,
   },
 });

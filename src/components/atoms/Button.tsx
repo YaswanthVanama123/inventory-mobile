@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.xl,
     gap: theme.spacing.sm,
   },
   button_primary: {
@@ -85,11 +85,13 @@ const styles = StyleSheet.create({
     ...theme.shadows.md,
   },
   button_secondary: {
-    backgroundColor: theme.colors.gray[100],
+    backgroundColor: theme.colors.accent[50],
+    borderWidth: 1,
+    borderColor: theme.colors.accent[200],
   },
   button_outline: {
     backgroundColor: theme.colors.transparent,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: theme.colors.primary[600],
   },
   button_ghost: {
@@ -108,7 +110,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   button_lg: {
-    paddingVertical: theme.spacing.lg,
+    paddingVertical: 18,
     paddingHorizontal: theme.spacing.xl,
   },
   fullWidth: {
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
   },
   text_secondary: {
-    color: theme.colors.gray[700],
+    color: theme.colors.accent[700],
   },
   text_outline: {
     color: theme.colors.primary[600],
