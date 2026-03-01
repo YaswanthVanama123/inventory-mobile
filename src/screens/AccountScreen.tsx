@@ -6,13 +6,14 @@ import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
-import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon} from '../components/icons';
+import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon} from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
 import {OrdersScreen} from './OrdersScreen';
 import {ModelCategoryMappingScreen} from './ModelCategoryMappingScreen';
 import {ItemAliasMappingScreen} from './ItemAliasMappingScreen';
 import {RouteStarItemsScreen} from './RouteStarItemsScreen';
 import {UserManagementScreen} from './UserManagementScreen';
+import {FetchHistoryScreen} from './FetchHistoryScreen';
 
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
@@ -22,6 +23,7 @@ export const AccountScreen = () => {
   const [itemAliasVisible, setItemAliasVisible] = useState(false);
   const [routeStarItemsVisible, setRouteStarItemsVisible] = useState(false);
   const [userManagementVisible, setUserManagementVisible] = useState(false);
+  const [fetchHistoryVisible, setFetchHistoryVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -51,7 +53,7 @@ export const AccountScreen = () => {
         contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Typography variant="h1" weight="bold" style={styles.headerTitle}>
+          <Typography variant="h2" weight="bold" style={styles.headerTitle}>
             Account
           </Typography>
           <Typography
@@ -68,7 +70,7 @@ export const AccountScreen = () => {
             <View style={styles.userIcon}>
               <UserIcon size={48} color={theme.colors.primary[600]} />
             </View>
-            <Typography variant="h2" weight="bold" align="center">
+            <Typography variant="h3" weight="bold" align="center">
               {user.fullName || user.username}
             </Typography>
             <Typography
@@ -175,6 +177,22 @@ export const AccountScreen = () => {
 
           <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => setFetchHistoryVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <ClockIcon size={20} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Fetch History
+              </Typography>
+            </View>
+            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          <View style={styles.menuSeparator} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={() => setSalesReportVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
@@ -235,6 +253,12 @@ export const AccountScreen = () => {
           onClose={() => setUserManagementVisible(false)}
         />
       )}
+
+      {/* Fetch History Modal */}
+      <FetchHistoryScreen
+        visible={fetchHistoryVisible}
+        onClose={() => setFetchHistoryVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -255,11 +279,10 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   headerTitle: {
-    fontSize: 32,
     marginBottom: theme.spacing.xs,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.fontSizes.sm,  // 13 instead of 14
   },
   userCard: {
     alignItems: 'center',

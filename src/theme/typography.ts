@@ -1,13 +1,13 @@
 export const typography = {
   fontSizes: {
-    xs: 12,
-    sm: 14,
-    md: 16,
-    lg: 18,
-    xl: 20,
-    xxl: 24,
-    xxxl: 32,
-    xxxxl: 40,
+    xs: 11,      // Caption - very small text, labels
+    sm: 13,      // Small - secondary text, metadata
+    md: 15,      // Body - default text (iOS standard)
+    lg: 17,      // Large body - emphasized content
+    xl: 18,      // H4 - card titles, section headers
+    xxl: 20,     // H3 - modal titles, page sections
+    xxxl: 24,    // H2 - important sections
+    xxxxl: 28,   // H1 - main page titles (reduced from 40)
   },
 
   fontWeights: {
@@ -18,9 +18,9 @@ export const typography = {
   },
 
   lineHeights: {
-    tight: 1.25,
-    normal: 1.5,
-    relaxed: 1.75,
+    tight: 1.2,    // Tighter for headings
+    normal: 1.4,   // Better for mobile readability (was 1.5)
+    relaxed: 1.6,  // Slightly tighter (was 1.75)
   },
 };
 

@@ -184,7 +184,7 @@ export const StockScreen = () => {
         }>
         {/* Header */}
         <View style={styles.header}>
-          <Typography variant="h1" weight="bold" style={styles.headerTitle}>
+          <Typography variant="h2" weight="bold" style={styles.headerTitle}>
             Stock Management
           </Typography>
           <Typography
@@ -754,7 +754,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   headerTitle: {
-    fontSize: 32,
     marginBottom: theme.spacing.xs,
   },
   headerSubtitle: {

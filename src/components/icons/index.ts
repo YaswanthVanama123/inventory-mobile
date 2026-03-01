@@ -25,3 +25,4 @@ export {PlusIcon} from './PlusIcon';
 export {EditIcon} from './EditIcon';
 export {TrashIcon} from './TrashIcon';
 export {KeyIcon} from './KeyIcon';
+export {RefreshIcon} from './RefreshIcon';
