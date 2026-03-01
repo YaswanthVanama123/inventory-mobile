@@ -18,3 +18,5 @@ export {SettingsIcon} from './SettingsIcon';
 export {ChevronDownIcon} from './ChevronDownIcon';
 export {ChevronRightIcon} from './ChevronRightIcon';
 export {FileTextIcon} from './FileTextIcon';
+export {CheckCircleIcon} from './CheckCircleIcon';
+export {ClockIcon} from './ClockIcon';

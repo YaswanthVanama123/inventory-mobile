@@ -12,12 +12,14 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
 import inventoryService from '../services/inventoryService';
 import {BoxIcon, AlertCircleIcon, ChevronDownIcon, ChevronRightIcon} from '../components/icons';
 
 export const InventoryScreen = () => {
   const {token} = useAuth();
+  const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [groupedItems, setGroupedItems] = useState<any[]>([]);
@@ -64,6 +66,11 @@ export const InventoryScreen = () => {
       }
     } catch (error: any) {
       console.error('Failed to fetch grouped items:', error);
+
+      // Check if token expired and handle auto-logout
+      const wasHandled = await handleApiError(error);
+      if (wasHandled) return;
+
       if (isMounted) {
         setError(error.message || 'Failed to load inventory');
         setGroupedItems([]);

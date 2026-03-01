@@ -15,23 +15,23 @@ import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
-import salesReportService from '../services/salesReportService';
+import ordersService from '../services/ordersService';
 import {
   AlertCircleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   BoxIcon,
-  DollarIcon,
+  CheckCircleIcon,
+  ClockIcon,
   FileTextIcon,
-  TagIcon,
 } from '../components/icons';
 
-interface SalesReportScreenProps {
+interface OrdersScreenProps {
   visible: boolean;
   onClose: () => void;
 }
 
-export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
+export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   visible,
   onClose,
 }) => {
@@ -39,12 +39,16 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [items, setItems] = useState<any[]>([]);
-  const [filteredItems, setFilteredItems] = useState<any[]>([]);
-  const [totals, setTotals] = useState<any>({});
+  const [orders, setOrders] = useState<any[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    processed: 0,
+    pending: 0,
+  });
 
   useEffect(() => {
     if (visible && token) {
@@ -54,17 +58,16 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
 
   useEffect(() => {
     if (searchQuery) {
-      const filtered = items.filter(
-        item =>
-          item.itemName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.itemParent?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      const filtered = orders.filter(
+        order =>
+          order.orderNumber?.toString().includes(searchQuery) ||
+          order.vendor?.name?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredItems(filtered);
+      setFilteredOrders(filtered);
     } else {
-      setFilteredItems(items);
+      setFilteredOrders(orders);
     }
-  }, [searchQuery, items]);
+  }, [searchQuery, orders]);
 
   const loadData = async () => {
     if (!token) return;
@@ -72,18 +75,29 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const response = await salesReportService.getSalesReport(token);
-      setItems(response.items || []);
-      setFilteredItems(response.items || []);
-      setTotals(response.totals || {});
+      const response = await ordersService.getOrders(token, {
+        limit: 100,
+      });
+
+      const ordersData = response.orders || [];
+      setOrders(ordersData);
+      setFilteredOrders(ordersData);
+
+      // Calculate stats
+      const processed = ordersData.filter((o: any) => o.stockProcessed).length;
+      setStats({
+        totalOrders: ordersData.length,
+        processed,
+        pending: ordersData.length - processed,
+      });
     } catch (error: any) {
-      console.error('Failed to fetch sales report:', error);
+      console.error('Failed to fetch orders:', error);
 
       // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
 
-      setError(error.message || 'Failed to load sales report');
+      setError(error.message || 'Failed to load orders');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -95,14 +109,14 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
     loadData();
   };
 
-  const handleItemPress = (itemId: string) => {
-    const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(itemId)) {
-      newExpanded.delete(itemId);
+  const handleOrderPress = (orderNumber: string) => {
+    const newExpanded = new Set(expandedOrders);
+    if (newExpanded.has(orderNumber)) {
+      newExpanded.delete(orderNumber);
     } else {
-      newExpanded.add(itemId);
+      newExpanded.add(orderNumber);
     }
-    setExpandedItems(newExpanded);
+    setExpandedOrders(newExpanded);
   };
 
   const formatCurrency = (amount: number) => {
@@ -122,6 +136,28 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
     }
   };
 
+  const getStatusColor = (status: string) => {
+    const statusMap: {[key: string]: string} = {
+      Complete: theme.colors.success[600],
+      Processing: theme.colors.warning[600],
+      Shipped: theme.colors.primary[600],
+      Cancelled: theme.colors.error[600],
+      Pending: theme.colors.gray[500],
+    };
+    return statusMap[status] || theme.colors.gray[500];
+  };
+
+  const getStatusBgColor = (status: string) => {
+    const statusMap: {[key: string]: string} = {
+      Complete: theme.colors.success[100],
+      Processing: theme.colors.warning[100],
+      Shipped: theme.colors.primary[100],
+      Cancelled: theme.colors.error[100],
+      Pending: theme.colors.gray[100],
+    };
+    return statusMap[status] || theme.colors.gray[100];
+  };
+
   return (
     <Modal
       visible={visible}
@@ -137,7 +173,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
             </Typography>
           </TouchableOpacity>
           <Typography variant="h3" weight="bold" style={styles.modalTitle}>
-            Sales Report
+            Purchase Orders
           </Typography>
           <TouchableOpacity onPress={loadData} style={styles.refreshButton}>
             <Typography variant="small" color={theme.colors.primary[600]} weight="semibold">
@@ -153,7 +189,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
               variant="body"
               color={theme.colors.gray[600]}
               style={{marginTop: 16}}>
-              Loading sales report...
+              Loading orders...
             </Typography>
           </View>
         ) : (
@@ -168,60 +204,45 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
             <View style={styles.statsGrid}>
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.gray[600]}]}>
-                  <BoxIcon size={20} color={theme.colors.white} />
+                  <FileTextIcon size={20} color={theme.colors.white} />
                   <Typography variant="caption" style={styles.statLabel}>
-                    Total Items
+                    Total Orders
                   </Typography>
                   <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {totals.totalItems || 0}
+                    {stats.totalOrders}
                   </Typography>
                   <Typography variant="caption" style={styles.statSubtitle}>
-                    Items with sales data
+                    All orders
                   </Typography>
                 </View>
               </View>
 
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
-                  <TagIcon size={20} color={theme.colors.white} />
+                  <CheckCircleIcon size={20} color={theme.colors.white} />
                   <Typography variant="caption" style={styles.statLabel}>
-                    Total Sold Quantity
+                    Processed
                   </Typography>
                   <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {totals.totalSoldQuantity || 0}
+                    {stats.processed}
                   </Typography>
                   <Typography variant="caption" style={styles.statSubtitle}>
-                    Units sold
+                    Stock processed
                   </Typography>
                 </View>
               </View>
 
               <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
-                  <DollarIcon size={20} color={theme.colors.white} />
+                <View style={[styles.statCard, {backgroundColor: theme.colors.warning[600]}]}>
+                  <ClockIcon size={20} color={theme.colors.white} />
                   <Typography variant="caption" style={styles.statLabel}>
-                    Total Sales Amount
+                    Pending
                   </Typography>
                   <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {formatCurrency(totals.totalSoldAmount || 0)}
+                    {stats.pending}
                   </Typography>
                   <Typography variant="caption" style={styles.statSubtitle}>
-                    Total revenue
-                  </Typography>
-                </View>
-              </View>
-
-              <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: '#6366f1'}]}>
-                  <FileTextIcon size={20} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Total Invoices
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {totals.totalInvoices || 0}
-                  </Typography>
-                  <Typography variant="caption" style={styles.statSubtitle}>
-                    Invoices processed
+                    Not processed
                   </Typography>
                 </View>
               </View>
@@ -231,7 +252,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
             <View style={styles.searchContainer}>
               <RNTextInput
                 style={styles.searchInput}
-                placeholder="Search items..."
+                placeholder="Search by order # or vendor..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor={theme.colors.gray[400]}
@@ -254,15 +275,15 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
             )}
 
             {/* Empty State */}
-            {!error && filteredItems.length === 0 && (
+            {!error && filteredOrders.length === 0 && (
               <Card variant="outlined" padding="lg" style={styles.emptyCard}>
-                <BoxIcon size={48} color={theme.colors.gray[400]} />
+                <FileTextIcon size={48} color={theme.colors.gray[400]} />
                 <Typography
                   variant="h3"
                   weight="semibold"
                   color={theme.colors.gray[700]}
                   style={styles.emptyTitle}>
-                  No items found
+                  No orders found
                 </Typography>
                 <Typography
                   variant="body"
@@ -270,26 +291,26 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                   align="center">
                   {searchQuery
                     ? 'Try adjusting your search'
-                    : 'No sales data available'}
+                    : 'No orders available'}
                 </Typography>
               </Card>
             )}
 
-            {/* Items List */}
-            <View style={styles.itemsList}>
-              {filteredItems.map((item, index) => {
-                const isExpanded = expandedItems.has(item._id);
+            {/* Orders List */}
+            <View style={styles.ordersList}>
+              {filteredOrders.map((order, index) => {
+                const isExpanded = expandedOrders.has(order.orderNumber);
 
                 return (
                   <Card
-                    key={item._id || index}
+                    key={order._id || index}
                     variant="elevated"
                     padding="none"
-                    style={styles.itemCard}>
+                    style={styles.orderCard}>
                     <TouchableOpacity
-                      onPress={() => handleItemPress(item._id)}
-                      style={styles.itemHeader}>
-                      <View style={styles.itemHeaderLeft}>
+                      onPress={() => handleOrderPress(order.orderNumber)}
+                      style={styles.orderHeader}>
+                      <View style={styles.orderHeaderLeft}>
                         <View style={styles.chevronContainer}>
                           {isExpanded ? (
                             <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
@@ -297,140 +318,128 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                             <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
                           )}
                         </View>
-                        <View style={styles.itemInfo}>
-                          <Typography variant="body" weight="semibold" numberOfLines={1}>
-                            {item.itemName}
+                        <View style={styles.orderInfo}>
+                          <Typography variant="body" weight="bold">
+                            #{order.orderNumber}
                           </Typography>
                           <Typography variant="caption" color={theme.colors.gray[500]}>
-                            {item.itemParent || 'No parent'} • On Hand: {item.qtyOnHand || 0}
+                            {order.vendor?.name || 'N/A'}
                           </Typography>
                         </View>
                       </View>
-                      <View style={styles.itemStats}>
+                      <View style={styles.orderHeaderRight}>
                         <Typography
                           variant="body"
                           weight="bold"
-                          color={
-                            item.soldQuantity > 0
-                              ? theme.colors.success[600]
-                              : theme.colors.gray[500]
-                          }>
-                          {item.soldQuantity || 0}
+                          color={theme.colors.success[600]}>
+                          {formatCurrency(order.total)}
                         </Typography>
                         <Typography variant="caption" color={theme.colors.gray[500]}>
-                          sold
+                          {formatDate(order.orderDate)}
                         </Typography>
                       </View>
                     </TouchableOpacity>
 
-                    {/* Expanded Details */}
-                    {isExpanded && (
-                      <View style={styles.expandedContent}>
-                        {/* Item Summary */}
-                        <View style={styles.itemSummary}>
-                          <View style={styles.summaryRow}>
-                            <Typography variant="small" color={theme.colors.gray[500]}>
-                              Description
-                            </Typography>
-                            <Typography variant="small" weight="medium" style={{flex: 1, textAlign: 'right'}}>
-                              {item.description || 'N/A'}
-                            </Typography>
-                          </View>
-                          <View style={styles.summaryRow}>
-                            <Typography variant="small" color={theme.colors.gray[500]}>
-                              Sold Quantity
-                            </Typography>
-                            <Typography variant="small" weight="bold" color={theme.colors.success[600]}>
-                              {item.soldQuantity || 0}
-                            </Typography>
-                          </View>
-                          <View style={styles.summaryRow}>
-                            <Typography variant="small" color={theme.colors.gray[500]}>
-                              Sales Amount
-                            </Typography>
-                            <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>
-                              {formatCurrency(item.soldAmount || 0)}
-                            </Typography>
-                          </View>
-                          <View style={styles.summaryRow}>
-                            <Typography variant="small" color={theme.colors.gray[500]}>
-                              Invoices
-                            </Typography>
-                            <View style={styles.invoiceCountBadge}>
-                              <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
-                                {item.invoiceCount || 0}
-                              </Typography>
-                            </View>
-                          </View>
+                    {/* Order Details */}
+                    <View style={styles.orderMeta}>
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Status
+                        </Typography>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            {backgroundColor: getStatusBgColor(order.status)},
+                          ]}>
+                          <Typography
+                            variant="caption"
+                            weight="semibold"
+                            color={getStatusColor(order.status)}>
+                            {order.status || 'Pending'}
+                          </Typography>
                         </View>
-
-                        {/* Invoice Details */}
-                        {item.invoiceDetails && item.invoiceDetails.length > 0 ? (
-                          <View style={styles.invoiceDetailsContainer}>
-                            <Typography variant="small" weight="semibold" style={styles.invoiceDetailsTitle}>
-                              Invoice Details ({item.invoiceDetails.length})
+                      </View>
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Stock
+                        </Typography>
+                        {order.stockProcessed ? (
+                          <View style={[styles.statusBadge, {backgroundColor: theme.colors.success[100]}]}>
+                            <Typography
+                              variant="caption"
+                              weight="semibold"
+                              color={theme.colors.success[600]}>
+                              Processed
                             </Typography>
-                            {item.invoiceDetails.map((invoice: any, invIndex: number) => (
-                              <View key={invIndex} style={styles.invoiceDetailItem}>
-                                <View style={styles.invoiceDetailRow}>
-                                  <Typography variant="small" color={theme.colors.gray[500]}>
-                                    Invoice #
-                                  </Typography>
-                                  <Typography variant="small" weight="medium">
-                                    {invoice.invoiceNumber}
-                                  </Typography>
-                                </View>
-                                <View style={styles.invoiceDetailRow}>
-                                  <Typography variant="small" color={theme.colors.gray[500]}>
-                                    Date
-                                  </Typography>
-                                  <Typography variant="small">
-                                    {formatDate(invoice.invoiceDate)}
-                                  </Typography>
-                                </View>
-                                <View style={styles.invoiceDetailRow}>
-                                  <Typography variant="small" color={theme.colors.gray[500]}>
-                                    Customer
-                                  </Typography>
-                                  <Typography variant="small" numberOfLines={1} style={{flex: 1, textAlign: 'right'}}>
-                                    {invoice.customer || 'N/A'}
-                                  </Typography>
-                                </View>
-                                <View style={styles.invoiceDetailRow}>
-                                  <Typography variant="small" color={theme.colors.gray[500]}>
-                                    Quantity
-                                  </Typography>
-                                  <Typography variant="small" weight="bold">
-                                    {invoice.quantity}
-                                  </Typography>
-                                </View>
-                                <View style={styles.invoiceDetailRow}>
-                                  <Typography variant="small" color={theme.colors.gray[500]}>
-                                    Rate
-                                  </Typography>
-                                  <Typography variant="small">
-                                    {formatCurrency(invoice.rate || 0)}
-                                  </Typography>
-                                </View>
-                                <View style={styles.invoiceDetailRow}>
-                                  <Typography variant="small" color={theme.colors.gray[500]}>
-                                    Amount
-                                  </Typography>
-                                  <Typography variant="small" weight="bold" color={theme.colors.success[600]}>
-                                    {formatCurrency(invoice.amount || 0)}
-                                  </Typography>
-                                </View>
-                              </View>
-                            ))}
                           </View>
                         ) : (
-                          <View style={styles.noInvoicesContainer}>
-                            <FileTextIcon size={32} color={theme.colors.gray[300]} />
-                            <Typography variant="small" color={theme.colors.gray[500]} style={{marginTop: 8}}>
-                              No invoice entries found
+                          <View style={[styles.statusBadge, {backgroundColor: theme.colors.warning[100]}]}>
+                            <Typography
+                              variant="caption"
+                              weight="semibold"
+                              color={theme.colors.warning[600]}>
+                              Pending
                             </Typography>
                           </View>
                         )}
+                      </View>
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Items
+                        </Typography>
+                        <Typography variant="small" weight="medium">
+                          {order.items?.length || 0} items
+                        </Typography>
+                      </View>
+                    </View>
+
+                    {/* Expanded Items */}
+                    {isExpanded && order.items && order.items.length > 0 && (
+                      <View style={styles.expandedContent}>
+                        <Typography variant="small" weight="semibold" style={styles.itemsTitle}>
+                          Order Items ({order.items.length})
+                        </Typography>
+                        {order.items.map((item: any, itemIndex: number) => (
+                          <View key={itemIndex} style={styles.itemCard}>
+                            <View style={styles.itemHeader}>
+                              <Typography variant="small" weight="bold" numberOfLines={1} style={{flex: 1}}>
+                                {item.name || 'N/A'}
+                              </Typography>
+                            </View>
+                            <View style={styles.itemRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                SKU
+                              </Typography>
+                              <Typography variant="small" weight="medium">
+                                {item.sku || 'N/A'}
+                              </Typography>
+                            </View>
+                            <View style={styles.itemRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                Quantity
+                              </Typography>
+                              <Typography variant="small" weight="bold">
+                                {item.qty || 0}
+                              </Typography>
+                            </View>
+                            <View style={styles.itemRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                Unit Price
+                              </Typography>
+                              <Typography variant="small">
+                                {formatCurrency(item.unitPrice || 0)}
+                              </Typography>
+                            </View>
+                            <View style={styles.itemRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                Line Total
+                              </Typography>
+                              <Typography variant="small" weight="bold" color={theme.colors.success[600]}>
+                                {formatCurrency(item.lineTotal || (item.qty || 0) * (item.unitPrice || 0))}
+                              </Typography>
+                            </View>
+                          </View>
+                        ))}
                       </View>
                     )}
                   </Card>
@@ -490,7 +499,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   statCardWrapper: {
-    width: '50%',
+    width: '33.33%',
     padding: 4,
   },
   statCard: {
@@ -548,20 +557,20 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     marginBottom: theme.spacing.xs,
   },
-  itemsList: {
+  ordersList: {
     gap: theme.spacing.md,
   },
-  itemCard: {
+  orderCard: {
     marginBottom: 0,
     overflow: 'hidden',
   },
-  itemHeader: {
+  orderHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: theme.spacing.md,
   },
-  itemHeaderLeft: {
+  orderHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
@@ -573,59 +582,51 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  itemInfo: {
+  orderInfo: {
     flex: 1,
   },
-  itemStats: {
+  orderHeaderRight: {
     alignItems: 'flex-end',
   },
-  expandedContent: {
+  orderMeta: {
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray[200],
-    backgroundColor: theme.colors.gray[50],
-  },
-  itemSummary: {
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
   },
-  summaryRow: {
+  metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  invoiceCountBadge: {
-    backgroundColor: theme.colors.primary[100],
+  statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  invoiceDetailsContainer: {
+  expandedContent: {
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray[200],
     padding: theme.spacing.md,
-    backgroundColor: theme.colors.white,
+    backgroundColor: theme.colors.gray[50],
   },
-  invoiceDetailsTitle: {
+  itemsTitle: {
     marginBottom: theme.spacing.md,
     color: theme.colors.gray[700],
   },
-  invoiceDetailItem: {
-    backgroundColor: theme.colors.gray[50],
+  itemCard: {
+    backgroundColor: theme.colors.white,
     borderRadius: 8,
     padding: theme.spacing.sm,
     marginBottom: theme.spacing.sm,
     gap: 4,
   },
-  invoiceDetailRow: {
+  itemHeader: {
+    marginBottom: 4,
+  },
+  itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  noInvoicesContainer: {
-    padding: theme.spacing.xl,
-    alignItems: 'center',
-    backgroundColor: theme.colors.white,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
   },
 });

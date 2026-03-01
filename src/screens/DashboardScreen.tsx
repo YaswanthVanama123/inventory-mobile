@@ -12,6 +12,7 @@ import {LineChart, BarChart, PieChart} from 'react-native-chart-kit';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
 import {
   BoxIcon,
@@ -26,6 +27,7 @@ const screenWidth = Dimensions.get('window').width;
 
 export const DashboardScreen = () => {
   const {token} = useAuth();
+  const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -37,9 +39,14 @@ export const DashboardScreen = () => {
         console.log('Dashboard data:', data);
         setDashboardData(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch dashboard data:', error);
-      // Use mock data if API fails
+
+      // Check if token expired and handle auto-logout
+      const wasHandled = await handleApiError(error);
+      if (wasHandled) return;
+
+      // Use mock data if API fails for other reasons
       setDashboardData(getMockData());
     } finally {
       setLoading(false);

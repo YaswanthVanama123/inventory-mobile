@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://192.168.1.18:5001/api';
+import {API_BASE_URL} from '../config/api';
 
 class SalesReportService {
   async getSalesReport(token: string) {

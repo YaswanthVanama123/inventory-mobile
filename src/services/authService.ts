@@ -1,8 +1,5 @@
 import {AuthResponse, LoginCredentials} from '../types';
-
-// Configure your API base URL here
-// Use your Mac's IP address for iOS simulator to access localhost backend
-const API_BASE_URL = 'http://192.168.1.18:5001/api';
+import {API_BASE_URL} from '../config/api';
 
 class AuthService {
   private async request(

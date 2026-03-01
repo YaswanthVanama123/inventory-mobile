@@ -6,12 +6,14 @@ import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
-import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon} from '../components/icons';
+import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon} from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
+import {OrdersScreen} from './OrdersScreen';
 
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
   const [salesReportVisible, setSalesReportVisible] = useState(false);
+  const [ordersVisible, setOrdersVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -80,6 +82,22 @@ export const AccountScreen = () => {
         <Card variant="elevated" padding="none" style={styles.menuCard}>
           <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => setOrdersVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <ClipboardIcon size={20} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Purchase Orders
+              </Typography>
+            </View>
+            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          <View style={styles.menuSeparator} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={() => setSalesReportVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
@@ -107,6 +125,12 @@ export const AccountScreen = () => {
       <SalesReportScreen
         visible={salesReportVisible}
         onClose={() => setSalesReportVisible(false)}
+      />
+
+      {/* Orders Modal */}
+      <OrdersScreen
+        visible={ordersVisible}
+        onClose={() => setOrdersVisible(false)}
       />
     </SafeAreaView>
   );
@@ -167,6 +191,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.white,
+  },
+  menuSeparator: {
+    height: 1,
+    backgroundColor: theme.colors.gray[200],
+    marginHorizontal: theme.spacing.lg,
   },
   menuItemLeft: {
     flexDirection: 'row',

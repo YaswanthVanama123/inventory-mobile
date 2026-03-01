@@ -1,28 +1,37 @@
-const API_BASE_URL = 'http://192.168.1.18:5001/api';
+import {API_BASE_URL} from '../config/api';
 
 class DashboardService {
   async getDashboardData(token: string) {
     try {
-      const response = await fetch(`${API_BASE_URL}/reports/dashboard`, {
+      const url = `${API_BASE_URL}/reports/dashboard`;
+      console.log('[Dashboard] Fetching from:', url);
+
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
 
+      console.log('[Dashboard] Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
+        const errorText = await response.text();
+        console.error('[Dashboard] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('[Dashboard] Response data:', JSON.stringify(result).substring(0, 200));
 
       if (result.success && result.data) {
         return this.transformDashboardData(result.data);
       }
 
       throw new Error('Invalid response format');
-    } catch (error) {
-      console.error('Dashboard Service Error:', error);
+    } catch (error: any) {
+      console.error('[Dashboard] Service Error:', error.message);
+      console.error('[Dashboard] Full error:', error);
       throw error;
     }
   }
