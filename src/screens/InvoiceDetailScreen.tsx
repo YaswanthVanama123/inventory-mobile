@@ -203,7 +203,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
           <View style={styles.errorContainer}>
             <Card variant="outlined" padding="lg" style={styles.errorCard}>
               <View style={styles.errorContent}>
-                <AlertCircleIcon size={24} color={theme.colors.error[500]} />
+                <AlertCircleIcon size={20} color={theme.colors.error[500]} />
                 <Typography
                   variant="body"
                   color={theme.colors.error[700]}
@@ -221,7 +221,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
             {/* Invoice Header Card */}
             <Card variant="elevated" padding="lg" style={styles.invoiceHeaderCard}>
               <View style={styles.invoiceHeaderTop}>
-                <FileTextIcon size={40} color={theme.colors.primary[600]} />
+                <FileTextIcon size={32} color={theme.colors.primary[600]} />
                 <View style={styles.badgesContainer}>
                   <View
                     style={[

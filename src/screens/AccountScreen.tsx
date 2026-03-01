@@ -68,7 +68,7 @@ export const AccountScreen = () => {
         {user && (
           <Card variant="elevated" padding="lg" style={styles.userCard}>
             <View style={styles.userIcon}>
-              <UserIcon size={48} color={theme.colors.primary[600]} />
+              <UserIcon size={25} color={theme.colors.primary[600]} />
             </View>
             <Typography variant="h3" weight="bold" align="center">
               {user.fullName || user.username}
@@ -98,13 +98,13 @@ export const AccountScreen = () => {
                 onPress={() => setUserManagementVisible(true)}>
                 <View style={styles.menuItemLeft}>
                   <View style={styles.menuIconContainer}>
-                    <SettingsIcon size={20} color={theme.colors.primary[600]} />
+                    <SettingsIcon size={16} color={theme.colors.primary[600]} />
                   </View>
                   <Typography variant="body" weight="medium">
                     User Management
                   </Typography>
                 </View>
-                <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+                <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
               </TouchableOpacity>
 
               <View style={styles.menuSeparator} />
@@ -116,13 +116,13 @@ export const AccountScreen = () => {
             onPress={() => setOrdersVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <ClipboardIcon size={20} color={theme.colors.primary[600]} />
+                <ClipboardIcon size={16} color={theme.colors.primary[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Purchase Orders
               </Typography>
             </View>
-            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
 
           <View style={styles.menuSeparator} />
@@ -132,13 +132,13 @@ export const AccountScreen = () => {
             onPress={() => setModelMappingVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <LinkIcon size={20} color={theme.colors.primary[600]} />
+                <LinkIcon size={16} color={theme.colors.primary[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Model Mapping
               </Typography>
             </View>
-            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
 
           <View style={styles.menuSeparator} />
@@ -148,13 +148,13 @@ export const AccountScreen = () => {
             onPress={() => setItemAliasVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <TagIcon size={20} color={theme.colors.primary[600]} />
+                <TagIcon size={16} color={theme.colors.primary[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Item Alias Mapping
               </Typography>
             </View>
-            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
 
           <View style={styles.menuSeparator} />
@@ -164,13 +164,13 @@ export const AccountScreen = () => {
             onPress={() => setRouteStarItemsVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <BoxIcon size={20} color={theme.colors.primary[600]} />
+                <BoxIcon size={16} color={theme.colors.primary[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 RouteStar Items
               </Typography>
             </View>
-            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
 
           <View style={styles.menuSeparator} />
@@ -180,13 +180,13 @@ export const AccountScreen = () => {
             onPress={() => setFetchHistoryVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <ClockIcon size={20} color={theme.colors.primary[600]} />
+                <ClockIcon size={16} color={theme.colors.primary[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Fetch History
               </Typography>
             </View>
-            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
 
           <View style={styles.menuSeparator} />
@@ -196,13 +196,13 @@ export const AccountScreen = () => {
             onPress={() => setSalesReportVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
-                <FileTextIcon size={20} color={theme.colors.primary[600]} />
+                <FileTextIcon size={16} color={theme.colors.primary[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Sales Report
               </Typography>
             </View>
-            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
         </Card>
 
@@ -212,7 +212,7 @@ export const AccountScreen = () => {
           variant="danger"
           onPress={handleLogout}
           fullWidth
-          leftIcon={<LogoutIcon size={20} color={theme.colors.white} />}
+          leftIcon={<LogoutIcon size={16} color={theme.colors.white} />}
         />
       </ScrollView>
 
@@ -289,9 +289,9 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   userIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: theme.colors.primary[100],
     justifyContent: 'center',
     alignItems: 'center',
@@ -329,9 +329,9 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 9,
     backgroundColor: theme.colors.primary[100],
     alignItems: 'center',
     justifyContent: 'center',

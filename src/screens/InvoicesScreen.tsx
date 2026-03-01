@@ -356,7 +356,7 @@ export const InvoicesScreen = () => {
                 <View style={styles.invoiceHeader}>
                   <View style={styles.invoiceHeaderLeft}>
                     <View style={styles.iconContainer}>
-                      <FileTextIcon size={24} color={theme.colors.primary[600]} />
+                      <FileTextIcon size={20} color={theme.colors.primary[600]} />
                     </View>
                     <View style={styles.invoiceHeaderInfo}>
                       <Typography
@@ -556,8 +556,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
     borderRadius: theme.borderRadius.lg,
     backgroundColor: theme.colors.primary[50],
     alignItems: 'center',

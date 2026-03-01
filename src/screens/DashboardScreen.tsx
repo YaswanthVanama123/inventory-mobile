@@ -165,7 +165,7 @@ export const DashboardScreen = () => {
               value={`$${(data.kpis?.totalRevenue / 1000).toFixed(1)}K`}
               subtitle={data.kpis?.revenueChange || '+12.5%'}
               gradientColor="blue"
-              icon={<DollarIcon size={22} color="#ffffff" />}
+              icon={<DollarIcon size={18} color="#ffffff" />}
               trend="up"
               size="md"
             />
@@ -177,7 +177,7 @@ export const DashboardScreen = () => {
               value={data.kpis?.totalOrders?.toLocaleString() || '1,234'}
               subtitle={data.kpis?.ordersChange || '+8.3%'}
               gradientColor="purple"
-              icon={<ClipboardIcon size={22} color="#ffffff" />}
+              icon={<ClipboardIcon size={18} color="#ffffff" />}
               trend="up"
               size="md"
             />
@@ -189,7 +189,7 @@ export const DashboardScreen = () => {
               value={data.kpis?.lowStock?.toString() || '23'}
               subtitle="Needs attention"
               gradientColor="orange"
-              icon={<WarningIcon size={22} color="#ffffff" />}
+              icon={<WarningIcon size={18} color="#ffffff" />}
               size="md"
             />
           </View>
@@ -200,7 +200,7 @@ export const DashboardScreen = () => {
               value={`$${(data.kpis?.inventoryValue / 1000).toFixed(1)}K`}
               subtitle="Total worth"
               gradientColor="green"
-              icon={<BoxIcon size={22} color="#ffffff" />}
+              icon={<BoxIcon size={18} color="#ffffff" />}
               size="md"
             />
           </View>
@@ -285,7 +285,7 @@ export const DashboardScreen = () => {
             {(data.recentActivity || []).slice(0, 4).map((activity: any) => (
               <View key={activity.id} style={styles.activityItem}>
                 <View style={styles.activityIcon}>
-                  <ClipboardIcon size={20} color={theme.colors.primary[600]} />
+                  <ClipboardIcon size={16} color={theme.colors.primary[600]} />
                 </View>
                 <View style={styles.activityContent}>
                   <Typography variant="small" weight="medium">
@@ -377,9 +377,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background.secondary,
   },
   activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: theme.colors.primary[100],
     justifyContent: 'center',
     alignItems: 'center',

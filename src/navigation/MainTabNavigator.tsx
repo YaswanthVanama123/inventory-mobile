@@ -1,5 +1,6 @@
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {DashboardScreen} from '../screens/DashboardScreen';
 import {InventoryScreen} from '../screens/InventoryScreen';
 import {StockScreen} from '../screens/StockScreen';
@@ -19,6 +20,8 @@ export type MainTabParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export const MainTabNavigator = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -29,13 +32,14 @@ export const MainTabNavigator = () => {
           backgroundColor: theme.colors.white,
           borderTopColor: theme.colors.gray[200],
           borderTopWidth: 1,
-          paddingBottom: 8,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
-          height: 60,
+          height: 56 + (insets.bottom > 0 ? insets.bottom : 0),
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '500',
+          marginBottom: 4,
         },
       }}>
       <Tab.Screen
