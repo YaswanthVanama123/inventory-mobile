@@ -12,3 +12,6 @@ export type {CardProps} from './Card';
 
 export {Checkbox} from './Checkbox';
 export type {CheckboxProps} from './Checkbox';
+
+export {StatusBadge} from './StatusBadge';
+export type {StatusBadgeProps, StatusType} from './StatusBadge';

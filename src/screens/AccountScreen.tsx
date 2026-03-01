@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
   roleBadge: {
     marginTop: theme.spacing.lg,
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.primary[100],
   },
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.sm,
   },
   menuIconContainer: {
     width: 40,

@@ -343,8 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
   },
   headerSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: theme.typography.fontSizes.sm,
   },
   statsGrid: {
     flexDirection: 'row',

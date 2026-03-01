@@ -1,11 +1,13 @@
 import {colors} from './colors';
 import {spacing} from './spacing';
 import {typography} from './typography';
+import {status} from './status';
 
 export const theme = {
   colors,
   spacing,
   typography,
+  status,
   borderRadius: {
     sm: 4,
     md: 8,
@@ -41,4 +43,5 @@ export const theme = {
 
 export type Theme = typeof theme;
 
-export {colors, spacing, typography};
+export {colors, spacing, typography, status};
+export * from './status'; // Export helper functions

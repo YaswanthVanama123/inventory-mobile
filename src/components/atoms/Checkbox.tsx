@@ -25,7 +25,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       disabled={disabled}
       activeOpacity={0.7}>
       <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-        {checked ? <CheckIcon size={14} color={theme.colors.white} /> : null}
+        {checked ? <CheckIcon size={16} color={theme.colors.white} /> : null}
       </View>
       {label ? <Text style={styles.label}>{label}</Text> : null}
     </TouchableOpacity>
@@ -38,8 +38,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 24, // Increased from 20 for better touch target
+    height: 24,
     borderRadius: theme.borderRadius.sm,
     borderWidth: 2,
     borderColor: theme.colors.gray[300],

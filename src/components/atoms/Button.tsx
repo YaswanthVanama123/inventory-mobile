@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
     ...theme.shadows.md,
   },
   button_sm: {
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 13, // Minimum 44pt touch target (13 + ~18 line height + 13 = ~44px)
+    paddingHorizontal: 20,
   },
   button_md: {
     paddingVertical: theme.spacing.md,
