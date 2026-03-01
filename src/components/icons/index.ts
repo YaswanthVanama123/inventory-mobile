@@ -20,3 +20,8 @@ export {ChevronRightIcon} from './ChevronRightIcon';
 export {FileTextIcon} from './FileTextIcon';
 export {CheckCircleIcon} from './CheckCircleIcon';
 export {ClockIcon} from './ClockIcon';
+export {LinkIcon} from './LinkIcon';
+export {PlusIcon} from './PlusIcon';
+export {EditIcon} from './EditIcon';
+export {TrashIcon} from './TrashIcon';
+export {KeyIcon} from './KeyIcon';

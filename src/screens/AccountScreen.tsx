@@ -6,14 +6,22 @@ import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
-import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon} from '../components/icons';
+import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon} from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
 import {OrdersScreen} from './OrdersScreen';
+import {ModelCategoryMappingScreen} from './ModelCategoryMappingScreen';
+import {ItemAliasMappingScreen} from './ItemAliasMappingScreen';
+import {RouteStarItemsScreen} from './RouteStarItemsScreen';
+import {UserManagementScreen} from './UserManagementScreen';
 
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
   const [salesReportVisible, setSalesReportVisible] = useState(false);
   const [ordersVisible, setOrdersVisible] = useState(false);
+  const [modelMappingVisible, setModelMappingVisible] = useState(false);
+  const [itemAliasVisible, setItemAliasVisible] = useState(false);
+  const [routeStarItemsVisible, setRouteStarItemsVisible] = useState(false);
+  const [userManagementVisible, setUserManagementVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -80,6 +88,27 @@ export const AccountScreen = () => {
 
         {/* Menu Items */}
         <Card variant="elevated" padding="none" style={styles.menuCard}>
+          {/* User Management (Admin Only) */}
+          {user?.role === 'admin' && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setUserManagementVisible(true)}>
+                <View style={styles.menuItemLeft}>
+                  <View style={styles.menuIconContainer}>
+                    <SettingsIcon size={20} color={theme.colors.primary[600]} />
+                  </View>
+                  <Typography variant="body" weight="medium">
+                    User Management
+                  </Typography>
+                </View>
+                <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+
+              <View style={styles.menuSeparator} />
+            </>
+          )}
+
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => setOrdersVisible(true)}>
@@ -89,6 +118,54 @@ export const AccountScreen = () => {
               </View>
               <Typography variant="body" weight="medium">
                 Purchase Orders
+              </Typography>
+            </View>
+            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          <View style={styles.menuSeparator} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setModelMappingVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <LinkIcon size={20} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Model Mapping
+              </Typography>
+            </View>
+            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          <View style={styles.menuSeparator} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setItemAliasVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <TagIcon size={20} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Item Alias Mapping
+              </Typography>
+            </View>
+            <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          <View style={styles.menuSeparator} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setRouteStarItemsVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <BoxIcon size={20} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                RouteStar Items
               </Typography>
             </View>
             <ChevronRightIcon size={20} color={theme.colors.gray[400]} />
@@ -132,6 +209,32 @@ export const AccountScreen = () => {
         visible={ordersVisible}
         onClose={() => setOrdersVisible(false)}
       />
+
+      {/* Model Category Mapping Modal */}
+      <ModelCategoryMappingScreen
+        visible={modelMappingVisible}
+        onClose={() => setModelMappingVisible(false)}
+      />
+
+      {/* Item Alias Mapping Modal */}
+      <ItemAliasMappingScreen
+        visible={itemAliasVisible}
+        onClose={() => setItemAliasVisible(false)}
+      />
+
+      {/* RouteStar Items Modal */}
+      <RouteStarItemsScreen
+        visible={routeStarItemsVisible}
+        onClose={() => setRouteStarItemsVisible(false)}
+      />
+
+      {/* User Management Modal */}
+      {user?.role === 'admin' && (
+        <UserManagementScreen
+          visible={userManagementVisible}
+          onClose={() => setUserManagementVisible(false)}
+        />
+      )}
     </SafeAreaView>
   );
 };
