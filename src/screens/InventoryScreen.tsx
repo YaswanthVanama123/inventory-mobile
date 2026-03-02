@@ -25,6 +25,7 @@ export const InventoryScreen = () => {
   const [groupedItems, setGroupedItems] = useState<any[]>([]);
   const [filteredItems, setFilteredItems] = useState<any[]>([]);
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
+  const [loadingDetails, setLoadingDetails] = useState<{[key: string]: boolean}>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'purchases' | 'sells'>('purchases');
   const [error, setError] = useState<string | null>(null);
@@ -110,11 +111,71 @@ export const InventoryScreen = () => {
     fetchData();
   };
 
-  const toggleExpand = (sku: string) => {
+  const toggleExpand = async (sku: string, itemName: string) => {
+    const isCurrentlyExpanded = expandedItems[sku];
+
+    // Toggle expansion state
     setExpandedItems(prev => ({
       ...prev,
       [sku]: !prev[sku],
     }));
+
+    // If expanding and data not already loaded, fetch it
+    if (!isCurrentlyExpanded && token) {
+      const item = groupedItems.find(i => i.sku === sku);
+
+      // Check if data already loaded
+      const hasData = activeTab === 'purchases'
+        ? (item?.orders && item.orders.length > 0)
+        : (item?.invoices && item.invoices.length > 0);
+
+      if (!hasData) {
+        setLoadingDetails(prev => ({ ...prev, [sku]: true }));
+
+        try {
+          let details;
+          if (activeTab === 'purchases') {
+            details = await inventoryService.getOrdersForItem(token, sku);
+          } else {
+            details = await inventoryService.getInvoicesForItem(token, itemName);
+          }
+
+          if (isMounted) {
+            // Update the specific item with fetched details
+            setGroupedItems(prev =>
+              prev.map(item =>
+                item.sku === sku
+                  ? {
+                      ...item,
+                      [activeTab === 'purchases' ? 'orders' : 'invoices']: details,
+                    }
+                  : item
+              )
+            );
+          }
+        } catch (error: any) {
+          console.error('Failed to fetch details:', error);
+          const wasHandled = await handleApiError(error);
+          if (!wasHandled && isMounted) {
+            // Set empty array so we don't keep trying to fetch
+            setGroupedItems(prev =>
+              prev.map(item =>
+                item.sku === sku
+                  ? {
+                      ...item,
+                      [activeTab === 'purchases' ? 'orders' : 'invoices']: [],
+                    }
+                  : item
+              )
+            );
+          }
+        } finally {
+          if (isMounted) {
+            setLoadingDetails(prev => ({ ...prev, [sku]: false }));
+          }
+        }
+      }
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -270,7 +331,7 @@ export const InventoryScreen = () => {
                 style={styles.groupCard}>
                 {/* Group Header */}
                 <TouchableOpacity
-                  onPress={() => toggleExpand(group.sku)}
+                  onPress={() => toggleExpand(group.sku, group.name)}
                   style={styles.groupHeader}>
                   <View style={styles.groupHeaderLeft}>
                     {/* Chevron */}
@@ -358,8 +419,21 @@ export const InventoryScreen = () => {
                 {/* Expanded Orders */}
                 {isExpanded && (
                   <>
+                    {/* Loading spinner */}
+                    {loadingDetails[group.sku] && (
+                      <View style={styles.ordersContainer}>
+                        <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+                        <Typography
+                          variant="body"
+                          color={theme.colors.gray[600]}
+                          style={{marginTop: 8, textAlign: 'center'}}>
+                          Loading details...
+                        </Typography>
+                      </View>
+                    )}
+
                     {/* For Purchases - show orders */}
-                    {activeTab === 'purchases' && group.orders && group.orders.length > 0 && (
+                    {!loadingDetails[group.sku] && activeTab === 'purchases' && group.orders && group.orders.length > 0 && (
                       <View style={styles.ordersContainer}>
                         <Typography
                           variant="small"
@@ -498,7 +572,7 @@ export const InventoryScreen = () => {
                     )}
 
                     {/* For Sells - show invoices */}
-                    {activeTab === 'sells' && group.invoices && group.invoices.length > 0 && (
+                    {!loadingDetails[group.sku] && activeTab === 'sells' && group.invoices && group.invoices.length > 0 && (
                       <View style={styles.ordersContainer}>
                         <Typography
                           variant="small"
@@ -653,6 +727,31 @@ export const InventoryScreen = () => {
                             </View>
                           </View>
                         ))}
+                      </View>
+                    )}
+
+                    {/* Empty state - when not loading and no data */}
+                    {!loadingDetails[group.sku] && activeTab === 'purchases' &&
+                     group.orders !== undefined && (!group.orders || group.orders.length === 0) && (
+                      <View style={styles.ordersContainer}>
+                        <Typography
+                          variant="body"
+                          color={theme.colors.gray[500]}
+                          style={{textAlign: 'center', paddingVertical: 16}}>
+                          No purchase orders found for this item
+                        </Typography>
+                      </View>
+                    )}
+
+                    {!loadingDetails[group.sku] && activeTab === 'sells' &&
+                     group.invoices !== undefined && (!group.invoices || group.invoices.length === 0) && (
+                      <View style={styles.ordersContainer}>
+                        <Typography
+                          variant="body"
+                          color={theme.colors.gray[500]}
+                          style={{textAlign: 'center', paddingVertical: 16}}>
+                          No sales invoices found for this item
+                        </Typography>
                       </View>
                     )}
                   </>

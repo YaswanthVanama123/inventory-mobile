@@ -54,6 +54,56 @@ class InventoryService {
     }
   }
 
+  // LAZY LOADING: Get orders for a specific item (purchases)
+  async getOrdersForItem(token: string, sku: string) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/customerconnect/items/${encodeURIComponent(sku)}/orders`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch orders for item');
+      }
+
+      const data = await response.json();
+      return data.data?.entries || data.entries || [];
+    } catch (error) {
+      console.error('Orders For Item Service Error:', error);
+      throw error;
+    }
+  }
+
+  // LAZY LOADING: Get invoices for a specific item (sales)
+  async getInvoicesForItem(token: string, itemName: string) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/routestar/items/${encodeURIComponent(itemName)}/invoices`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoices for item');
+      }
+
+      const data = await response.json();
+      return data.data?.entries || data.entries || [];
+    } catch (error) {
+      console.error('Invoices For Item Service Error:', error);
+      throw error;
+    }
+  }
+
   async getInventoryItems(token: string, params: InventoryParams = {}) {
     try {
       const queryParams = new URLSearchParams();
