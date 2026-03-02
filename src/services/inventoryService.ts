@@ -93,27 +93,6 @@ class InventoryService {
     }
   }
 
-  async getCategories(token: string) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/inventory/categories`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch categories');
-      }
-
-      const data = await response.json();
-      return data.data?.categories || data.categories || [];
-    } catch (error) {
-      console.error('Categories Service Error:', error);
-      throw error;
-    }
-  }
-
   async getItemDetails(token: string, itemId: string) {
     try {
       const response = await fetch(`${API_BASE_URL}/inventory/${itemId}`, {
