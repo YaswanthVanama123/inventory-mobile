@@ -6,7 +6,7 @@ import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
-import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon} from '../components/icons';
+import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon} from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
 import {OrdersScreen} from './OrdersScreen';
 import {ModelCategoryMappingScreen} from './ModelCategoryMappingScreen';
@@ -14,6 +14,7 @@ import {ItemAliasMappingScreen} from './ItemAliasMappingScreen';
 import {RouteStarItemsScreen} from './RouteStarItemsScreen';
 import {UserManagementScreen} from './UserManagementScreen';
 import {FetchHistoryScreen} from './FetchHistoryScreen';
+import {DiscrepancyManagementScreen} from './DiscrepancyManagementScreen';
 
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
@@ -24,6 +25,7 @@ export const AccountScreen = () => {
   const [routeStarItemsVisible, setRouteStarItemsVisible] = useState(false);
   const [userManagementVisible, setUserManagementVisible] = useState(false);
   const [fetchHistoryVisible, setFetchHistoryVisible] = useState(false);
+  const [discrepancyManagementVisible, setDiscrepancyManagementVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -193,6 +195,22 @@ export const AccountScreen = () => {
 
           <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => setDiscrepancyManagementVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <AlertCircleIcon size={16} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Discrepancy Management
+              </Typography>
+            </View>
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+
+          <View style={styles.menuSeparator} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={() => setSalesReportVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
@@ -258,6 +276,12 @@ export const AccountScreen = () => {
       <FetchHistoryScreen
         visible={fetchHistoryVisible}
         onClose={() => setFetchHistoryVisible(false)}
+      />
+
+      {/* Discrepancy Management Modal */}
+      <DiscrepancyManagementScreen
+        visible={discrepancyManagementVisible}
+        onClose={() => setDiscrepancyManagementVisible(false)}
       />
     </SafeAreaView>
   );

@@ -6,6 +6,9 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -14,11 +17,13 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
 import stockService from '../services/stockService';
+import discrepancyService from '../services/discrepancyService';
 import {
   BoxIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   AlertCircleIcon,
+  PlusIcon,
 } from '../components/icons';
 
 export const StockScreen = () => {
@@ -35,6 +40,17 @@ export const StockScreen = () => {
   const [loadingCategories, setLoadingCategories] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(true);
+
+  // Discrepancy modal state
+  const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false);
+  const [prefilledItem, setPrefilledItem] = useState<any>(null);
+  const [discrepancyFormData, setDiscrepancyFormData] = useState({
+    actualQuantity: 0,
+    discrepancyType: '',
+    reason: '',
+    notes: '',
+  });
+  const [submittingDiscrepancy, setSubmittingDiscrepancy] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -156,6 +172,54 @@ export const StockScreen = () => {
       });
     } catch {
       return 'Invalid Date';
+    }
+  };
+
+  const handleSubmitDiscrepancy = async () => {
+    if (!prefilledItem) return;
+
+    if (discrepancyFormData.actualQuantity === prefilledItem.systemQuantity) {
+      Alert.alert('Error', 'Actual quantity matches system quantity - no discrepancy to record');
+      return;
+    }
+
+    if (!discrepancyFormData.discrepancyType) {
+      Alert.alert('Error', 'Please select a discrepancy type');
+      return;
+    }
+
+    try {
+      setSubmittingDiscrepancy(true);
+
+      const data = {
+        itemName: prefilledItem.itemName,
+        itemSku: prefilledItem.itemSku,
+        categoryName: prefilledItem.categoryName,
+        systemQuantity: prefilledItem.systemQuantity,
+        actualQuantity: discrepancyFormData.actualQuantity,
+        discrepancyType: discrepancyFormData.discrepancyType,
+        reason: discrepancyFormData.reason,
+        notes: discrepancyFormData.notes,
+      };
+
+      await discrepancyService.createDiscrepancy(data);
+
+      Alert.alert('Success', 'Discrepancy recorded successfully');
+      setShowDiscrepancyModal(false);
+      setPrefilledItem(null);
+      setDiscrepancyFormData({
+        actualQuantity: 0,
+        discrepancyType: '',
+        reason: '',
+        notes: '',
+      });
+
+      // Refresh stock data
+      loadData();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to record discrepancy');
+    } finally {
+      setSubmittingDiscrepancy(false);
     }
   };
 
@@ -302,6 +366,20 @@ export const StockScreen = () => {
                 </Typography>
               </View>
             </View>
+
+            <View style={styles.statCard}>
+              <View style={[{backgroundColor: theme.colors.error[600]}, styles.statCardContent]}>
+                <Typography variant="caption" style={styles.statLabel}>
+                  Discrepancies
+                </Typography>
+                <Typography variant="h2" weight="bold" style={styles.statValue}>
+                  {currentData.totals.totalDiscrepancyDifference !== undefined ? currentData.totals.totalDiscrepancyDifference : currentData.totals.totalDiscrepancies || 0}
+                </Typography>
+                <Typography variant="caption" style={styles.statSubtitle}>
+                  Total difference
+                </Typography>
+              </View>
+            </View>
           </View>
         )}
 
@@ -358,7 +436,8 @@ export const StockScreen = () => {
                 <TouchableOpacity
                   onPress={() => handleCategoryClick(category.categoryName)}
                   style={styles.categoryHeader}>
-                  <View style={styles.categoryHeaderLeft}>
+                  {/* First Row: Icon and Name */}
+                  <View style={styles.categoryHeaderTop}>
                     <View style={styles.chevronContainer}>
                       {isExpanded ? (
                         <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
@@ -374,8 +453,7 @@ export const StockScreen = () => {
                     <View style={styles.categoryInfo}>
                       <Typography
                         variant="body"
-                        weight="semibold"
-                        numberOfLines={1}>
+                        weight="semibold">
                         {category.categoryName}
                       </Typography>
                       {activeTab === 'sell' && (
@@ -388,7 +466,8 @@ export const StockScreen = () => {
                     </View>
                   </View>
 
-                  <View style={styles.categoryStats}>
+                  {/* Second Row: Stats */}
+                  <View style={styles.categoryStatsRow}>
                     {activeTab === 'use' ? (
                       <>
                         <View style={styles.statItem}>
@@ -447,6 +526,20 @@ export const StockScreen = () => {
                             weight="bold"
                             color={theme.colors.success[600]}>
                             {category.totalSold || 0}
+                          </Typography>
+                        </View>
+                        <View style={styles.statItem}>
+                          <Typography
+                            variant="caption"
+                            color={theme.colors.error[600]}
+                            style={styles.statItemLabel}>
+                            DISCR.
+                          </Typography>
+                          <Typography
+                            variant="body"
+                            weight="bold"
+                            color={theme.colors.error[600]}>
+                            {category.totalDiscrepancyDifference !== undefined ? category.totalDiscrepancyDifference : category.totalDiscrepancies || 0}
                           </Typography>
                         </View>
                         <View style={styles.statItem}>
@@ -570,10 +663,53 @@ export const StockScreen = () => {
                                       </View>
                                       <View style={styles.summaryItem}>
                                         <Typography variant="caption" color={theme.colors.gray[500]}>
+                                          Discrepancy
+                                        </Typography>
+                                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
+                                          <Typography variant="body" weight="bold" color={theme.colors.error[600]}>
+                                            {(sku.discrepancyHistory || []).reduce((sum: number, d: any) => sum + (d.difference || 0), 0)}
+                                          </Typography>
+                                          <TouchableOpacity
+                                            onPress={() => {
+                                              const stockRemaining = (sku.totalPurchased || 0) - (sku.totalSold || 0) - (sku.totalCheckedOut || 0);
+
+                                              // Extract actual RouteStarItem category from itemName
+                                              const itemNameUpper = sku.itemName.toUpperCase();
+                                              const categoryKeywords = ['WHITE', 'BLACK', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'BROWN', 'GRAY', 'GREY', 'ORANGE', 'PINK', 'PURPLE'];
+                                              let actualCategory = null;
+
+                                              for (const keyword of categoryKeywords) {
+                                                if (itemNameUpper.includes(keyword)) {
+                                                  actualCategory = keyword;
+                                                  break;
+                                                }
+                                              }
+
+                                              setPrefilledItem({
+                                                itemName: sku.itemName,
+                                                itemSku: sku.sku,
+                                                categoryName: actualCategory || '',
+                                                systemQuantity: stockRemaining,
+                                              });
+                                              setDiscrepancyFormData({
+                                                actualQuantity: 0,
+                                                discrepancyType: '',
+                                                reason: '',
+                                                notes: `Reported from Stock Management for ${actualCategory || sku.itemName}`,
+                                              });
+                                              setShowDiscrepancyModal(true);
+                                            }}
+                                            style={styles.addDiscrepancyButton}>
+                                            <PlusIcon size={16} color={theme.colors.primary[600]} />
+                                          </TouchableOpacity>
+                                        </View>
+                                      </View>
+                                      <View style={styles.summaryItem}>
+                                        <Typography variant="caption" color={theme.colors.gray[500]}>
                                           Remaining
                                         </Typography>
                                         <Typography variant="body" weight="bold" color={'#9333ea'}>
-                                          {(sku.totalPurchased || 0) - (sku.totalSold || 0) - (sku.totalCheckedOut || 0)}
+                                          {sku.stockRemaining !== undefined ? sku.stockRemaining : ((sku.totalPurchased || 0) - (sku.totalSold || 0) - (sku.totalCheckedOut || 0))}
                                         </Typography>
                                       </View>
                                     </View>
@@ -709,6 +845,108 @@ export const StockScreen = () => {
                                     ))}
                                   </View>
                                 )}
+
+                                {/* Discrepancy History (for sell stock) */}
+                                {activeTab === 'sell' && sku.discrepancyHistory && sku.discrepancyHistory.length > 0 && (
+                                  <View style={[styles.historySection, {backgroundColor: theme.colors.error[50]}]}>
+                                    <Typography
+                                      variant="small"
+                                      weight="semibold"
+                                      color={theme.colors.error[700]}
+                                      style={styles.historyTitle}>
+                                      Discrepancy History ({sku.discrepancyHistory.length})
+                                    </Typography>
+                                    {sku.discrepancyHistory.map((record: any, index: number) => (
+                                      <View key={index} style={styles.historyItem}>
+                                        <View style={styles.historyRow}>
+                                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                                            Invoice #
+                                          </Typography>
+                                          <Typography variant="small" weight="medium" color={theme.colors.error[600]}>
+                                            {record.invoiceNumber || 'N/A'}
+                                          </Typography>
+                                        </View>
+                                        <View style={styles.historyRow}>
+                                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                                            Reported
+                                          </Typography>
+                                          <Typography variant="small" color={theme.colors.gray[700]}>
+                                            {formatDate(record.reportedAt)}
+                                          </Typography>
+                                        </View>
+                                        <View style={styles.historyRow}>
+                                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                                            System Qty
+                                          </Typography>
+                                          <Typography variant="small" weight="medium">
+                                            {record.systemQuantity}
+                                          </Typography>
+                                        </View>
+                                        <View style={styles.historyRow}>
+                                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                                            Actual Qty
+                                          </Typography>
+                                          <Typography variant="small" weight="medium">
+                                            {record.actualQuantity}
+                                          </Typography>
+                                        </View>
+                                        <View style={styles.historyRow}>
+                                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                                            Difference
+                                          </Typography>
+                                          <Typography variant="small" weight="bold" color={record.difference > 0 ? theme.colors.success[600] : theme.colors.error[600]}>
+                                            {record.difference > 0 ? '+' : ''}{record.difference}
+                                          </Typography>
+                                        </View>
+                                        <View style={styles.historyRow}>
+                                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                                            Type
+                                          </Typography>
+                                          <Typography variant="small" weight="medium">
+                                            {record.discrepancyType}
+                                          </Typography>
+                                        </View>
+                                        <View style={styles.historyRow}>
+                                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                                            Status
+                                          </Typography>
+                                          <Typography
+                                            variant="small"
+                                            weight="bold"
+                                            color={
+                                              record.status === 'Approved'
+                                                ? theme.colors.success[600]
+                                                : record.status === 'Rejected'
+                                                ? theme.colors.error[600]
+                                                : theme.colors.warning[600]
+                                            }>
+                                            {record.status}
+                                          </Typography>
+                                        </View>
+                                        {record.reason && (
+                                          <View style={styles.historyRow}>
+                                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                                              Reason
+                                            </Typography>
+                                            <Typography variant="small" color={theme.colors.gray[700]}>
+                                              {record.reason}
+                                            </Typography>
+                                          </View>
+                                        )}
+                                        {record.reportedBy && (
+                                          <View style={styles.historyRow}>
+                                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                                              Reported By
+                                            </Typography>
+                                            <Typography variant="small" color={theme.colors.gray[700]}>
+                                              {record.reportedBy.fullName || record.reportedBy.username}
+                                            </Typography>
+                                          </View>
+                                        )}
+                                      </View>
+                                    ))}
+                                  </View>
+                                )}
                               </View>
                             )}
                           </View>
@@ -728,6 +966,203 @@ export const StockScreen = () => {
           })}
         </View>
       </ScrollView>
+
+      {/* Discrepancy Modal */}
+      <Modal
+        visible={showDiscrepancyModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          setShowDiscrepancyModal(false);
+          setPrefilledItem(null);
+        }}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Typography variant="h3" weight="bold">
+                Record Discrepancy
+              </Typography>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDiscrepancyModal(false);
+                  setPrefilledItem(null);
+                }}>
+                <Typography variant="body" color={theme.colors.gray[500]}>
+                  ✕
+                </Typography>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {prefilledItem && (
+                <View style={styles.itemDetailsCard}>
+                  <Typography variant="small" weight="bold" style={{marginBottom: 8}}>
+                    Item Details
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[600]}>
+                    Item: {prefilledItem.itemName}
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[600]}>
+                    SKU: {prefilledItem.itemSku}
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[600]}>
+                    Category: {prefilledItem.categoryName}
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[600]}>
+                    Current Stock: {prefilledItem.systemQuantity} units
+                  </Typography>
+                </View>
+              )}
+
+              <View style={styles.formGroup}>
+                <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
+                  System Quantity
+                </Typography>
+                <TextInput
+                  style={[styles.input, styles.inputDisabled]}
+                  value={prefilledItem?.systemQuantity?.toString() || '0'}
+                  editable={false}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
+                  Actual Quantity (Physical Count) *
+                </Typography>
+                <TextInput
+                  style={styles.input}
+                  value={discrepancyFormData.actualQuantity.toString()}
+                  onChangeText={(text) => {
+                    const value = parseFloat(text) || 0;
+                    setDiscrepancyFormData({
+                      ...discrepancyFormData,
+                      actualQuantity: value,
+                      discrepancyType:
+                        value > (prefilledItem?.systemQuantity || 0)
+                          ? 'Overage'
+                          : value < (prefilledItem?.systemQuantity || 0)
+                          ? 'Shortage'
+                          : '',
+                    });
+                  }}
+                  keyboardType="numeric"
+                  placeholder="Enter actual counted quantity"
+                />
+              </View>
+
+              {discrepancyFormData.actualQuantity !== 0 && (
+                <View style={styles.differenceCard}>
+                  <Typography variant="small" weight="semibold">
+                    Difference:
+                  </Typography>
+                  <Typography
+                    variant="h3"
+                    weight="bold"
+                    color={
+                      discrepancyFormData.actualQuantity > (prefilledItem?.systemQuantity || 0)
+                        ? theme.colors.success[600]
+                        : theme.colors.error[600]
+                    }>
+                    {discrepancyFormData.actualQuantity > (prefilledItem?.systemQuantity || 0) ? '+' : ''}
+                    {discrepancyFormData.actualQuantity - (prefilledItem?.systemQuantity || 0)}
+                  </Typography>
+                </View>
+              )}
+
+              <View style={styles.formGroup}>
+                <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
+                  Discrepancy Type *
+                </Typography>
+                <View style={styles.pickerContainer}>
+                  {['Overage', 'Shortage', 'Damage', 'Missing'].map((type) => (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.pickerOption,
+                        discrepancyFormData.discrepancyType === type && styles.pickerOptionActive,
+                      ]}
+                      onPress={() =>
+                        setDiscrepancyFormData({...discrepancyFormData, discrepancyType: type})
+                      }>
+                      <Typography
+                        variant="small"
+                        color={
+                          discrepancyFormData.discrepancyType === type
+                            ? theme.colors.white
+                            : theme.colors.gray[700]
+                        }>
+                        {type}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
+                  Reason
+                </Typography>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={discrepancyFormData.reason}
+                  onChangeText={(text) =>
+                    setDiscrepancyFormData({...discrepancyFormData, reason: text})
+                  }
+                  placeholder="Explain the reason for this discrepancy..."
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              <View style={styles.formGroup}>
+                <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
+                  Additional Notes
+                </Typography>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={discrepancyFormData.notes}
+                  onChangeText={(text) =>
+                    setDiscrepancyFormData({...discrepancyFormData, notes: text})
+                  }
+                  placeholder="Any additional information..."
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => {
+                  setShowDiscrepancyModal(false);
+                  setPrefilledItem(null);
+                }}
+                disabled={submittingDiscrepancy}>
+                <Typography variant="body" color={theme.colors.gray[700]}>
+                  Cancel
+                </Typography>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  (submittingDiscrepancy || !discrepancyFormData.discrepancyType) &&
+                    styles.submitButtonDisabled,
+                ]}
+                onPress={handleSubmitDiscrepancy}
+                disabled={submittingDiscrepancy || !discrepancyFormData.discrepancyType}>
+                {submittingDiscrepancy ? (
+                  <ActivityIndicator color={theme.colors.white} />
+                ) : (
+                  <Typography variant="body" weight="semibold" color={theme.colors.white}>
+                    Record Discrepancy
+                  </Typography>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -833,15 +1268,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
     padding: theme.spacing.md,
     gap: 12,
   },
-  categoryHeaderLeft: {
+  categoryHeaderTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
     gap: 12,
   },
   chevronContainer: {
@@ -862,9 +1295,11 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 4,
   },
-  categoryStats: {
+  categoryStatsRow: {
     flexDirection: 'row',
     gap: 12,
+    paddingLeft: 80,
+    flexWrap: 'wrap',
   },
   statItem: {
     alignItems: 'flex-end',
@@ -928,10 +1363,13 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
   summaryItem: {
     alignItems: 'center',
+    minWidth: '18%',
+    marginBottom: 8,
   },
   historySection: {
     backgroundColor: theme.colors.gray[50],
@@ -951,5 +1389,110 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  addDiscrepancyButton: {
+    padding: 4,
+    borderRadius: 4,
+    backgroundColor: theme.colors.primary[50],
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[200],
+  },
+  modalBody: {
+    padding: theme.spacing.lg,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: theme.spacing.lg,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray[200],
+  },
+  itemDetailsCard: {
+    backgroundColor: theme.colors.primary[50],
+    padding: theme.spacing.md,
+    borderRadius: 8,
+    marginBottom: theme.spacing.md,
+  },
+  formGroup: {
+    marginBottom: theme.spacing.md,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: theme.colors.gray[300],
+    borderRadius: 8,
+    padding: theme.spacing.sm,
+    fontSize: 14,
+  },
+  inputDisabled: {
+    backgroundColor: theme.colors.gray[100],
+    color: theme.colors.gray[500],
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  differenceCard: {
+    backgroundColor: theme.colors.gray[50],
+    padding: theme.spacing.md,
+    borderRadius: 8,
+    marginBottom: theme.spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pickerContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pickerOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[300],
+    backgroundColor: theme.colors.white,
+  },
+  pickerOptionActive: {
+    backgroundColor: theme.colors.primary[600],
+    borderColor: theme.colors.primary[600],
+  },
+  cancelButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[300],
+  },
+  submitButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary[600],
+    minWidth: 180,
+    alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
   },
 });
