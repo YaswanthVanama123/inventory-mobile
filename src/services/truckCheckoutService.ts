@@ -196,6 +196,55 @@ class TruckCheckoutService {
       throw error;
     }
   }
+
+  /**
+   * Get checkout sales tracking
+   */
+  async getSalesTracking(
+    token: string,
+    filters: {
+      employeeName?: string;
+      truckNumber?: string;
+      startDate?: string;
+      endDate?: string;
+    } = {}
+  ) {
+    try {
+      const queryParams = new URLSearchParams();
+      if (filters.employeeName)
+        queryParams.append('employeeName', filters.employeeName);
+      if (filters.truckNumber)
+        queryParams.append('truckNumber', filters.truckNumber);
+      if (filters.startDate) queryParams.append('startDate', filters.startDate);
+      if (filters.endDate) queryParams.append('endDate', filters.endDate);
+
+      const url = `${API_BASE_URL}/truck-checkouts/sales-tracking?${queryParams.toString()}`;
+      console.log('[TruckCheckout] Getting sales tracking:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        return result.data;
+      }
+
+      return {checkouts: [], summary: {}};
+    } catch (error: any) {
+      console.error('[TruckCheckout] Get sales tracking error:', error.message);
+      throw error;
+    }
+  }
 }
 
 export default new TruckCheckoutService();

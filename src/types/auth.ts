@@ -4,6 +4,7 @@ export interface User {
   email?: string;
   role: 'admin' | 'employee';
   fullName?: string;
+  truckNumber?: string;
   createdAt?: string;
   updatedAt?: string;
 }

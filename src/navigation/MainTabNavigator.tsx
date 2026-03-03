@@ -5,7 +5,7 @@ import {DashboardScreen} from '../screens/DashboardScreen';
 import {InventoryScreen} from '../screens/InventoryScreen';
 import {StockScreen} from '../screens/StockScreen';
 import {InvoicesScreen} from '../screens/InvoicesScreen';
-import {TruckCheckoutScreen} from '../screens/TruckCheckoutScreen';
+import {CheckoutStackNavigator} from './CheckoutStackNavigator';
 import {AccountScreen} from '../screens/AccountScreen';
 import {HomeIcon, InventoryIcon, BoxIcon, FileTextIcon, TruckIcon, UserIcon} from '../components/icons';
 import {theme} from '../theme';
@@ -73,7 +73,7 @@ export const MainTabNavigator = () => {
       />
       <Tab.Screen
         name="Checkout"
-        component={TruckCheckoutScreen}
+        component={CheckoutStackNavigator}
         options={{
           tabBarIcon: ({color, size}) => (
             <TruckIcon size={size} color={color} />

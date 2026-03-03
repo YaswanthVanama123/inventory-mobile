@@ -34,8 +34,6 @@ export const TruckCheckoutScreen = () => {
   const [isMounted, setIsMounted] = useState(true);
 
   // Form state
-  const [employeeName, setEmployeeName] = useState('');
-  const [truckNumber, setTruckNumber] = useState('');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [quantityTaking, setQuantityTaking] = useState('');
   const [remainingQuantity, setRemainingQuantity] = useState('');
@@ -62,10 +60,14 @@ export const TruckCheckoutScreen = () => {
     };
   }, []);
 
-  // Search items when query changes
+  // Search items when query changes or modal opens
   useEffect(() => {
     if (showItemPicker) {
-      searchItems();
+      const delayDebounce = setTimeout(() => {
+        searchItems();
+      }, searchQuery ? 300 : 0); // No delay for initial load
+
+      return () => clearTimeout(delayDebounce);
     }
   }, [searchQuery, showItemPicker]);
 
@@ -138,13 +140,13 @@ export const TruckCheckoutScreen = () => {
 
   const handleCheckout = async () => {
     // Validation
-    if (!employeeName.trim()) {
-      Alert.alert('Error', 'Please enter employee name');
+    if (!user || !user.fullName?.trim()) {
+      Alert.alert('Error', 'Employee name is required. Please update your profile.');
       return;
     }
 
-    if (!truckNumber.trim()) {
-      Alert.alert('Error', 'Please enter truck number');
+    if (!user.truckNumber?.trim()) {
+      Alert.alert('Error', 'Truck number is required. Please update your profile.');
       return;
     }
 
@@ -191,14 +193,14 @@ export const TruckCheckoutScreen = () => {
   };
 
   const submitCheckout = async (acceptDiscrepancy: boolean) => {
-    if (!token) return;
+    if (!token || !user) return;
 
     try {
       setSubmitting(true);
 
       const checkoutData = {
-        employeeName: employeeName.trim(),
-        truckNumber: truckNumber.trim(),
+        employeeName: user.fullName!.trim(),
+        truckNumber: user.truckNumber!.trim(),
         itemName: selectedItem.itemName,
         quantityTaking: parseFloat(quantityTaking),
         remainingQuantity: parseFloat(remainingQuantity),
@@ -242,8 +244,6 @@ export const TruckCheckoutScreen = () => {
               text: 'OK',
               onPress: () => {
                 // Reset form
-                setEmployeeName('');
-                setTruckNumber('');
                 setSelectedItem(null);
                 setSearchQuery('');
                 setQuantityTaking('');
@@ -310,10 +310,9 @@ export const TruckCheckoutScreen = () => {
               Employee Name *
             </Typography>
             <RNTextInput
-              style={styles.input}
-              value={employeeName}
-              onChangeText={setEmployeeName}
-              placeholder="Enter employee name"
+              style={[styles.input, styles.inputDisabled]}
+              value={user?.fullName || 'Not set'}
+              editable={false}
               placeholderTextColor={theme.colors.gray[400]}
             />
           </View>
@@ -324,10 +323,9 @@ export const TruckCheckoutScreen = () => {
               Truck Number *
             </Typography>
             <RNTextInput
-              style={styles.input}
-              value={truckNumber}
-              onChangeText={setTruckNumber}
-              placeholder="Enter truck number"
+              style={[styles.input, styles.inputDisabled]}
+              value={user?.truckNumber || 'Not set'}
+              editable={false}
               placeholderTextColor={theme.colors.gray[400]}
             />
           </View>
@@ -513,7 +511,7 @@ export const TruckCheckoutScreen = () => {
                   style={{marginTop: 12}}>
                   {searchQuery
                     ? 'No items found matching your search'
-                    : 'Start typing to search items'}
+                    : 'No items available for checkout'}
                 </Typography>
               </View>
             )}
@@ -711,6 +709,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.gray[900],
     backgroundColor: theme.colors.white,
+  },
+  inputDisabled: {
+    backgroundColor: theme.colors.gray[100],
+    color: theme.colors.gray[600],
   },
   textArea: {
     minHeight: 80,
