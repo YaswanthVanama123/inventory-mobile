@@ -26,3 +26,5 @@ export {EditIcon} from './EditIcon';
 export {TrashIcon} from './TrashIcon';
 export {KeyIcon} from './KeyIcon';
 export {RefreshIcon} from './RefreshIcon';
+export {TruckIcon} from './TruckIcon';
+export {SearchIcon} from './SearchIcon';
