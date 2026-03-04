@@ -6,16 +6,17 @@ import {InventoryScreen} from '../screens/InventoryScreen';
 import {StockScreen} from '../screens/StockScreen';
 import {InvoicesScreen} from '../screens/InvoicesScreen';
 import {CheckoutStackNavigator} from './CheckoutStackNavigator';
+import {OrderStackNavigator} from './OrderStackNavigator';
 import {AccountScreen} from '../screens/AccountScreen';
-import {HomeIcon, InventoryIcon, BoxIcon, FileTextIcon, TruckIcon, UserIcon} from '../components/icons';
+import {HomeIcon, InventoryIcon, BoxIcon, FileTextIcon, TruckIcon, UserIcon, ClipboardIcon} from '../components/icons';
 import {theme} from '../theme';
 
 export type MainTabParamList = {
   Home: undefined;
   Inventory: undefined;
   Stock: undefined;
+  Orders: undefined;
   Checkout: undefined;
-  Invoices: undefined;
   Account: undefined;
 };
 
@@ -72,20 +73,20 @@ export const MainTabNavigator = () => {
         }}
       />
       <Tab.Screen
+        name="Orders"
+        component={OrderStackNavigator}
+        options={{
+          tabBarIcon: ({color, size}) => (
+            <ClipboardIcon size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Checkout"
         component={CheckoutStackNavigator}
         options={{
           tabBarIcon: ({color, size}) => (
             <TruckIcon size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Invoices"
-        component={InvoicesScreen}
-        options={{
-          tabBarIcon: ({color, size}) => (
-            <FileTextIcon size={size} color={color} />
           ),
         }}
       />

@@ -4,7 +4,7 @@
  */
 
 // Your local machine IP address
-const LOCAL_IP = '192.168.55.105';
+const LOCAL_IP = '172.16.9.76';
 
 // API Port
 const API_PORT = '5001';

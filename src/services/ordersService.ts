@@ -88,6 +88,41 @@ class OrdersService {
     }
   }
 
+  async getOrderById(token: string, orderId: string) {
+    try {
+      const url = `${API_BASE_URL}/customerconnect/orders/id/${orderId}`;
+      console.log('[OrderById] Fetching from:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('[OrderById] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[OrderById] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('[OrderById] Response data:', JSON.stringify(result).substring(0, 200));
+
+      if (result.success && result.data) {
+        return result.data;
+      }
+
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      console.error('[OrderById] Service Error:', error.message);
+      console.error('[OrderById] Full error:', error);
+      throw error;
+    }
+  }
+
   async getOrderStats(token: string) {
     try {
       const url = `${API_BASE_URL}/customerconnect/stats`;
