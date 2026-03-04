@@ -90,15 +90,18 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
       if (filterForUse) params.forUse = true;
       if (filterForSell) params.forSell = true;
 
-      const [itemsData, statsData] = await Promise.all([
-        routeStarItemsService.getItems(token, params),
-        routeStarItemsService.getStats(token),
-      ]);
+      // OPTIMIZED: Use single API call instead of two separate calls
+      const data = await routeStarItemsService.getItemsWithStats(token, params);
 
-      setItems(itemsData.items || []);
-      setStats(statsData || {total: 0, forUse: 0, forSell: 0, both: 0, unmarked: 0});
+      console.log('[RouteStarItemsScreen] Page data loaded:', {
+        items: data.items?.length || 0,
+        stats: data.stats,
+      });
+
+      setItems(data.items || []);
+      setStats(data.stats || {total: 0, forUse: 0, forSell: 0, both: 0, unmarked: 0});
     } catch (error: any) {
-      console.error('Failed to fetch RouteS tar items:', error);
+      console.error('Failed to fetch RouteStar items:', error);
 
       // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);

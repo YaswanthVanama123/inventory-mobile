@@ -136,6 +136,60 @@ class ItemAliasService {
       throw error;
     }
   }
+
+  /**
+   * OPTIMIZED: Get all page data in one API call
+   * Combines mappings, unique items, and stats into single request
+   */
+  async getPageData(token: string) {
+    try {
+      const url = `${API_BASE_URL}/routestar-item-alias/page-data`;
+      console.log('[ItemAlias] Fetching combined page data from:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('[ItemAlias] Page data response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[ItemAlias] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('[ItemAlias] Page data received:', {
+        mappings: result.data?.mappings?.mappings?.length || 0,
+        items: result.data?.uniqueItems?.items?.length || 0,
+        stats: result.data?.uniqueItems?.stats || result.data?.stats,
+      });
+
+      if (result.success && result.data) {
+        return {
+          mappings: result.data.mappings?.mappings || [],
+          items: result.data.uniqueItems?.items || [],
+          stats: result.data.uniqueItems?.stats || result.data.stats || {
+            totalUniqueItems: 0,
+            mappedItems: 0,
+            unmappedItems: 0,
+          },
+        };
+      }
+
+      return {
+        mappings: [],
+        items: [],
+        stats: {totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0},
+      };
+    } catch (error: any) {
+      console.error('[ItemAlias] Page data error:', error.message);
+      throw error;
+    }
+  }
 }
 
 export default new ItemAliasService();

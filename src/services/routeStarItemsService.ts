@@ -167,6 +167,91 @@ class RouteStarItemsService {
       throw error;
     }
   }
+
+  /**
+   * OPTIMIZED: Get items with stats in one call
+   * Combines items list and stats into single request
+   */
+  async getItemsWithStats(
+    token: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      itemParent?: string;
+      type?: string;
+      itemCategory?: string;
+      forUse?: boolean;
+      forSell?: boolean;
+    } = {}
+  ) {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (params.page) queryParams.append('page', params.page.toString());
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      if (params.search) queryParams.append('search', params.search);
+      if (params.itemParent) queryParams.append('itemParent', params.itemParent);
+      if (params.type) queryParams.append('type', params.type);
+      if (params.itemCategory) queryParams.append('itemCategory', params.itemCategory);
+      if (params.forUse !== undefined) queryParams.append('forUse', params.forUse.toString());
+      if (params.forSell !== undefined) queryParams.append('forSell', params.forSell.toString());
+
+      const url = `${API_BASE_URL}/routestar-items/page-data?${queryParams.toString()}`;
+      console.log('[RouteStarItems] Fetching combined page data from:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log('[RouteStarItems] Page data response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[RouteStarItems] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('[RouteStarItems] Page data received:', {
+        items: result.data?.items?.length || 0,
+        stats: result.data?.stats,
+      });
+
+      if (result.success && result.data) {
+        return {
+          items: result.data.items || [],
+          pagination: result.data.pagination || {
+            total: 0,
+            page: 1,
+            limit: 50,
+            pages: 0,
+          },
+          filters: result.data.filters || {itemParents: [], types: []},
+          stats: result.data.stats || {
+            total: 0,
+            forUse: 0,
+            forSell: 0,
+            both: 0,
+            unmarked: 0,
+          },
+        };
+      }
+
+      return {
+        items: [],
+        pagination: {total: 0, page: 1, limit: 50, pages: 0},
+        filters: {itemParents: [], types: []},
+        stats: {total: 0, forUse: 0, forSell: 0, both: 0, unmarked: 0},
+      };
+    } catch (error: any) {
+      console.error('[RouteStarItems] Page data error:', error.message);
+      throw error;
+    }
+  }
 }
 
 export default new RouteStarItemsService();

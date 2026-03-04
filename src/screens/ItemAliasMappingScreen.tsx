@@ -81,14 +81,18 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
       setLoading(true);
       setError(null);
 
-      const [mappingsData, itemsData] = await Promise.all([
-        itemAliasService.getAllMappings(token),
-        itemAliasService.getUniqueItems(token),
-      ]);
+      // OPTIMIZED: Use single API call instead of two separate calls
+      const pageData = await itemAliasService.getPageData(token);
 
-      setMappings(mappingsData || []);
-      setUniqueItems(itemsData.items || []);
-      setStats(itemsData.stats || {totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0});
+      console.log('[ItemAliasScreen] Page data loaded:', {
+        mappings: pageData.mappings?.length || 0,
+        items: pageData.items?.length || 0,
+        stats: pageData.stats,
+      });
+
+      setMappings(pageData.mappings || []);
+      setUniqueItems(pageData.items || []);
+      setStats(pageData.stats || {totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0});
     } catch (error: any) {
       console.error('Failed to fetch item alias data:', error);
 
