@@ -4,10 +4,10 @@
  */
 
 // Your local machine IP address
-const LOCAL_IP = '172.16.9.76';
+const LOCAL_IP = '192.168.1.30';
 
 // API Port
-const API_PORT = '5001';
+const API_PORT = '3001';
 
 // API Base URL
 export const API_BASE_URL = `http://${LOCAL_IP}:${API_PORT}/api`;

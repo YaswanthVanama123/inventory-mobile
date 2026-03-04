@@ -245,6 +245,51 @@ class TruckCheckoutService {
       throw error;
     }
   }
+
+  /**
+   * Get all employees with their checkout statistics
+   */
+  async getAllEmployeesWithStats(
+    token: string,
+    filters: {
+      startDate?: string;
+      endDate?: string;
+      search?: string;
+    } = {}
+  ) {
+    try {
+      const queryParams = new URLSearchParams();
+      if (filters.startDate) queryParams.append('startDate', filters.startDate);
+      if (filters.endDate) queryParams.append('endDate', filters.endDate);
+      if (filters.search) queryParams.append('search', filters.search);
+
+      const url = `${API_BASE_URL}/truck-checkouts/employees/stats?${queryParams.toString()}`;
+      console.log('[TruckCheckout] Getting employees with stats:', url);
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        return result.data;
+      }
+
+      return [];
+    } catch (error: any) {
+      console.error('[TruckCheckout] Get employees with stats error:', error.message);
+      throw error;
+    }
+  }
 }
 
 export default new TruckCheckoutService();
