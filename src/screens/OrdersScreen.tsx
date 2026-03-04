@@ -388,7 +388,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                           Items
                         </Typography>
                         <Typography variant="small" weight="medium">
-                          {order.items?.length || 0} items
+                          {order.itemCount || 0} items
                         </Typography>
                       </View>
                     </View>

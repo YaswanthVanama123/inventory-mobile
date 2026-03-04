@@ -12,6 +12,7 @@ class OrdersService {
       if (params.startDate) queryParams.append('startDate', params.startDate);
       if (params.endDate) queryParams.append('endDate', params.endDate);
       if (params.vendor) queryParams.append('vendor', params.vendor);
+      // includeRange defaults to true on backend, no need to set explicitly
 
       const url = `${API_BASE_URL}/customerconnect/orders?${queryParams.toString()}`;
       console.log('[Orders] Fetching from:', url);
@@ -42,6 +43,7 @@ class OrdersService {
             pages: 1,
             total: 0,
           },
+          range: result.data?.range || null, // Include range data from combined response
         };
       }
 
