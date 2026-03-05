@@ -172,17 +172,29 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
     );
   };
 
-  const getSourceLabel = (source: string) => {
-    switch (source) {
-      case 'customer_connect':
-        return 'Customer Connect';
-      case 'routestar_invoices':
-        return 'RouteStar Invoices';
-      case 'routestar_items':
-        return 'RouteStar Items';
-      default:
-        return source;
+  const getSourceLabel = (source: string, fetchType?: string) => {
+    // Customer Connect always shows as Orders
+    if (source === 'customer_connect') {
+      return 'Orders';
     }
+
+    // RouteStar Invoices shows based on fetch type
+    if (source === 'routestar_invoices') {
+      if (fetchType === 'pending' || fetchType === 'pending_with_details') {
+        return 'Pending Invoices';
+      } else if (fetchType === 'closed' || fetchType === 'closed_with_details') {
+        return 'Closed Invoices';
+      } else {
+        return 'Invoices';
+      }
+    }
+
+    // RouteStar Items
+    if (source === 'routestar_items') {
+      return 'Items';
+    }
+
+    return source;
   };
 
   const getSourceColor = (source: string) => {
@@ -256,9 +268,9 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
 
   const sourceOptions = [
     {label: 'All Sources', value: ''},
-    {label: 'Customer Connect', value: 'customer_connect'},
-    {label: 'RouteStar Invoices', value: 'routestar_invoices'},
-    {label: 'RouteStar Items', value: 'routestar_items'},
+    {label: 'Orders', value: 'customer_connect'},
+    {label: 'Invoices', value: 'routestar_invoices'},
+    {label: 'Items', value: 'routestar_items'},
   ];
 
   const statusOptions = [
@@ -393,11 +405,16 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                       </View>
                       <View style={{flex: 1}}>
                         <Typography variant="small" weight="semibold">
-                          {getSourceLabel(fetch.source)}
+                          {getSourceLabel(fetch.source, fetch.fetchType)}
                         </Typography>
                         <Typography variant="caption" color={theme.colors.gray[500]}>
                           Started: {formatDate(fetch.startedAt)}
                         </Typography>
+                        {fetch.user && (
+                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                            By: {fetch.user.fullName || fetch.user.username}
+                          </Typography>
+                        )}
                       </View>
                     </View>
                     {user?.role === 'admin' && (
@@ -429,7 +446,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                     style={styles.filterButton}
                     onPress={() => setSourcePickerVisible(true)}>
                     <Typography variant="small" numberOfLines={1}>
-                      {filterSource ? getSourceLabel(filterSource) : 'All Sources'}
+                      {sourceOptions.find(s => s.value === filterSource)?.label || 'All Sources'}
                     </Typography>
                     <ChevronDownIcon size={16} color={theme.colors.gray[400]} />
                   </TouchableOpacity>
@@ -529,11 +546,16 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                         </View>
                         <View style={styles.historyInfo}>
                           <Typography variant="body" weight="bold" numberOfLines={1} color={getSourceColor(item.source)}>
-                            {getSourceLabel(item.source)}
+                            {getSourceLabel(item.source, item.fetchType)}
                           </Typography>
                           <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                            {item.fetchType}
+                            {formatDate(item.startedAt)}
                           </Typography>
+                          {item.user && (
+                            <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                              By: {item.user.fullName || item.user.username}
+                            </Typography>
+                          )}
                         </View>
                       </View>
                       <View style={styles.historyHeaderRight}>

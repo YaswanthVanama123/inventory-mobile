@@ -68,6 +68,10 @@ class DashboardService {
         inventoryValue: summary.totalValue || 0,
         lowStock: summary.lowStockCount || 0,
         lowStockChange: `${summary.lowStockChange >= 0 ? '+' : ''}${summary.lowStockChange}%`,
+        totalPurchaseAmount: summary.totalPurchaseAmount || 0,
+        purchaseCostChange: summary.purchaseCostChange || 0,
+        totalProfit: summary.totalProfit || 0,
+        profitMargin: summary.profitMargin || 0,
       },
       revenueTrend: {
         labels: (salesTrend || []).map((item: any) => item.month),

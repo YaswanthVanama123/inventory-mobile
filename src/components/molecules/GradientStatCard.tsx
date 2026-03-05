@@ -3,7 +3,7 @@ import {View, StyleSheet, ViewStyle} from 'react-native';
 import {Typography} from '../atoms/Typography';
 import {theme} from '../../theme';
 
-export type GradientColor = 'blue' | 'purple' | 'orange' | 'green' | 'teal' | 'pink' | 'indigo' | 'cyan';
+export type GradientColor = 'blue' | 'purple' | 'orange' | 'green' | 'teal' | 'pink' | 'indigo' | 'cyan' | 'red';
 
 export interface GradientStatCardProps {
   /**
@@ -73,6 +73,7 @@ export const GradientStatCard: React.FC<GradientStatCardProps> = ({
       pink: '#ec4899',
       indigo: '#6366f1',
       cyan: '#06b6d4',
+      red: theme.colors.error[600],
     };
     return colorMap[gradientColor];
   };

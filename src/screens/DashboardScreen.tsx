@@ -278,6 +278,30 @@ export const DashboardScreen = () => {
 
           <View style={styles.statCardWrapper}>
             <GradientStatCard
+              title="Orders Cost"
+              value={`$${((data.kpis?.totalPurchaseAmount || 0) / 1000).toFixed(1)}K`}
+              subtitle={`${data.kpis?.purchaseCostChange > 0 ? '+' : ''}${data.kpis?.purchaseCostChange || '0'}%`}
+              gradientColor="pink"
+              icon={<FileTextIcon size={18} color="#ffffff" />}
+              trend={data.kpis?.purchaseCostChange >= 0 ? 'down' : 'up'}
+              size="md"
+            />
+          </View>
+
+          <View style={styles.statCardWrapper}>
+            <GradientStatCard
+              title="Profit/Loss"
+              value={`$${((data.kpis?.totalProfit || 0) / 1000).toFixed(1)}K`}
+              subtitle={`${data.kpis?.profitMargin || '0'}% margin`}
+              gradientColor={data.kpis?.totalProfit >= 0 ? 'green' : 'red'}
+              icon={<DollarIcon size={18} color="#ffffff" />}
+              trend={data.kpis?.totalProfit >= 0 ? 'up' : 'down'}
+              size="md"
+            />
+          </View>
+
+          <View style={styles.statCardWrapper}>
+            <GradientStatCard
               title="Low Stock"
               value={data.kpis?.lowStock?.toString() || '23'}
               subtitle="Needs attention"
@@ -290,9 +314,9 @@ export const DashboardScreen = () => {
           <View style={styles.statCardWrapper}>
             <GradientStatCard
               title="Inventory Value"
-              value={`$${(data.kpis?.inventoryValue / 1000).toFixed(1)}K`}
+              value={`$${((data.kpis?.inventoryValue || 0) / 1000).toFixed(1)}K`}
               subtitle="Total worth"
-              gradientColor="green"
+              gradientColor="teal"
               icon={<BoxIcon size={18} color="#ffffff" />}
               size="md"
             />
