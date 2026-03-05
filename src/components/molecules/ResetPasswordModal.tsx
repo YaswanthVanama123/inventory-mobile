@@ -36,8 +36,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  // Password strength
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
     hasUpperCase: false,
@@ -45,15 +43,12 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
     hasNumber: false,
     hasSpecialChar: false,
   });
-
   useEffect(() => {
     if (visible) {
       resetForm();
     }
   }, [visible]);
-
   useEffect(() => {
-    // Check password strength
     if (newPassword) {
       setPasswordStrength({
         hasMinLength: newPassword.length >= 8,
@@ -72,28 +67,24 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       });
     }
   }, [newPassword]);
-
   const resetForm = () => {
     setNewPassword('');
     setConfirmPassword('');
     setShowNewPassword(false);
     setShowConfirmPassword(false);
   };
-
   const validateForm = (): string | null => {
     if (!newPassword) return 'Password is required';
     if (!Object.values(passwordStrength).every(Boolean)) return 'Password does not meet requirements';
     if (newPassword !== confirmPassword) return 'Passwords do not match';
     return null;
   };
-
   const handleSubmit = async () => {
     const validationError = validateForm();
     if (validationError) {
       Alert.alert('Validation Error', validationError);
       return;
     }
-
     Alert.alert(
       'Reset Password',
       `Are you sure you want to reset the password for ${user.fullName}?`,
@@ -119,7 +110,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       ]
     );
   };
-
   return (
     <Modal
       visible={visible}
@@ -139,7 +129,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           </Typography>
           <View style={styles.closeButton} />
         </View>
-
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {/* User Info Card */}
           <Card variant="elevated" padding="md" style={styles.userInfoCard}>
@@ -153,7 +142,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               @{user?.username}
             </Typography>
           </Card>
-
           {/* Warning Notice */}
           <Card variant="outlined" padding="md" style={styles.warningCard}>
             <View style={styles.warningContent}>
@@ -163,7 +151,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               </Typography>
             </View>
           </Card>
-
           {/* New Password */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -190,7 +177,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                 )}
               </TouchableOpacity>
             </View>
-
             {/* Password Strength Indicators */}
             {newPassword && (
               <Card variant="outlined" padding="sm" style={styles.strengthCard}>
@@ -255,7 +241,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               </Card>
             )}
           </View>
-
           {/* Confirm Password */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -291,7 +276,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               </View>
             )}
           </View>
-
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <Button
@@ -307,7 +291,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

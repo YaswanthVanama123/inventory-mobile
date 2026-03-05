@@ -33,56 +33,42 @@ export const TruckCheckoutScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
 
-  // Form state
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [quantityTaking, setQuantityTaking] = useState('');
   const [remainingQuantity, setRemainingQuantity] = useState('');
   const [notes, setNotes] = useState('');
-
-  // Item search state
   const [showItemPicker, setShowItemPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchingItems, setSearchingItems] = useState(false);
-
-  // Validation state
   const [validationError, setValidationError] = useState('');
-
-  // Discrepancy modal state
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false);
   const [discrepancyInfo, setDiscrepancyInfo] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
-
   useEffect(() => {
     setIsMounted(true);
     return () => {
       setIsMounted(false);
     };
   }, []);
-
-  // Search items when query changes or modal opens
   useEffect(() => {
     if (showItemPicker) {
       const delayDebounce = setTimeout(() => {
         searchItems();
-      }, searchQuery ? 300 : 0); // No delay for initial load
-
+      }, searchQuery ? 300 : 0);
       return () => clearTimeout(delayDebounce);
     }
   }, [searchQuery, showItemPicker]);
-
   const searchItems = async () => {
     if (!token) return;
-
     try {
       setSearchingItems(true);
       const items = await truckCheckoutService.searchItems(
         token,
         searchQuery,
-        true, // forSell only
+        true,
         100
       );
-
       if (isMounted) {
         setSearchResults(items);
       }
@@ -98,83 +84,64 @@ export const TruckCheckoutScreen = () => {
       }
     }
   };
-
   const handleItemSelect = (item: any) => {
     setSelectedItem(item);
     setSearchQuery(item.itemName);
     setShowItemPicker(false);
     setValidationError('');
   };
-
   const validateStockMath = () => {
     if (!selectedItem || !quantityTaking || !remainingQuantity) {
-      return true; // Don't validate incomplete data
+      return true;
     }
-
     const taking = parseFloat(quantityTaking);
     const remaining = parseFloat(remainingQuantity);
     const currentStock = selectedItem.currentStock || 0;
-
     const expectedRemaining = currentStock - taking;
-
     if (remaining !== expectedRemaining) {
       setValidationError(
         `Math Error: Current stock (${currentStock}) - Taking (${taking}) should equal ${expectedRemaining}, but you entered ${remaining}`
       );
       return false;
     }
-
     setValidationError('');
     return true;
   };
-
   const handleQuantityTakingChange = (value: string) => {
     setQuantityTaking(value);
     setValidationError('');
   };
-
   const handleRemainingQuantityChange = (value: string) => {
     setRemainingQuantity(value);
     setValidationError('');
   };
-
   const handleCheckout = async () => {
-    // Validation
     if (!user || !user.fullName?.trim()) {
       Alert.alert('Error', 'Employee name is required. Please update your profile.');
       return;
     }
-
     if (!user.truckNumber?.trim()) {
       Alert.alert('Error', 'Truck number is required. Please update your profile.');
       return;
     }
-
     if (!selectedItem) {
       Alert.alert('Error', 'Please select an item');
       return;
     }
-
     const taking = parseFloat(quantityTaking);
     const remaining = parseFloat(remainingQuantity);
-
     if (!taking || taking <= 0) {
       Alert.alert('Error', 'Please enter a valid quantity to take');
       return;
     }
-
     if (isNaN(remaining)) {
       Alert.alert('Error', 'Please enter remaining quantity');
       return;
     }
-
-    // Validate math
     if (!validateStockMath()) {
-      // Show discrepancy modal
       const currentStock = selectedItem.currentStock || 0;
       const expectedRemaining = currentStock - taking;
       const difference = remaining - expectedRemaining;
-
       setDiscrepancyInfo({
         itemName: selectedItem.itemName,
         currentStock,
@@ -187,17 +154,12 @@ export const TruckCheckoutScreen = () => {
       setShowDiscrepancyModal(true);
       return;
     }
-
-    // Proceed with checkout (no discrepancy)
     await submitCheckout(false);
   };
-
   const submitCheckout = async (acceptDiscrepancy: boolean) => {
     if (!token || !user) return;
-
     try {
       setSubmitting(true);
-
       const checkoutData = {
         employeeName: user.fullName!.trim(),
         truckNumber: user.truckNumber!.trim(),
@@ -208,16 +170,12 @@ export const TruckCheckoutScreen = () => {
         checkoutDate: new Date().toISOString(),
         acceptDiscrepancy,
       };
-
       console.log('[TruckCheckout] Submitting:', checkoutData);
-
       const result = await truckCheckoutService.createCheckout(
         token,
         checkoutData
       );
-
       if (!result.success && result.requiresConfirmation) {
-        // Backend detected discrepancy - show modal
         const validation = result.validation;
         setDiscrepancyInfo({
           itemName: selectedItem.itemName,
@@ -231,7 +189,6 @@ export const TruckCheckoutScreen = () => {
         setShowDiscrepancyModal(true);
         return;
       }
-
       if (result.success) {
         setShowDiscrepancyModal(false);
         Alert.alert(
@@ -243,7 +200,6 @@ export const TruckCheckoutScreen = () => {
             {
               text: 'OK',
               onPress: () => {
-                // Reset form
                 setSelectedItem(null);
                 setSearchQuery('');
                 setQuantityTaking('');
@@ -267,17 +223,14 @@ export const TruckCheckoutScreen = () => {
       }
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
-    // Refresh item search if item picker is open
     if (showItemPicker) {
       searchItems().finally(() => setRefreshing(false));
     } else {
       setRefreshing(false);
     }
   };
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -302,7 +255,6 @@ export const TruckCheckoutScreen = () => {
             Check out items to truck with stock validation
           </Typography>
         </View>
-
         <Card variant="elevated" padding="lg" style={styles.formCard}>
           {/* Employee Name */}
           <View style={styles.formGroup}>
@@ -316,7 +268,6 @@ export const TruckCheckoutScreen = () => {
               placeholderTextColor={theme.colors.gray[400]}
             />
           </View>
-
           {/* Truck Number */}
           <View style={styles.formGroup}>
             <Typography variant="body" weight="semibold" style={styles.label}>
@@ -329,7 +280,6 @@ export const TruckCheckoutScreen = () => {
               placeholderTextColor={theme.colors.gray[400]}
             />
           </View>
-
           {/* Item Selector */}
           <View style={styles.formGroup}>
             <Typography variant="body" weight="semibold" style={styles.label}>
@@ -366,7 +316,6 @@ export const TruckCheckoutScreen = () => {
               <ChevronDownIcon size={20} color={theme.colors.gray[400]} />
             </TouchableOpacity>
           </View>
-
           {/* Quantity Taking */}
           <View style={styles.formGroup}>
             <Typography variant="body" weight="semibold" style={styles.label}>
@@ -382,7 +331,6 @@ export const TruckCheckoutScreen = () => {
               editable={!!selectedItem}
             />
           </View>
-
           {/* Remaining Quantity */}
           <View style={styles.formGroup}>
             <Typography variant="body" weight="semibold" style={styles.label}>
@@ -408,7 +356,6 @@ export const TruckCheckoutScreen = () => {
               </Typography>
             )}
           </View>
-
           {/* Validation Error */}
           {validationError && (
             <View style={styles.errorBox}>
@@ -421,7 +368,6 @@ export const TruckCheckoutScreen = () => {
               </Typography>
             </View>
           )}
-
           {/* Notes */}
           <View style={styles.formGroup}>
             <Typography variant="body" weight="semibold" style={styles.label}>
@@ -437,7 +383,6 @@ export const TruckCheckoutScreen = () => {
               numberOfLines={3}
             />
           </View>
-
           {/* Submit Button */}
           <TouchableOpacity
             style={[
@@ -456,7 +401,6 @@ export const TruckCheckoutScreen = () => {
           </TouchableOpacity>
         </Card>
       </ScrollView>
-
       {/* Item Picker Modal */}
       <Modal
         visible={showItemPicker}
@@ -474,7 +418,6 @@ export const TruckCheckoutScreen = () => {
               </Typography>
             </TouchableOpacity>
           </View>
-
           {/* Search Input */}
           <View style={styles.searchContainer}>
             <SearchIcon size={20} color={theme.colors.gray[400]} />
@@ -487,7 +430,6 @@ export const TruckCheckoutScreen = () => {
               autoFocus
             />
           </View>
-
           {/* Search Results */}
           <ScrollView style={styles.itemsList} showsVerticalScrollIndicator={false}>
             {searchingItems && (
@@ -501,7 +443,6 @@ export const TruckCheckoutScreen = () => {
                 </Typography>
               </View>
             )}
-
             {!searchingItems && searchResults.length === 0 && (
               <View style={styles.emptyContainer}>
                 <BoxIcon size={48} color={theme.colors.gray[300]} />
@@ -515,7 +456,6 @@ export const TruckCheckoutScreen = () => {
                 </Typography>
               </View>
             )}
-
             {!searchingItems &&
               searchResults.map((item: any, index: number) => (
                 <TouchableOpacity
@@ -542,7 +482,6 @@ export const TruckCheckoutScreen = () => {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-
       {/* Discrepancy Confirmation Modal */}
       <Modal
         visible={showDiscrepancyModal}
@@ -557,13 +496,11 @@ export const TruckCheckoutScreen = () => {
                 Stock Discrepancy Detected
               </Typography>
             </View>
-
             {discrepancyInfo && (
               <View style={styles.discrepancyBody}>
                 <Typography variant="body" color={theme.colors.gray[700]} style={{marginBottom: 16}}>
                   The remaining quantity you entered doesn't match the system calculation.
                 </Typography>
-
                 <View style={styles.discrepancyRow}>
                   <Typography variant="small" color={theme.colors.gray[500]}>
                     Item:
@@ -572,7 +509,6 @@ export const TruckCheckoutScreen = () => {
                     {discrepancyInfo.itemName}
                   </Typography>
                 </View>
-
                 <View style={styles.discrepancyRow}>
                   <Typography variant="small" color={theme.colors.gray[500]}>
                     Current Stock:
@@ -581,7 +517,6 @@ export const TruckCheckoutScreen = () => {
                     {discrepancyInfo.currentStock}
                   </Typography>
                 </View>
-
                 <View style={styles.discrepancyRow}>
                   <Typography variant="small" color={theme.colors.gray[500]}>
                     Taking:
@@ -590,7 +525,6 @@ export const TruckCheckoutScreen = () => {
                     {discrepancyInfo.taking}
                   </Typography>
                 </View>
-
                 <View style={[styles.discrepancyRow, styles.divider]}>
                   <Typography variant="small" color={theme.colors.gray[500]}>
                     Expected Remaining:
@@ -599,7 +533,6 @@ export const TruckCheckoutScreen = () => {
                     {discrepancyInfo.expectedRemaining}
                   </Typography>
                 </View>
-
                 <View style={styles.discrepancyRow}>
                   <Typography variant="small" color={theme.colors.gray[500]}>
                     You Entered:
@@ -608,7 +541,6 @@ export const TruckCheckoutScreen = () => {
                     {discrepancyInfo.userEnteredRemaining}
                   </Typography>
                 </View>
-
                 <View style={[styles.discrepancyRow, {marginTop: 16}]}>
                   <Typography variant="small" color={theme.colors.gray[500]}>
                     Difference:
@@ -625,7 +557,6 @@ export const TruckCheckoutScreen = () => {
                     {discrepancyInfo.difference} ({discrepancyInfo.discrepancyType})
                   </Typography>
                 </View>
-
                 <View style={styles.warningBox}>
                   <Typography variant="small" color={theme.colors.warning[700]}>
                     Accepting this will automatically create an approved discrepancy and adjust
@@ -634,7 +565,6 @@ export const TruckCheckoutScreen = () => {
                 </View>
               </View>
             )}
-
             <View style={styles.discrepancyFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -663,7 +593,6 @@ export const TruckCheckoutScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

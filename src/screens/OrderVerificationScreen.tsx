@@ -36,49 +36,40 @@ interface OrderItem {
   receivedQuantity: number;
   notes?: string;
 }
-
 export const OrderVerificationScreen: React.FC<
   OrderVerificationScreenProps
 > = ({route, navigation}) => {
   const {orderId} = route.params;
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
-
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
   const [hasDiscrepancies, setHasDiscrepancies] = useState(false);
-
   useEffect(() => {
     if (orderId && token) {
       fetchOrder();
     }
   }, [orderId, token]);
-
   useEffect(() => {
-    // Check if there are any discrepancies
     const discrepancies = items.some(
       item => parseFloat(item.receivedQuantity.toString()) !== item.qty,
     );
     setHasDiscrepancies(discrepancies);
   }, [items]);
-
   const fetchOrder = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
       const response = await ordersService.getOrderById(token, orderId);
-
       if (response) {
         setOrder(response);
-        // Initialize items with expected quantities
         setItems(
           response.items.map((item: any) => ({
             ...item,
-            receivedQuantity: item.qty, // Default to expected quantity
+            receivedQuantity: item.qty,
             itemName: item.name,
           })),
         );
@@ -94,16 +85,13 @@ export const OrderVerificationScreen: React.FC<
       setLoading(false);
     }
   };
-
   const handleQuantityChange = (index: number, value: string) => {
     const newItems = [...items];
     newItems[index].receivedQuantity = parseFloat(value) || 0;
     setItems(newItems);
   };
-
   const handleAllGood = async () => {
     if (!token || !orderId) return;
-
     Alert.alert(
       'Confirm All Good',
       'Are you sure all items were received as expected?',
@@ -118,7 +106,6 @@ export const OrderVerificationScreen: React.FC<
                 allGood: true,
                 notes: notes.trim() || 'All items received as expected',
               });
-
               Alert.alert(
                 'Success',
                 'Order verified successfully - all items correct',
@@ -146,10 +133,8 @@ export const OrderVerificationScreen: React.FC<
       ],
     );
   };
-
   const handleSubmitWithDiscrepancies = async () => {
     if (!token || !orderId) return;
-
     Alert.alert(
       'Submit Discrepancies',
       'This will record the discrepancies for admin approval.',
@@ -160,8 +145,6 @@ export const OrderVerificationScreen: React.FC<
           onPress: async () => {
             try {
               setSubmitting(true);
-
-              // Prepare items data
               const itemsData = items.map(item => ({
                 sku: item.sku,
                 itemName: item.itemName || item.name,
@@ -169,7 +152,6 @@ export const OrderVerificationScreen: React.FC<
                 receivedQuantity: parseFloat(item.receivedQuantity.toString()) || 0,
                 notes: item.notes || '',
               }));
-
               const response = await orderDiscrepancyService.verifyOrder(
                 token,
                 orderId,
@@ -179,7 +161,6 @@ export const OrderVerificationScreen: React.FC<
                   notes: notes.trim(),
                 },
               );
-
               const discrepancyCount = response.discrepancies?.length || 0;
               Alert.alert(
                 'Success',
@@ -208,7 +189,6 @@ export const OrderVerificationScreen: React.FC<
       ],
     );
   };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -219,7 +199,6 @@ export const OrderVerificationScreen: React.FC<
       </SafeAreaView>
     );
   }
-
   if (!order) {
     return (
       <SafeAreaView style={styles.container}>
@@ -235,7 +214,6 @@ export const OrderVerificationScreen: React.FC<
       </SafeAreaView>
     );
   }
-
   if (order.status === 'received' || order.status === 'completed') {
     return (
       <SafeAreaView style={styles.container}>
@@ -254,7 +232,6 @@ export const OrderVerificationScreen: React.FC<
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
@@ -272,7 +249,6 @@ export const OrderVerificationScreen: React.FC<
             </Typography>
           </View>
         </View>
-
         {/* Order Info */}
         <Card style={styles.card}>
           <View style={styles.infoRow}>
@@ -298,7 +274,6 @@ export const OrderVerificationScreen: React.FC<
             </Typography>
           </View>
         </Card>
-
         {/* Instructions */}
         <Card style={[styles.card, styles.infoCard]}>
           <Typography variant="h4" style={styles.instructionTitle}>
@@ -315,19 +290,16 @@ export const OrderVerificationScreen: React.FC<
             for admin approval
           </Typography>
         </Card>
-
         {/* Items List */}
         <Card style={styles.card}>
           <Typography variant="h3" style={styles.sectionTitle}>
             Order Items ({items.length})
           </Typography>
-
           {items.map((item, index) => {
             const received = parseFloat(item.receivedQuantity.toString()) || 0;
             const expected = item.qty;
             const difference = received - expected;
             const hasDiscrepancy = difference !== 0;
-
             return (
               <View
                 key={index}
@@ -341,7 +313,6 @@ export const OrderVerificationScreen: React.FC<
                     {item.sku}
                   </Typography>
                 </View>
-
                 <View style={styles.quantityRow}>
                   <View style={styles.quantityItem}>
                     <Typography variant="body2" style={styles.quantityLabel}>
@@ -349,7 +320,6 @@ export const OrderVerificationScreen: React.FC<
                     </Typography>
                     <Typography variant="h4">{expected}</Typography>
                   </View>
-
                   <View style={styles.quantityItem}>
                     <Typography variant="body2" style={styles.quantityLabel}>
                       Received
@@ -361,7 +331,6 @@ export const OrderVerificationScreen: React.FC<
                       keyboardType="numeric"
                     />
                   </View>
-
                   <View style={styles.quantityItem}>
                     <Typography variant="body2" style={styles.quantityLabel}>
                       Difference
@@ -387,7 +356,6 @@ export const OrderVerificationScreen: React.FC<
                     )}
                   </View>
                 </View>
-
                 {hasDiscrepancy && (
                   <View
                     style={[
@@ -407,7 +375,6 @@ export const OrderVerificationScreen: React.FC<
             );
           })}
         </Card>
-
         {/* Notes */}
         <Card style={styles.card}>
           <Typography variant="h4" style={styles.notesLabel}>
@@ -423,7 +390,6 @@ export const OrderVerificationScreen: React.FC<
             numberOfLines={3}
           />
         </Card>
-
         {/* Discrepancy Warning */}
         {hasDiscrepancies && (
           <Card style={[styles.card, styles.warningCard]}>
@@ -434,7 +400,6 @@ export const OrderVerificationScreen: React.FC<
             </Typography>
           </Card>
         )}
-
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity
@@ -443,7 +408,6 @@ export const OrderVerificationScreen: React.FC<
             disabled={submitting}>
             <Typography style={styles.cancelButtonText}>Cancel</Typography>
           </TouchableOpacity>
-
           {!hasDiscrepancies ? (
             <TouchableOpacity
               style={[
@@ -488,7 +452,6 @@ export const OrderVerificationScreen: React.FC<
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

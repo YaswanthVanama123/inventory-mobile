@@ -16,7 +16,6 @@ class AuthService {
       });
 
       const data = await response.json();
-
       if (!response.ok) {
         throw {
           userMessage: data.message || 'Request failed',
@@ -24,14 +23,12 @@ class AuthService {
           ...data,
         };
       }
-
       return data;
     } catch (error) {
       console.error('API Request Error:', error);
       throw error;
     }
   }
-
   async loginAdmin(
     username: string,
     password: string,
@@ -41,7 +38,6 @@ class AuthService {
         method: 'POST',
         body: JSON.stringify({username, password}),
       });
-
       return {
         success: true,
         token: response.data?.token,
@@ -54,7 +50,6 @@ class AuthService {
       };
     }
   }
-
   async loginEmployee(
     username: string,
     password: string,
@@ -64,7 +59,6 @@ class AuthService {
         method: 'POST',
         body: JSON.stringify({username, password}),
       });
-
       return {
         success: true,
         token: response.data?.token,
@@ -77,11 +71,7 @@ class AuthService {
       };
     }
   }
-
   async logout(): Promise<void> {
-    // Clear any stored tokens
-    // You can add AsyncStorage cleanup here if needed
   }
 }
-
 export default new AuthService();

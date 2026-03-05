@@ -21,10 +21,8 @@ export type MainTabParamList = {
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-
 export const MainTabNavigator = () => {
   const insets = useSafeAreaInsets();
-
   return (
     <Tab.Navigator
       screenOptions={{

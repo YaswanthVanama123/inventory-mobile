@@ -21,7 +21,6 @@ export interface AuthResponse {
   error?: string;
   message?: string;
 }
-
 export interface AuthState {
   user: User | null;
   token: string | null;

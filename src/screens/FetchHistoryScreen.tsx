@@ -46,18 +46,12 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
   const [activeFetches, setActiveFetches] = useState<any[]>([]);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-
-  // Filters
   const [filterSource, setFilterSource] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDays, setFilterDays] = useState(10);
-
-  // Picker modals
   const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
   const [statusPickerVisible, setStatusPickerVisible] = useState(false);
   const [daysPickerVisible, setDaysPickerVisible] = useState(false);
-
-  // Stats
   const [stats, setStats] = useState({
     activeCount: 0,
     todayCount: 0,
@@ -65,48 +59,39 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
     totalCompleted: 0,
     totalFailed: 0,
   });
-
   useEffect(() => {
     if (visible && token) {
       loadData();
     }
   }, [visible, token, filterSource, filterStatus, filterDays]);
-
-  // Auto-refresh every 30 seconds when screen is visible
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (visible && token) {
       interval = setInterval(() => {
-        loadData(true); // Silent refresh
+        loadData(true);
       }, 30000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
   }, [visible, token, filterSource, filterStatus, filterDays]);
-
   const loadData = async (silent = false) => {
     if (!token) return;
-
     try {
       if (!silent) setLoading(true);
       setError(null);
-
       const params: any = {
         page: 1,
         limit: 100,
         days: filterDays,
       };
-
       if (filterSource) params.source = filterSource;
       if (filterStatus) params.status = filterStatus;
-
       const [historyData, activeFetchesData, statsData] = await Promise.all([
         fetchHistoryService.getHistory(token, params),
         fetchHistoryService.getActiveFetches(token, filterSource),
         fetchHistoryService.getStatistics(token, filterSource, filterDays),
       ]);
-
       setHistory(historyData.history || []);
       setActiveFetches(activeFetchesData || []);
       setStats(statsData || {
@@ -118,22 +103,18 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
       });
     } catch (error: any) {
       console.error('Failed to fetch history:', error);
-
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       if (!silent) setError(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleItemPress = (itemId: string) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(itemId)) {
@@ -143,13 +124,11 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
     }
     setExpandedItems(newExpanded);
   };
-
   const handleCancelFetch = (fetch: any) => {
     if (user?.role !== 'admin') {
       Alert.alert('Permission Denied', 'Only admins can cancel fetch operations');
       return;
     }
-
     Alert.alert(
       'Cancel Fetch',
       `Are you sure you want to cancel this fetch operation?`,
@@ -171,14 +150,10 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
       ]
     );
   };
-
   const getSourceLabel = (source: string, fetchType?: string) => {
-    // Customer Connect always shows as Orders
     if (source === 'customer_connect') {
       return 'Orders';
     }
-
-    // RouteStar Invoices shows based on fetch type
     if (source === 'routestar_invoices') {
       if (fetchType === 'pending' || fetchType === 'pending_with_details') {
         return 'Pending Invoices';
@@ -188,15 +163,11 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
         return 'Invoices';
       }
     }
-
-    // RouteStar Items
     if (source === 'routestar_items') {
       return 'Items';
     }
-
     return source;
   };
-
   const getSourceColor = (source: string) => {
     switch (source) {
       case 'customer_connect':
@@ -209,7 +180,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
         return theme.colors.gray[600];
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -224,7 +194,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
         return theme.colors.gray[600];
     }
   };
-
   const getStatusBgColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -239,13 +208,11 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
         return theme.colors.gray[100];
     }
   };
-
   const formatDuration = (ms: number) => {
     if (!ms) return 'N/A';
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
-
     if (hours > 0) {
       return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
     } else if (minutes > 0) {
@@ -254,7 +221,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
       return `${seconds}s`;
     }
   };
-
   const formatDate = (date: string) => {
     return new Date(date).toLocaleString('en-US', {
       month: 'numeric',
@@ -265,14 +231,12 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
       hour12: true,
     });
   };
-
   const sourceOptions = [
     {label: 'All Sources', value: ''},
     {label: 'Orders', value: 'customer_connect'},
     {label: 'Invoices', value: 'routestar_invoices'},
     {label: 'Items', value: 'routestar_items'},
   ];
-
   const statusOptions = [
     {label: 'All Status', value: ''},
     {label: 'In Progress', value: 'in_progress'},
@@ -280,14 +244,12 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
     {label: 'Failed', value: 'failed'},
     {label: 'Cancelled', value: 'cancelled'},
   ];
-
   const daysOptions = [
     {label: 'Last 24 hours', value: 1},
     {label: 'Last 3 days', value: 3},
     {label: 'Last 7 days', value: 7},
     {label: 'Last 10 days', value: 10},
   ];
-
   return (
     <Modal
       visible={visible}
@@ -309,7 +271,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
             <RefreshIcon size={20} color={theme.colors.primary[600]} />
           </TouchableOpacity>
         </View>
-
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -344,7 +305,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <ClipboardIcon size={18} color={theme.colors.white} />
@@ -359,7 +319,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
                   <CheckCircleIcon size={18} color={theme.colors.white} />
@@ -374,7 +333,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.gray[600]}]}>
                   <RefreshIcon size={18} color={theme.colors.white} />
@@ -390,7 +348,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                 </View>
               </View>
             </View>
-
             {/* Active Fetches Section */}
             {activeFetches.length > 0 && (
               <Card variant="elevated" padding="md" style={styles.activeFetchesCard}>
@@ -430,13 +387,11 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                 ))}
               </Card>
             )}
-
             {/* Filters */}
             <Card variant="elevated" padding="md" style={styles.filterCard}>
               <Typography variant="small" weight="bold" style={{marginBottom: 12}}>
                 Filters
               </Typography>
-
               <View style={styles.filterRow}>
                 <View style={styles.filterItem}>
                   <Typography variant="caption" color={theme.colors.gray[600]} style={{marginBottom: 4}}>
@@ -451,7 +406,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                     <ChevronDownIcon size={16} color={theme.colors.gray[400]} />
                   </TouchableOpacity>
                 </View>
-
                 <View style={styles.filterItem}>
                   <Typography variant="caption" color={theme.colors.gray[600]} style={{marginBottom: 4}}>
                     Status
@@ -466,7 +420,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                   </TouchableOpacity>
                 </View>
               </View>
-
               <View style={styles.filterRow}>
                 <View style={styles.filterItem}>
                   <Typography variant="caption" color={theme.colors.gray[600]} style={{marginBottom: 4}}>
@@ -483,7 +436,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                 </View>
               </View>
             </Card>
-
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -498,7 +450,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                 </View>
               </Card>
             )}
-
             {/* Empty State */}
             {!error && history.length === 0 && (
               <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -518,7 +469,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                 </Typography>
               </Card>
             )}
-
             {/* History List */}
             <View style={styles.historyList}>
               <Typography variant="small" weight="bold" style={{marginBottom: 12}}>
@@ -526,7 +476,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
               </Typography>
               {history.map((item, index) => {
                 const isExpanded = expandedItems.has(item._id);
-
                 return (
                   <Card
                     key={item._id || index}
@@ -569,7 +518,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                         </View>
                       </View>
                     </TouchableOpacity>
-
                     {/* History Meta */}
                     <View style={styles.historyMeta}>
                       <View style={styles.metaRow}>
@@ -599,7 +547,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                         </View>
                       )}
                     </View>
-
                     {/* Expanded Content */}
                     {isExpanded && (
                       <View style={styles.expandedContent}>
@@ -646,7 +593,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                             )}
                           </View>
                         )}
-
                         {item.errorMessage && (
                           <View style={styles.errorSection}>
                             <Typography variant="small" weight="semibold" color={theme.colors.error[700]} style={{marginBottom: 4}}>
@@ -665,7 +611,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
             </View>
           </ScrollView>
         )}
-
         {/* Picker Modals */}
         <PickerModal
           visible={sourcePickerVisible}
@@ -680,7 +625,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
           getLabel={(item) => item.label}
           getValue={(item) => item.value}
         />
-
         <PickerModal
           visible={statusPickerVisible}
           onClose={() => setStatusPickerVisible(false)}
@@ -694,7 +638,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
           getLabel={(item) => item.label}
           getValue={(item) => item.value}
         />
-
         <PickerModal
           visible={daysPickerVisible}
           onClose={() => setDaysPickerVisible(false)}
@@ -712,7 +655,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -769,19 +711,19 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     color: '#ffffff',
-    fontSize: theme.typography.fontSizes.xs,  // 11
+    fontSize: theme.typography.fontSizes.xs, 
     opacity: 0.9,
     marginTop: 6,
     marginBottom: 4,
   },
   statValue: {
     color: '#ffffff',
-    fontSize: theme.typography.fontSizes.xl,  // 18 instead of 22
+    fontSize: theme.typography.fontSizes.xl, 
     marginBottom: 4,
   },
   statSubtitle: {
     color: '#ffffff',
-    fontSize: theme.typography.fontSizes.xs,  // 11 instead of 10
+    fontSize: theme.typography.fontSizes.xs, 
     opacity: 0.85,
   },
   activeFetchesCard: {

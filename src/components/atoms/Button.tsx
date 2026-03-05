@@ -43,14 +43,12 @@ export const Button: React.FC<ButtonProps> = ({
     (disabled || loading) && styles.disabled,
     style,
   ];
-
   const textStyles = [
     styles.text,
     styles[`text_${variant}`],
     styles[`text_${size}`],
     textStyle,
   ];
-
   return (
     <TouchableOpacity
       {...props}
@@ -71,7 +69,6 @@ export const Button: React.FC<ButtonProps> = ({
     </TouchableOpacity>
   );
 };
-
 const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
@@ -102,7 +99,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.md,
   },
   button_sm: {
-    paddingVertical: 13, // Minimum 44pt touch target (13 + ~18 line height + 13 = ~44px)
+    paddingVertical: 13,
     paddingHorizontal: 20,
   },
   button_md: {

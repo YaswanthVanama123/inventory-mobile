@@ -13,33 +13,27 @@ export interface StatCardProps {
    * Main value to display
    */
   value: string | number;
-
   /**
    * Optional subtitle/description
    */
   subtitle?: string;
-
   /**
    * Optional icon element
    */
   icon?: React.ReactNode;
-
   /**
    * Background color of the card
    */
   backgroundColor?: string;
-
   /**
    * Size variant
    */
   size?: 'sm' | 'md' | 'lg';
-
   /**
    * Custom container style
    */
   style?: ViewStyle;
 }
-
 /**
  * StatCard - Reusable statistics card component
  *
@@ -70,14 +64,12 @@ export const StatCard: React.FC<StatCardProps> = ({
     {backgroundColor},
     style,
   ];
-
   const valueFontSize =
     size === 'sm'
       ? theme.typography.fontSizes.xl
       : size === 'lg'
       ? theme.typography.fontSizes.xxxxl
       : theme.typography.fontSizes.xxl;
-
   return (
     <View style={containerStyle}>
       <View style={styles.topRow}>
@@ -86,14 +78,12 @@ export const StatCard: React.FC<StatCardProps> = ({
         </Typography>
         {icon && <View style={styles.iconContainer}>{icon}</View>}
       </View>
-
       <Typography
         variant="h2"
         weight="bold"
         style={[styles.value, {fontSize: valueFontSize}]}>
         {value}
       </Typography>
-
       {subtitle && (
         <Typography variant="caption" style={styles.subtitle}>
           {subtitle}
@@ -102,7 +92,6 @@ export const StatCard: React.FC<StatCardProps> = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     borderRadius: theme.borderRadius.xl,
@@ -135,7 +124,7 @@ const styles = StyleSheet.create({
   },
   value: {
     color: '#ffffff',
-    lineHeight: undefined, // Let it auto-calculate
+    lineHeight: undefined,
     marginBottom: theme.spacing.xs,
   },
   subtitle: {

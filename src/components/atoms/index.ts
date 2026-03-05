@@ -6,12 +6,9 @@ export type {TextInputProps} from './TextInput';
 
 export {Typography} from './Typography';
 export type {TypographyProps} from './Typography';
-
 export {Card} from './Card';
 export type {CardProps} from './Card';
-
 export {Checkbox} from './Checkbox';
 export type {CheckboxProps} from './Checkbox';
-
 export {StatusBadge} from './StatusBadge';
 export type {StatusBadgeProps, StatusType} from './StatusBadge';

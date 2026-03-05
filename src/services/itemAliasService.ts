@@ -12,49 +12,39 @@ class ItemAliasService {
           'Content-Type': 'application/json',
         },
       });
-
       console.log('[ItemAlias] Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[ItemAlias] Error response:', errorText);
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       console.log('[ItemAlias] Mappings count:', result.data?.mappings?.length || 0);
-
       if (result.success && result.data) {
         return result.data.mappings || [];
       }
-
       return [];
     } catch (error: any) {
       console.error('[ItemAlias] Service Error:', error.message);
       throw error;
     }
   }
-
   async getUniqueItems(token: string) {
     try {
       const url = `${API_BASE_URL}/routestar-item-alias/unique-items`;
       console.log('[ItemAlias] Fetching unique items from:', url);
-
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       console.log('[ItemAlias] Unique items count:', result.data?.items?.length || 0);
-
       if (result.success && result.data) {
         return {
           items: result.data.items || [],
@@ -65,7 +55,6 @@ class ItemAliasService {
           },
         };
       }
-
       return {
         items: [],
         stats: {totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0},
@@ -75,7 +64,6 @@ class ItemAliasService {
       throw error;
     }
   }
-
   async saveMapping(
     token: string,
     data: {
@@ -88,7 +76,6 @@ class ItemAliasService {
     try {
       const url = `${API_BASE_URL}/routestar-item-alias/mapping`;
       console.log('[ItemAlias] Saving mapping:', data.canonicalName);
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -97,12 +84,10 @@ class ItemAliasService {
         },
         body: JSON.stringify(data),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       return result.data;
     } catch (error: any) {
@@ -110,12 +95,10 @@ class ItemAliasService {
       throw error;
     }
   }
-
   async deleteMapping(token: string, id: string) {
     try {
       const url = `${API_BASE_URL}/routestar-item-alias/mapping/${id}`;
       console.log('[ItemAlias] Deleting mapping:', id);
-
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
@@ -123,12 +106,10 @@ class ItemAliasService {
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       return result;
     } catch (error: any) {
@@ -136,7 +117,6 @@ class ItemAliasService {
       throw error;
     }
   }
-
   /**
    * OPTIMIZED: Get all page data in one API call
    * Combines mappings, unique items, and stats into single request
@@ -145,29 +125,24 @@ class ItemAliasService {
     try {
       const url = `${API_BASE_URL}/routestar-item-alias/page-data`;
       console.log('[ItemAlias] Fetching combined page data from:', url);
-
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-
       console.log('[ItemAlias] Page data response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[ItemAlias] Error response:', errorText);
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       console.log('[ItemAlias] Page data received:', {
         mappings: result.data?.mappings?.mappings?.length || 0,
         items: result.data?.uniqueItems?.items?.length || 0,
         stats: result.data?.uniqueItems?.stats || result.data?.stats,
       });
-
       if (result.success && result.data) {
         return {
           mappings: result.data.mappings?.mappings || [],
@@ -179,7 +154,6 @@ class ItemAliasService {
           },
         };
       }
-
       return {
         mappings: [],
         items: [],
@@ -191,5 +165,4 @@ class ItemAliasService {
     }
   }
 }
-
 export default new ItemAliasService();

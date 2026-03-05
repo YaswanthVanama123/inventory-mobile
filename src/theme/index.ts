@@ -61,15 +61,13 @@ export const theme = {
       elevation: 12,
     },
   },
-  // Animation durations (in milliseconds)
+ 
   animation: {
     fast: 150,
     normal: 250,
     slow: 350,
   },
 };
-
 export type Theme = typeof theme;
-
 export {colors, spacing, typography, status};
-export * from './status'; // Export helper functions
+export * from './status';

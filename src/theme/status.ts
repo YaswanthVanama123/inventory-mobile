@@ -7,7 +7,6 @@ import {colors} from './colors';
  */
 
 export const status = {
-  // Invoice status
   invoice: {
     draft: {
       color: colors.gray[500],
@@ -26,8 +25,6 @@ export const status = {
       bgColor: colors.error[100],
     },
   },
-
-  // Payment status
   payment: {
     pending: {
       color: colors.warning[600],
@@ -42,8 +39,6 @@ export const status = {
       bgColor: colors.error[100],
     },
   },
-
-  // Stock status
   stock: {
     inStock: {
       color: colors.success[600],
@@ -58,8 +53,6 @@ export const status = {
       bgColor: colors.error[100],
     },
   },
-
-  // Order status
   order: {
     pending: {
       color: colors.warning[600],
@@ -78,8 +71,6 @@ export const status = {
       bgColor: colors.error[100],
     },
   },
-
-  // Fetch/Sync status
   fetch: {
     pending: {
       color: colors.warning[600],
@@ -102,8 +93,6 @@ export const status = {
       bgColor: colors.gray[100],
     },
   },
-
-  // General boolean status
   general: {
     active: {
       color: colors.success[600],
@@ -139,22 +128,18 @@ export const status = {
     },
   },
 };
-
 /**
  * Helper functions to get status colors
  * These provide a fallback to prevent runtime errors
  */
-
 export const getInvoiceStatusColors = (invoiceStatus: string) => {
   const key = invoiceStatus?.toLowerCase() as keyof typeof status.invoice;
   return status.invoice[key] || status.invoice.draft;
 };
-
 export const getPaymentStatusColors = (paymentStatus: string) => {
   const key = paymentStatus?.toLowerCase() as keyof typeof status.payment;
   return status.payment[key] || status.payment.pending;
 };
-
 export const getStockStatusColors = (stockStatus: string) => {
   const normalizedKey = stockStatus?.toLowerCase().replace(/[_-]/g, '') as 'instock' | 'lowstock' | 'outofstock';
   const mapping = {
@@ -164,12 +149,10 @@ export const getStockStatusColors = (stockStatus: string) => {
   };
   return mapping[normalizedKey] || status.stock.inStock;
 };
-
 export const getOrderStatusColors = (orderStatus: string) => {
   const key = orderStatus?.toLowerCase() as keyof typeof status.order;
   return status.order[key] || status.order.pending;
 };
-
 export const getFetchStatusColors = (fetchStatus: string) => {
   const normalizedKey = fetchStatus?.toLowerCase().replace(/[_-]/g, '') as 'pending' | 'inprogress' | 'completed' | 'failed' | 'cancelled';
   const mapping = {
@@ -181,7 +164,6 @@ export const getFetchStatusColors = (fetchStatus: string) => {
   };
   return mapping[normalizedKey] || status.fetch.pending;
 };
-
 export const getGeneralStatusColors = (generalStatus: string) => {
   const key = generalStatus?.toLowerCase() as keyof typeof status.general;
   return status.general[key] || status.general.info;

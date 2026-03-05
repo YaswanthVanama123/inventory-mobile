@@ -10,43 +10,35 @@ export interface GradientStatCardProps {
    * Card title/label
    */
   title: string;
-
   /**
    * Main value to display
    */
   value: string | number;
-
   /**
    * Optional subtitle/description
    */
   subtitle?: string;
-
   /**
    * Optional icon element
    */
   icon?: React.ReactNode;
-
   /**
    * Gradient color theme
    */
   gradientColor?: GradientColor;
-
   /**
    * Size variant
    */
   size?: 'sm' | 'md' | 'lg';
-
   /**
    * Custom container style
    */
   style?: ViewStyle;
-
   /**
    * Optional trend indicator (up/down)
    */
   trend?: 'up' | 'down' | 'neutral';
 }
-
 /**
  * GradientStatCard - Modern stat card with gradient-inspired colors
  *
@@ -77,31 +69,26 @@ export const GradientStatCard: React.FC<GradientStatCardProps> = ({
     };
     return colorMap[gradientColor];
   };
-
   const containerStyle = [
     styles.container,
     styles[`container_${size}`],
     {backgroundColor: getGradientColor()},
     style,
   ];
-
   const valueFontSize =
     size === 'sm'
       ? theme.typography.fontSizes.xl
       : size === 'lg'
       ? 32
       : theme.typography.fontSizes.xxxl;
-
   const getTrendIcon = () => {
     if (!trend || trend === 'neutral') return null;
     return trend === 'up' ? '↑' : '↓';
   };
-
   return (
     <View style={containerStyle}>
       {/* Decorative overlay */}
       <View style={styles.overlay} />
-
       <View style={styles.content}>
         <View style={styles.topRow}>
           <Typography variant="caption" style={styles.title}>
@@ -109,14 +96,12 @@ export const GradientStatCard: React.FC<GradientStatCardProps> = ({
           </Typography>
           {icon && <View style={styles.iconContainer}>{icon}</View>}
         </View>
-
         <Typography
           variant="h1"
           weight="bold"
           style={[styles.value, {fontSize: valueFontSize}]}>
           {value}
         </Typography>
-
         {subtitle && (
           <View style={styles.subtitleRow}>
             {trend && trend !== 'neutral' && (
@@ -138,7 +123,6 @@ export const GradientStatCard: React.FC<GradientStatCardProps> = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     borderRadius: theme.borderRadius.xxl,

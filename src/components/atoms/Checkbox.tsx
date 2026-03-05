@@ -31,14 +31,13 @@ export const Checkbox: React.FC<CheckboxProps> = ({
     </TouchableOpacity>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   checkbox: {
-    width: 24, // Increased from 20 for better touch target
+    width: 24,
     height: 24,
     borderRadius: theme.borderRadius.sm,
     borderWidth: 2,

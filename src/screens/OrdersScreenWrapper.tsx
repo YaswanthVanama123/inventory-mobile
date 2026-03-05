@@ -48,13 +48,11 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     processed: 0,
     pending: 0,
   });
-
   useEffect(() => {
     if (token) {
       loadData();
     }
   }, [token]);
-
   useEffect(() => {
     if (searchQuery) {
       const filtered = orders.filter(
@@ -67,22 +65,17 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       setFilteredOrders(orders);
     }
   }, [searchQuery, orders]);
-
   const loadData = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
       setError(null);
       const response = await ordersService.getOrders(token, {
         limit: 100,
       });
-
       const ordersData = response.orders || [];
       setOrders(ordersData);
       setFilteredOrders(ordersData);
-
-      // Calculate stats
       const processed = ordersData.filter((o: any) => o.stockProcessed).length;
       setStats({
         totalOrders: ordersData.length,
@@ -100,12 +93,10 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       setRefreshing(false);
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleOrderPress = (orderNumber: string) => {
     const newExpanded = new Set(expandedOrders);
     if (newExpanded.has(orderNumber)) {
@@ -115,7 +106,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     }
     setExpandedOrders(newExpanded);
   };
-
   const handleVerifyOrder = (order: any) => {
     if (!order._id) {
       Alert.alert('Error', 'Order ID not found');
@@ -123,11 +113,9 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     }
     navigation.navigate('OrderVerification', {orderId: order._id});
   };
-
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
   };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -140,7 +128,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       return 'Invalid Date';
     }
   };
-
   const getStatusColor = (status: string) => {
     const statusMap: {[key: string]: string} = {
       Complete: theme.colors.success[600],
@@ -152,7 +139,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     };
     return statusMap[status] || theme.colors.gray[500];
   };
-
   const getStatusBgColor = (status: string) => {
     const statusMap: {[key: string]: string} = {
       Complete: theme.colors.success[100],
@@ -164,7 +150,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     };
     return statusMap[status] || theme.colors.gray[100];
   };
-
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
       {loading && !refreshing ? (
@@ -218,7 +203,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               </Typography>
             </Card>
           </View>
-
           {/* Search */}
           <View style={styles.searchContainer}>
             <RNTextInput
@@ -229,7 +213,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               placeholderTextColor={theme.colors.gray[400]}
             />
           </View>
-
           {/* Orders List */}
           {error ? (
             <View style={styles.errorContainer}>
@@ -286,7 +269,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                       />
                     )}
                   </View>
-
                   <View style={styles.orderInfo}>
                     <Typography variant="body" color={theme.colors.gray[700]}>
                       {order.vendor?.name || 'N/A'}
@@ -295,7 +277,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                       {formatDate(order.orderDate)}
                     </Typography>
                   </View>
-
                   <View style={styles.orderMeta}>
                     <View style={styles.metaItem}>
                       <Typography
@@ -340,7 +321,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                     </View>
                   </View>
                 </TouchableOpacity>
-
                 {/* Verify Order Button */}
                 {(order.status === 'received' || order.status === 'Complete') &&
                   !order.stockProcessed && (
@@ -353,7 +333,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                       </Typography>
                     </TouchableOpacity>
                   )}
-
                 {/* Expanded Details */}
                 {expandedOrders.has(order.orderNumber) && (
                   <View style={styles.expandedContent}>
@@ -402,7 +381,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
           )}
         </ScrollView>
       )}
-
       {/* Discrepancies Button */}
       {isAdmin && (
         <TouchableOpacity
@@ -417,7 +395,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

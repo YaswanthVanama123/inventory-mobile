@@ -12,22 +12,17 @@ class DashboardService {
           'Content-Type': 'application/json',
         },
       });
-
       console.log('[Dashboard] Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[Dashboard] Error response:', errorText);
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       console.log('[Dashboard] Response data:', JSON.stringify(result).substring(0, 200));
-
       if (result.success && result.data) {
         return this.transformDashboardData(result.data);
       }
-
       throw new Error('Invalid response format');
     } catch (error: any) {
       console.error('[Dashboard] Service Error:', error.message);
@@ -35,18 +30,14 @@ class DashboardService {
       throw error;
     }
   }
-
   transformDashboardData(data: any) {
     const { summary, recentActivity, topSellingItems, topSellingItemsDetailed, salesTrend, invoiceStatusStats } = data;
-
-    // Transform invoice status stats into pie chart data
     const statusColors: {[key: string]: string} = {
-      'Pending': '#F59E0B', // Amber
-      'Completed': '#10B981', // Green
-      'Closed': '#3B82F6', // Blue
-      'Cancelled': '#EF4444', // Red
+      'Pending': '#F59E0B',
+      'Completed': '#10B981',
+      'Closed': '#3B82F6',
+      'Cancelled': '#EF4444',
     };
-
     const statusDistribution = invoiceStatusStats ? Object.keys(invoiceStatusStats)
       .filter(status => invoiceStatusStats[status] > 0)
       .map((status) => ({
@@ -57,7 +48,6 @@ class DashboardService {
       })) : [
         {name: 'Completed', population: 100, color: '#10B981', legendFontColor: '#64748B'},
       ];
-
     return {
       kpis: {
         totalRevenue: summary.totalRevenue || 0,
@@ -103,6 +93,4 @@ class DashboardService {
     };
   }
 }
-
 export default new DashboardService();
-

@@ -14,7 +14,6 @@ export interface ToggleButtonGroupProps {
   onChange: (value: string) => void;
   disabled?: boolean;
 }
-
 export const ToggleButtonGroup: React.FC<ToggleButtonGroupProps> = ({
   options,
   value,
@@ -27,7 +26,6 @@ export const ToggleButtonGroup: React.FC<ToggleButtonGroupProps> = ({
         const isActive = value === option.value;
         const isFirst = index === 0;
         const isLast = index === options.length - 1;
-
         return (
           <TouchableOpacity
             key={option.value}
@@ -52,7 +50,6 @@ export const ToggleButtonGroup: React.FC<ToggleButtonGroupProps> = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',

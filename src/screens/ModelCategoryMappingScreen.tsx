@@ -57,49 +57,38 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
     mapped: 0,
     unmapped: 0,
   });
-
   useEffect(() => {
     if (visible && token) {
       loadData();
     }
   }, [visible, token]);
-
   useEffect(() => {
     filterModels();
   }, [models, searchQuery, filterStatus]);
-
   useEffect(() => {
     updateStats();
   }, [models]);
-
   const loadData = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
       setError(null);
-
       const [modelsData, itemsData] = await Promise.all([
         modelCategoryService.getUniqueModels(token),
         modelCategoryService.getRouteStarItems(token),
       ]);
-
       setModels(modelsData || []);
       setRouteStarItems(itemsData || []);
     } catch (error: any) {
       console.error('Failed to fetch model category data:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       setError(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-
   const updateStats = () => {
     const mapped = models.filter(m => m.categoryItemName).length;
     const unmapped = models.length - mapped;
@@ -109,11 +98,8 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
       unmapped,
     });
   };
-
   const filterModels = () => {
     let filtered = [...models];
-
-    // Search filter
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -123,22 +109,17 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
           (m.categoryItemName && m.categoryItemName.toLowerCase().includes(searchLower))
       );
     }
-
-    // Status filter
     if (filterStatus === 'mapped') {
       filtered = filtered.filter(m => m.categoryItemName);
     } else if (filterStatus === 'unmapped') {
       filtered = filtered.filter(m => !m.categoryItemName);
     }
-
     setFilteredModels(filtered);
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleModelPress = (modelNumber: string) => {
     const newExpanded = new Set(expandedModels);
     if (newExpanded.has(modelNumber)) {
@@ -148,7 +129,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
     }
     setExpandedModels(newExpanded);
   };
-
   const handleCategoryChange = (modelNumber: string, categoryItemId: string) => {
     const item = routeStarItems.find(i => i._id === categoryItemId);
     setModels(prevModels =>
@@ -163,25 +143,21 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
       )
     );
   };
-
   const openPickerForModel = (modelNumber: string) => {
     setSelectedModelForPicker(modelNumber);
     setPickerVisible(true);
   };
-
   const handlePickerSelect = (categoryItemId: string) => {
     if (selectedModelForPicker) {
       handleCategoryChange(selectedModelForPicker, categoryItemId);
     }
   };
-
   const saveMapping = async (modelNumber: string) => {
     const model = models.find(m => m.modelNumber === modelNumber);
     if (!model || !model.categoryItemId) {
       Alert.alert('Error', 'Please select a category first');
       return;
     }
-
     try {
       setSaving(true);
       await modelCategoryService.saveMapping(token!, {
@@ -190,9 +166,7 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
         categoryItemId: model.categoryItemId,
         notes: model.notes || '',
       });
-
       Alert.alert('Success', `Mapping saved for ${modelNumber}`);
-      // Collapse the expanded model
       const newExpanded = new Set(expandedModels);
       newExpanded.delete(modelNumber);
       setExpandedModels(newExpanded);
@@ -202,7 +176,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
       setSaving(false);
     }
   };
-
   const deleteMapping = async (modelNumber: string) => {
     Alert.alert(
       'Delete Mapping',
@@ -231,7 +204,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
       ]
     );
   };
-
   return (
     <Modal
       visible={visible}
@@ -255,7 +227,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
             </Typography>
           </TouchableOpacity>
         </View>
-
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -287,7 +258,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
                   <CheckCircleIcon size={18} color={theme.colors.white} />
@@ -302,7 +272,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.warning[600]}]}>
                   <WarningIcon size={18} color={theme.colors.white} />
@@ -317,7 +286,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <TagIcon size={18} color={theme.colors.white} />
@@ -333,7 +301,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 </View>
               </View>
             </View>
-
             {/* Filter Tabs */}
             <View style={styles.tabsContainer}>
               <TouchableOpacity
@@ -353,7 +320,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                   All Models
                 </Typography>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -371,7 +337,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                   Mapped
                 </Typography>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -390,7 +355,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 </Typography>
               </TouchableOpacity>
             </View>
-
             {/* Search Bar */}
             <View style={styles.searchContainer}>
               <RNTextInput
@@ -401,7 +365,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 placeholderTextColor={theme.colors.gray[400]}
               />
             </View>
-
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -416,7 +379,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 </View>
               </Card>
             )}
-
             {/* Empty State */}
             {!error && filteredModels.length === 0 && (
               <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -438,13 +400,11 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 </Typography>
               </Card>
             )}
-
             {/* Models List */}
             <View style={styles.modelsList}>
               {filteredModels.map((model, index) => {
                 const isExpanded = expandedModels.has(model.modelNumber);
                 const isMapped = Boolean(model.categoryItemName);
-
                 return (
                   <Card
                     key={model.modelNumber || index}
@@ -496,7 +456,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                         )}
                       </View>
                     </TouchableOpacity>
-
                     {/* Expanded Content */}
                     {isExpanded && (
                       <View style={styles.expandedContent}>
@@ -519,7 +478,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                             </Typography>
                           )}
                         </View>
-
                         <View style={styles.pickerSection}>
                           <Typography variant="small" weight="semibold" style={styles.sectionLabel}>
                             Select Category
@@ -539,7 +497,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                             <ChevronDownIcon size={20} color={theme.colors.gray[400]} />
                           </TouchableOpacity>
                         </View>
-
                         <View style={styles.actionsSection}>
                           <Button
                             title="Save Mapping"
@@ -567,7 +524,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
             </View>
           </ScrollView>
         )}
-
         {/* Picker Modal */}
         <PickerModal
           visible={pickerVisible}
@@ -587,7 +543,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

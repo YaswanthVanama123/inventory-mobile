@@ -14,23 +14,19 @@ export interface ModalHeaderProps {
    * Optional subtitle/description text
    */
   subtitle?: string;
-
   /**
    * Callback when close button is pressed
    */
   onClose: () => void;
-
   /**
    * Optional custom container style
    */
   style?: ViewStyle;
-
   /**
    * Hide the close button
    */
   hideCloseButton?: boolean;
 }
-
 /**
  * ModalHeader - Reusable header component for modals and sheets
  *
@@ -80,7 +76,6 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.white,
@@ -101,11 +96,11 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.xs,
   },
   closeButton: {
-    width: 44, // Minimum touch target
+    width: 44,
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -8, // Compensate for visual alignment
+    marginTop: -8,
     marginRight: -8,
   },
   divider: {

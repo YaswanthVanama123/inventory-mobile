@@ -8,10 +8,8 @@ const LOCAL_IP = '192.168.1.30';
 
 // API Port
 const API_PORT = '3001';
-
 // API Base URL
 export const API_BASE_URL = `http://${LOCAL_IP}:${API_PORT}/api`;
-
 // Export individual parts if needed
 export const LOCAL_HOST = LOCAL_IP;
 export const PORT = API_PORT;

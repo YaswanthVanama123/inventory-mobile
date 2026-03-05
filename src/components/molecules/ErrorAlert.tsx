@@ -12,7 +12,6 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({message, style}) => {
   if (!message) {
     return null;
   }
-
   return (
     <View style={[styles.container, style]}>
       <AlertCircleIcon size={20} color={theme.colors.error[600]} />
@@ -20,7 +19,6 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({message, style}) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',

@@ -13,10 +13,8 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-
 export const AppNavigator = () => {
   const {isAuthenticated, loading} = useAuth();
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -24,7 +22,6 @@ export const AppNavigator = () => {
       </View>
     );
   }
-
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
@@ -37,7 +34,6 @@ export const AppNavigator = () => {
     </NavigationContainer>
   );
 };
-
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,

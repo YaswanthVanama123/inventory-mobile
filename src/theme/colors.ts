@@ -1,5 +1,5 @@
 export const colors = {
-  // Primary colors - Modern blue palette
+ 
   primary: {
     50: '#eff6ff',
     100: '#dbeafe',
@@ -13,7 +13,6 @@ export const colors = {
     900: '#1e3a8a',
   },
 
-  // Secondary/Accent - Modern purple for highlights
   accent: {
     50: '#faf5ff',
     100: '#f3e8ff',
@@ -26,25 +25,18 @@ export const colors = {
     800: '#6b21a8',
     900: '#581c87',
   },
-
-  // Gray scale - WCAG Contrast Guidelines on White Background:
-  // gray[400]: 3.2:1 - Use only for placeholders or disabled states
-  // gray[500]: 4.6:1 - Minimum for normal text (AA compliant)
-  // gray[600]+: 7+:1 - Preferred for body text (AAA compliant)
   gray: {
     50: '#f8fafc',
     100: '#f1f5f9',
     200: '#e2e8f0',
     300: '#cbd5e1',
-    400: '#94a3b8', // 3.2:1 - Placeholders only
-    500: '#64748b', // 4.6:1 - Min for text
-    600: '#475569', // 7.4:1 - Body text
-    700: '#334155', // 10.7:1 - Headings
-    800: '#1e293b', // 13.8:1 - High emphasis
-    900: '#0f172a', // 16.1:1 - Maximum contrast
+    400: '#94a3b8',
+    500: '#64748b',
+    600: '#475569',
+    700: '#334155',
+    800: '#1e293b',
+    900: '#0f172a',
   },
-
-  // Success - Modern green
   success: {
     50: '#f0fdf4',
     100: '#dcfce7',
@@ -57,8 +49,6 @@ export const colors = {
     800: '#166534',
     900: '#14532d',
   },
-
-  // Error - Modern red
   error: {
     50: '#fef2f2',
     100: '#fee2e2',
@@ -71,8 +61,6 @@ export const colors = {
     800: '#991b1b',
     900: '#7f1d1d',
   },
-
-  // Warning - Modern amber
   warning: {
     50: '#fffbeb',
     100: '#fef3c7',
@@ -85,8 +73,6 @@ export const colors = {
     800: '#92400e',
     900: '#78350f',
   },
-
-  // Info
   info: {
     50: '#eff6ff',
     100: '#dbeafe',
@@ -99,8 +85,6 @@ export const colors = {
     800: '#1e40af',
     900: '#1e3a8a',
   },
-
-  // Modern gradients for stat cards and backgrounds
   gradients: {
     blue: ['#667eea', '#764ba2'],
     purple: ['#a855f7', '#ec4899'],
@@ -111,28 +95,20 @@ export const colors = {
     indigo: ['#6366f1', '#8b5cf6'],
     cyan: ['#06b6d4', '#0891b2'],
   },
-
-  // Special
   white: '#ffffff',
   black: '#000000',
   transparent: 'transparent',
-
-  // Semantic Text Colors (for accessibility)
-  // Use these semantic names instead of direct gray values
   text: {
-    primary: '#0f172a', // gray[900] - Maximum contrast for headings
-    secondary: '#334155', // gray[700] - Body text, AAA compliant
-    tertiary: '#64748b', // gray[500] - Supporting text, AA compliant
-    disabled: '#94a3b8', // gray[400] - Disabled/placeholder only
-    inverse: '#ffffff', // White text on dark backgrounds
+    primary: '#0f172a',
+    secondary: '#334155',
+    tertiary: '#64748b',
+    disabled: '#94a3b8',
+    inverse: '#ffffff',
   },
-
-  // Background colors
   background: {
     primary: '#ffffff',
-    secondary: '#f8fafc', // gray[50]
-    tertiary: '#f1f5f9', // gray[100]
+    secondary: '#f8fafc',
+    tertiary: '#f1f5f9',
   },
 };
-
 export type ColorKey = keyof typeof colors;

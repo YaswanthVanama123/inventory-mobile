@@ -18,28 +18,23 @@ export interface StatusBadgeProps {
    * The status value to display (e.g., 'paid', 'pending', 'completed')
    */
   status: string;
-
   /**
    * The type of status, determines which color palette to use
    */
   type: StatusType;
-
   /**
    * Size variant of the badge
    */
   size?: 'sm' | 'md' | 'lg';
-
   /**
    * Custom container style
    */
   style?: ViewStyle;
-
   /**
    * Custom text style
    */
   textStyle?: TextStyle;
 }
-
 /**
  * StatusBadge - Reusable status indicator component
  *
@@ -57,7 +52,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   style,
   textStyle,
 }) => {
-  // Get colors based on type
   const getColors = () => {
     switch (type) {
       case 'invoice':
@@ -76,23 +70,17 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         return getGeneralStatusColors(status);
     }
   };
-
   const colors = getColors();
-
-  // Capitalize first letter for display
   const displayText = status
     ? status.charAt(0).toUpperCase() + status.slice(1)
     : '';
-
   const containerStyle = [
     styles.container,
     styles[`container_${size}`],
     {backgroundColor: colors.bgColor},
     style,
   ];
-
   const textVariant = size === 'sm' ? 'caption' : size === 'lg' ? 'small' : 'caption';
-
   return (
     <View style={containerStyle}>
       <Typography
@@ -105,7 +93,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     alignSelf: 'flex-start',

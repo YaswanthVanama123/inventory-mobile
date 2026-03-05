@@ -49,13 +49,11 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     processed: 0,
     pending: 0,
   });
-
   useEffect(() => {
     if (visible && token) {
       loadData();
     }
   }, [visible, token]);
-
   useEffect(() => {
     if (searchQuery) {
       const filtered = orders.filter(
@@ -68,22 +66,17 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
       setFilteredOrders(orders);
     }
   }, [searchQuery, orders]);
-
   const loadData = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
       setError(null);
       const response = await ordersService.getOrders(token, {
         limit: 100,
       });
-
       const ordersData = response.orders || [];
       setOrders(ordersData);
       setFilteredOrders(ordersData);
-
-      // Calculate stats
       const processed = ordersData.filter((o: any) => o.stockProcessed).length;
       setStats({
         totalOrders: ordersData.length,
@@ -92,23 +85,18 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
       });
     } catch (error: any) {
       console.error('Failed to fetch orders:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       setError(error.message || 'Failed to load orders');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleOrderPress = (orderNumber: string) => {
     const newExpanded = new Set(expandedOrders);
     if (newExpanded.has(orderNumber)) {
@@ -118,11 +106,9 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     }
     setExpandedOrders(newExpanded);
   };
-
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
   };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -135,7 +121,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
       return 'Invalid Date';
     }
   };
-
   const getStatusColor = (status: string) => {
     const statusMap: {[key: string]: string} = {
       Complete: theme.colors.success[600],
@@ -146,7 +131,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     };
     return statusMap[status] || theme.colors.gray[500];
   };
-
   const getStatusBgColor = (status: string) => {
     const statusMap: {[key: string]: string} = {
       Complete: theme.colors.success[100],
@@ -157,7 +141,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     };
     return statusMap[status] || theme.colors.gray[100];
   };
-
   return (
     <Modal
       visible={visible}
@@ -181,7 +164,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
             </Typography>
           </TouchableOpacity>
         </View>
-
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -216,7 +198,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
                   <CheckCircleIcon size={20} color={theme.colors.white} />
@@ -231,7 +212,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.warning[600]}]}>
                   <ClockIcon size={20} color={theme.colors.white} />
@@ -247,7 +227,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 </View>
               </View>
             </View>
-
             {/* Search Bar */}
             <View style={styles.searchContainer}>
               <RNTextInput
@@ -258,7 +237,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 placeholderTextColor={theme.colors.gray[400]}
               />
             </View>
-
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -273,7 +251,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 </View>
               </Card>
             )}
-
             {/* Empty State */}
             {!error && filteredOrders.length === 0 && (
               <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -295,12 +272,10 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 </Typography>
               </Card>
             )}
-
             {/* Orders List */}
             <View style={styles.ordersList}>
               {filteredOrders.map((order, index) => {
                 const isExpanded = expandedOrders.has(order.orderNumber);
-
                 return (
                   <Card
                     key={order._id || index}
@@ -339,7 +314,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                         </Typography>
                       </View>
                     </TouchableOpacity>
-
                     {/* Order Details */}
                     <View style={styles.orderMeta}>
                       <View style={styles.metaRow}>
@@ -392,7 +366,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                         </Typography>
                       </View>
                     </View>
-
                     {/* Expanded Items */}
                     {isExpanded && order.items && order.items.length > 0 && (
                       <View style={styles.expandedContent}>
@@ -452,7 +425,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

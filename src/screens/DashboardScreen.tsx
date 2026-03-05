@@ -36,8 +36,6 @@ export const DashboardScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
-
-  // Animation values
   const fadeAnim1 = useRef(new Animated.Value(0)).current;
   const fadeAnim2 = useRef(new Animated.Value(0)).current;
   const fadeAnim3 = useRef(new Animated.Value(0)).current;
@@ -46,7 +44,6 @@ export const DashboardScreen = () => {
   const slideAnim3 = useRef(new Animated.Value(30)).current;
   const statsOpacity = useRef(new Animated.Value(0)).current;
   const statsScale = useRef(new Animated.Value(0.9)).current;
-
   const fetchDashboardData = async () => {
     try {
       if (token) {
@@ -56,27 +53,19 @@ export const DashboardScreen = () => {
       }
     } catch (error: any) {
       console.error('Failed to fetch dashboard data:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
-      // Use mock data if API fails for other reasons
       setDashboardData(getMockData());
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-
   useEffect(() => {
     fetchDashboardData();
   }, [token]);
-
-  // Animate charts when data loads
   useEffect(() => {
     if (dashboardData && !loading) {
-      // Reset animations on data change
       fadeAnim1.setValue(0);
       fadeAnim2.setValue(0);
       fadeAnim3.setValue(0);
@@ -85,8 +74,6 @@ export const DashboardScreen = () => {
       slideAnim3.setValue(30);
       statsOpacity.setValue(0);
       statsScale.setValue(0.9);
-
-      // Animate stat cards first
       Animated.parallel([
         Animated.timing(statsOpacity, {
           toValue: 1,
@@ -100,8 +87,6 @@ export const DashboardScreen = () => {
           useNativeDriver: true,
         }),
       ]).start();
-
-      // Then stagger chart animations
       Animated.stagger(150, [
         Animated.parallel([
           Animated.timing(fadeAnim1, {
@@ -145,12 +130,10 @@ export const DashboardScreen = () => {
       ]).start();
     }
   }, [dashboardData, loading]);
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchDashboardData();
   };
-
   const getMockData = () => ({
     kpis: {
       totalRevenue: 45200,
@@ -189,9 +172,7 @@ export const DashboardScreen = () => {
       {name: 'Cancelled', population: 3, color: '#EF4444', legendFontColor: '#64748B'},
     ],
   });
-
   const data = dashboardData || getMockData();
-
   const chartConfig = {
     backgroundColor: '#ffffff',
     backgroundGradientFrom: '#ffffff',
@@ -222,7 +203,6 @@ export const DashboardScreen = () => {
     fillShadowGradient: theme.colors.primary[600],
     fillShadowGradientOpacity: 0.1,
   };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -233,7 +213,6 @@ export const DashboardScreen = () => {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -263,7 +242,6 @@ export const DashboardScreen = () => {
               size="md"
             />
           </View>
-
           <View style={styles.statCardWrapper}>
             <GradientStatCard
               title="Total Orders"
@@ -275,7 +253,6 @@ export const DashboardScreen = () => {
               size="md"
             />
           </View>
-
           <View style={styles.statCardWrapper}>
             <GradientStatCard
               title="Orders Cost"
@@ -287,7 +264,6 @@ export const DashboardScreen = () => {
               size="md"
             />
           </View>
-
           <View style={styles.statCardWrapper}>
             <GradientStatCard
               title="Profit/Loss"
@@ -299,7 +275,6 @@ export const DashboardScreen = () => {
               size="md"
             />
           </View>
-
           <View style={styles.statCardWrapper}>
             <GradientStatCard
               title="Low Stock"
@@ -310,7 +285,6 @@ export const DashboardScreen = () => {
               size="md"
             />
           </View>
-
           <View style={styles.statCardWrapper}>
             <GradientStatCard
               title="Inventory Value"
@@ -322,7 +296,6 @@ export const DashboardScreen = () => {
             />
           </View>
         </Animated.View>
-
         {/* Revenue & Profit Trend */}
         <Animated.View
           style={{
@@ -365,7 +338,6 @@ export const DashboardScreen = () => {
             />
           </Card>
         </Animated.View>
-
         {/* Top Selling Products */}
         <Animated.View
           style={{
@@ -410,7 +382,6 @@ export const DashboardScreen = () => {
             />
           </Card>
         </Animated.View>
-
         {/* Invoice Status */}
         <Animated.View
           style={{
@@ -447,7 +418,6 @@ export const DashboardScreen = () => {
             />
           </Card>
         </Animated.View>
-
         {/* Recent Activity */}
         <Card variant="elevated" padding="lg" style={styles.activityCard}>
           <Typography variant="h3" weight="semibold" style={styles.sectionTitle}>
@@ -478,7 +448,6 @@ export const DashboardScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

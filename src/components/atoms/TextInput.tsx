@@ -34,11 +34,9 @@ export const TextInput: React.FC<TextInputProps> = ({
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-
       <View
         style={[styles.inputWrapper, error && styles.inputWrapperError]}>
         {leftIcon ? <View style={styles.leftIconWrapper}>{leftIcon}</View> : null}
-
         <RNTextInput
           {...props}
           style={[
@@ -49,7 +47,6 @@ export const TextInput: React.FC<TextInputProps> = ({
           ]}
           placeholderTextColor={theme.colors.gray[400]}
         />
-
         {rightIcon ? (
           onRightIconPress ? (
             <TouchableOpacity
@@ -62,12 +59,10 @@ export const TextInput: React.FC<TextInputProps> = ({
           )
         ) : null}
       </View>
-
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     marginBottom: theme.spacing.md,

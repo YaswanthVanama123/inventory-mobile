@@ -16,7 +16,6 @@ class StorageService {
       throw error;
     }
   }
-
   async getAuthToken(): Promise<string | null> {
     try {
       return await EncryptedStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -25,7 +24,6 @@ class StorageService {
       return null;
     }
   }
-
   async removeAuthToken(): Promise<void> {
     try {
       await EncryptedStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -34,7 +32,6 @@ class StorageService {
       throw error;
     }
   }
-
   async setUserData(user: any): Promise<void> {
     try {
       await EncryptedStorage.setItem(
@@ -46,7 +43,6 @@ class StorageService {
       throw error;
     }
   }
-
   async getUserData(): Promise<any | null> {
     try {
       const data = await EncryptedStorage.getItem(STORAGE_KEYS.USER_DATA);
@@ -56,7 +52,6 @@ class StorageService {
       return null;
     }
   }
-
   async removeUserData(): Promise<void> {
     try {
       await EncryptedStorage.removeItem(STORAGE_KEYS.USER_DATA);
@@ -65,7 +60,6 @@ class StorageService {
       throw error;
     }
   }
-
   async setRememberMe(remember: boolean): Promise<void> {
     try {
       await EncryptedStorage.setItem(
@@ -77,7 +71,6 @@ class StorageService {
       throw error;
     }
   }
-
   async getRememberMe(): Promise<boolean> {
     try {
       const data = await EncryptedStorage.getItem(STORAGE_KEYS.REMEMBER_ME);
@@ -87,7 +80,6 @@ class StorageService {
       return false;
     }
   }
-
   async setSavedCredentials(credentials: {
     username: string;
     password: string;
@@ -102,7 +94,6 @@ class StorageService {
       throw error;
     }
   }
-
   async getSavedCredentials(): Promise<{
     username: string;
     password: string;
@@ -117,7 +108,6 @@ class StorageService {
       return null;
     }
   }
-
   async removeSavedCredentials(): Promise<void> {
     try {
       await EncryptedStorage.removeItem(STORAGE_KEYS.SAVED_CREDENTIALS);
@@ -126,7 +116,6 @@ class StorageService {
       throw error;
     }
   }
-
   async clearAll(): Promise<void> {
     try {
       await EncryptedStorage.clear();
@@ -136,5 +125,4 @@ class StorageService {
     }
   }
 }
-
 export default new StorageService();

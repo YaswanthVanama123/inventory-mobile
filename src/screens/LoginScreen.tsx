@@ -45,7 +45,6 @@ export const LoginScreen = () => {
     password?: string;
   }>({});
   const [showPassword, setShowPassword] = useState(false);
-
   const loginOptions = [
     {
       value: 'admin',
@@ -58,16 +57,13 @@ export const LoginScreen = () => {
       icon: <UserIcon size={16} color={loginType === 'employee' ? theme.colors.primary[600] : theme.colors.gray[600]} />,
     },
   ];
-
   useEffect(() => {
     loadSavedCredentials();
   }, []);
-
   const loadSavedCredentials = async () => {
     try {
       const rememberMePreference = await storageService.getRememberMe();
       const savedCreds = await storageService.getSavedCredentials();
-
       if (rememberMePreference && savedCreds) {
         setFormData({
           username: savedCreds.username,
@@ -79,53 +75,42 @@ export const LoginScreen = () => {
       console.error('Error loading saved credentials:', error);
     }
   };
-
   const validateForm = () => {
     const errors: {username?: string; password?: string} = {};
-
     if (!formData.username.trim()) {
       errors.username = 'Username is required';
     } else if (formData.username.length < 3) {
       errors.username = 'Username must be at least 3 characters';
     }
-
     if (!formData.password) {
       errors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       errors.password = 'Password must be at least 6 characters';
     }
-
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
   const handleChange = (name: 'username' | 'password', value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value,
     }));
-
     if (fieldErrors[name]) {
       setFieldErrors(prev => ({
         ...prev,
         [name]: '',
       }));
     }
-
     if (error) {
       setError('');
     }
   };
-
   const handleSubmit = async () => {
     setError('');
-
     if (!validateForm()) {
       return;
     }
-
     setLoading(true);
-
     try {
       const result = await login(
         formData.username,
@@ -133,9 +118,7 @@ export const LoginScreen = () => {
         loginType,
         rememberMe,
       );
-
       if (result.success) {
-        // Navigation handled by AuthContext
       } else {
         setError(result.error || 'Invalid credentials. Please try again.');
       }
@@ -150,7 +133,6 @@ export const LoginScreen = () => {
       setLoading(false);
     }
   };
-
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
@@ -177,11 +159,9 @@ export const LoginScreen = () => {
               Sign in to access your dashboard
             </Typography>
           </View>
-
           <Card variant="elevated" padding="lg" style={styles.card}>
             {/* Blue stripe */}
             <View style={styles.blueStripe} />
-
             {/* Login Type Toggle */}
             <ToggleButtonGroup
               options={loginOptions}
@@ -192,12 +172,10 @@ export const LoginScreen = () => {
                 setFieldErrors({});
               }}
             />
-
             {/* Error Alert */}
             {error ? (
               <ErrorAlert message={error} style={styles.errorAlert} />
             ) : null}
-
             {/* Form */}
             <View style={styles.form}>
               {/* Username */}
@@ -212,7 +190,6 @@ export const LoginScreen = () => {
                 autoCorrect={false}
                 editable={!loading}
               />
-
               {/* Password */}
               <TextInput
                 label="Password"
@@ -234,7 +211,6 @@ export const LoginScreen = () => {
                 autoCorrect={false}
                 editable={!loading}
               />
-
               {/* Remember Me & Forgot Password */}
               <View style={styles.optionsRow}>
                 <Checkbox
@@ -243,7 +219,6 @@ export const LoginScreen = () => {
                   label="Remember me"
                   disabled={loading}
                 />
-
                 <TouchableOpacity>
                   <Typography
                     variant="small"
@@ -253,7 +228,6 @@ export const LoginScreen = () => {
                   </Typography>
                 </TouchableOpacity>
               </View>
-
               {/* Submit Button */}
               <Button
                 title={loading ? 'Signing in...' : 'Sign in'}
@@ -267,7 +241,6 @@ export const LoginScreen = () => {
                 }
               />
             </View>
-
             {/* Footer */}
             <View style={styles.footer}>
               <Typography variant="small" color={theme.colors.gray[600]}>
@@ -281,7 +254,6 @@ export const LoginScreen = () => {
               </Typography>
             </View>
           </Card>
-
           <Typography
             variant="caption"
             color={theme.colors.gray[500]}
@@ -295,7 +267,6 @@ export const LoginScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

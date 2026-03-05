@@ -27,7 +27,6 @@ export const Card: React.FC<CardProps> = ({
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   card: {
     borderRadius: theme.borderRadius.xl,

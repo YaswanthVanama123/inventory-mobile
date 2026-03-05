@@ -33,7 +33,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [invoice, setInvoice] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     if (visible && invoiceId && token) {
       fetchInvoiceDetails();
@@ -41,34 +40,24 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
       setError('No invoice ID provided');
     }
   }, [visible, invoiceId, token]);
-
   const fetchInvoiceDetails = async () => {
     if (!invoiceId || !token) {
       console.log('Cannot fetch: missing invoiceId or token');
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
       console.log('Fetching invoice details for:', invoiceId);
-
-      // Check if it's an invoice number (contains letters) or MongoDB ID (only hex)
       const isInvoiceNumber = /[A-Za-z]/.test(invoiceId);
       console.log('Is invoice number:', isInvoiceNumber);
-
       let data;
       if (isInvoiceNumber) {
-        // Use RouteStar invoice endpoint with invoice number
         data = await invoiceService.getInvoiceByNumber(token, invoiceId);
       } else {
-        // Use regular invoice endpoint with MongoDB ID
         data = await invoiceService.getInvoiceById(token, invoiceId);
       }
-
       console.log('Invoice data received:', data);
-
-      // Log items structure for debugging
       if (data.items && data.items.length > 0) {
         console.log('First item structure:', JSON.stringify(data.items[0], null, 2));
         console.log('First item fields:', Object.keys(data.items[0]));
@@ -76,26 +65,20 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
         console.log('First lineItem structure:', JSON.stringify(data.lineItems[0], null, 2));
         console.log('First lineItem fields:', Object.keys(data.lineItems[0]));
       }
-
       setInvoice(data);
     } catch (error: any) {
       console.error('Failed to fetch invoice details:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       setError(error.message || 'Failed to load invoice details');
       setInvoice(null);
     } finally {
       setLoading(false);
     }
   };
-
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
   };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -108,7 +91,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
       return 'Invalid Date';
     }
   };
-
   const getStatusColor = (status: string) => {
     const colors: {[key: string]: string} = {
       draft: theme.colors.gray[500],
@@ -119,7 +101,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
     };
     return colors[status?.toLowerCase()] || theme.colors.gray[500];
   };
-
   const getPaymentStatusColor = (paymentStatus: string) => {
     const colors: {[key: string]: string} = {
       pending: theme.colors.warning[600],
@@ -128,7 +109,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
     };
     return colors[paymentStatus?.toLowerCase()] || theme.colors.gray[500];
   };
-
   const getStatusBgColor = (status: string) => {
     const colors: {[key: string]: string} = {
       draft: theme.colors.gray[100],
@@ -139,7 +119,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
     };
     return colors[status?.toLowerCase()] || theme.colors.gray[100];
   };
-
   const getPaymentStatusBgColor = (paymentStatus: string) => {
     const colors: {[key: string]: string} = {
       pending: theme.colors.warning[100],
@@ -148,17 +127,14 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
     };
     return colors[paymentStatus?.toLowerCase()] || theme.colors.gray[100];
   };
-
   const handleDownloadPDF = async () => {
     if (!invoice || !token) return;
-
     Alert.alert(
       'Download PDF',
       'PDF download functionality will be available in the next update.',
       [{text: 'OK'}]
     );
   };
-
   return (
     <Modal
       visible={visible}
@@ -188,7 +164,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
             )}
           </View>
         </View>
-
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -258,7 +233,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </Typography>
               )}
             </Card>
-
             {/* Customer Information */}
             <Card variant="elevated" padding="lg" style={styles.section}>
               <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
@@ -293,7 +267,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </View>
               )}
             </Card>
-
             {/* Invoice Details */}
             <Card variant="elevated" padding="lg" style={styles.section}>
               <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
@@ -328,7 +301,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </View>
               )}
             </Card>
-
             {/* Additional Information */}
             {(invoice.assignedTo || invoice.serviceNotes || invoice.notes) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
@@ -367,7 +339,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 )}
               </Card>
             )}
-
             {/* Line Items */}
             {((invoice.items && invoice.items.length > 0) || (invoice.lineItems && invoice.lineItems.length > 0)) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
@@ -376,12 +347,9 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </Typography>
                 {(invoice.items || invoice.lineItems).map((item: any, index: number) => {
                   console.log(`Item ${index}:`, JSON.stringify(item, null, 2));
-
-                  // Try multiple field name variations
                   const itemName = item.item || item.itemName || item.name || item.description ||
                                    item.product || item.service || item.sku || item.itemCode ||
                                    'Item';
-
                   return (
                     <View key={index} style={styles.lineItem}>
                       <View style={styles.lineItemHeader}>
@@ -425,7 +393,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 })}
               </Card>
             )}
-
             {/* Invoice Total */}
             <Card variant="elevated" padding="lg" style={styles.section}>
               <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
@@ -469,7 +436,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </Typography>
               </View>
             </Card>
-
             {/* Sync Information */}
             {(invoice.syncedAt || invoice.lastUpdated || invoice.stockStatus) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
@@ -532,7 +498,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

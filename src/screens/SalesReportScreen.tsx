@@ -45,13 +45,11 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     if (visible && token) {
       loadData();
     }
   }, [visible, token]);
-
   useEffect(() => {
     if (searchQuery) {
       const filtered = items.filter(
@@ -65,10 +63,8 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
       setFilteredItems(items);
     }
   }, [searchQuery, items]);
-
   const loadData = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
       setError(null);
@@ -78,23 +74,18 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
       setTotals(response.totals || {});
     } catch (error: any) {
       console.error('Failed to fetch sales report:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       setError(error.message || 'Failed to load sales report');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleItemPress = (itemId: string) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(itemId)) {
@@ -104,11 +95,9 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
     }
     setExpandedItems(newExpanded);
   };
-
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
   };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -121,7 +110,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
       return 'Invalid Date';
     }
   };
-
   return (
     <Modal
       visible={visible}
@@ -145,7 +133,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
             </Typography>
           </TouchableOpacity>
         </View>
-
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -180,7 +167,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
                   <TagIcon size={20} color={theme.colors.white} />
@@ -195,7 +181,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <DollarIcon size={20} color={theme.colors.white} />
@@ -210,7 +195,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: '#6366f1'}]}>
                   <FileTextIcon size={20} color={theme.colors.white} />
@@ -226,7 +210,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                 </View>
               </View>
             </View>
-
             {/* Search Bar */}
             <View style={styles.searchContainer}>
               <RNTextInput
@@ -237,7 +220,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                 placeholderTextColor={theme.colors.gray[400]}
               />
             </View>
-
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -252,7 +234,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                 </View>
               </Card>
             )}
-
             {/* Empty State */}
             {!error && filteredItems.length === 0 && (
               <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -274,12 +255,10 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                 </Typography>
               </Card>
             )}
-
             {/* Items List */}
             <View style={styles.itemsList}>
               {filteredItems.map((item, index) => {
                 const isExpanded = expandedItems.has(item._id);
-
                 return (
                   <Card
                     key={item._id || index}
@@ -322,7 +301,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                         </Typography>
                       </View>
                     </TouchableOpacity>
-
                     {/* Expanded Details */}
                     {isExpanded && (
                       <View style={styles.expandedContent}>
@@ -363,7 +341,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
                             </View>
                           </View>
                         </View>
-
                         {/* Invoice Details */}
                         {item.invoiceDetails && item.invoiceDetails.length > 0 ? (
                           <View style={styles.invoiceDetailsContainer}>
@@ -443,7 +420,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -25,28 +25,22 @@ class RouteStarItemsService {
       if (params.itemCategory) queryParams.append('itemCategory', params.itemCategory);
       if (params.forUse !== undefined) queryParams.append('forUse', params.forUse.toString());
       if (params.forSell !== undefined) queryParams.append('forSell', params.forSell.toString());
-
       const url = `${API_BASE_URL}/routestar-items?${queryParams.toString()}`;
       console.log('[RouteStarItems] Fetching from:', url);
-
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-
       console.log('[RouteStarItems] Response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[RouteStarItems] Error response:', errorText);
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       console.log('[RouteStarItems] Items count:', result.data?.items?.length || 0);
-
       if (result.success && result.data) {
         return {
           items: result.data.items || [],
@@ -59,7 +53,6 @@ class RouteStarItemsService {
           filters: result.data.filters || {itemParents: [], types: []},
         };
       }
-
       return {
         items: [],
         pagination: {total: 0, page: 1, limit: 50, pages: 0},
@@ -70,26 +63,21 @@ class RouteStarItemsService {
       throw error;
     }
   }
-
   async getStats(token: string) {
     try {
       const url = `${API_BASE_URL}/routestar-items/stats`;
       console.log('[RouteStarItems] Fetching stats from:', url);
-
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
-
       if (result.success && result.data) {
         return result.data || {
           total: 0,
@@ -99,14 +87,12 @@ class RouteStarItemsService {
           unmarked: 0,
         };
       }
-
       return {total: 0, forUse: 0, forSell: 0, both: 0, unmarked: 0};
     } catch (error: any) {
       console.error('[RouteStarItems] Stats error:', error.message);
       throw error;
     }
   }
-
   async updateItemFlags(
     token: string,
     itemId: string,
@@ -119,7 +105,6 @@ class RouteStarItemsService {
     try {
       const url = `${API_BASE_URL}/routestar-items/${itemId}/flags`;
       console.log('[RouteStarItems] Updating item flags:', itemId);
-
       const response = await fetch(url, {
         method: 'PATCH',
         headers: {
@@ -128,12 +113,10 @@ class RouteStarItemsService {
         },
         body: JSON.stringify(flags),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       return result.data;
     } catch (error: any) {
@@ -141,12 +124,10 @@ class RouteStarItemsService {
       throw error;
     }
   }
-
   async syncItems(token: string) {
     try {
       const url = `${API_BASE_URL}/routestar-items/sync`;
       console.log('[RouteStarItems] Syncing items');
-
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -154,12 +135,10 @@ class RouteStarItemsService {
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       return result.data;
     } catch (error: any) {
@@ -167,7 +146,6 @@ class RouteStarItemsService {
       throw error;
     }
   }
-
   /**
    * OPTIMIZED: Get items with stats in one call
    * Combines items list and stats into single request
@@ -187,7 +165,6 @@ class RouteStarItemsService {
   ) {
     try {
       const queryParams = new URLSearchParams();
-
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.limit) queryParams.append('limit', params.limit.toString());
       if (params.search) queryParams.append('search', params.search);
@@ -196,31 +173,25 @@ class RouteStarItemsService {
       if (params.itemCategory) queryParams.append('itemCategory', params.itemCategory);
       if (params.forUse !== undefined) queryParams.append('forUse', params.forUse.toString());
       if (params.forSell !== undefined) queryParams.append('forSell', params.forSell.toString());
-
       const url = `${API_BASE_URL}/routestar-items/page-data?${queryParams.toString()}`;
       console.log('[RouteStarItems] Fetching combined page data from:', url);
-
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-
       console.log('[RouteStarItems] Page data response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[RouteStarItems] Error response:', errorText);
         throw new Error(`API Error ${response.status}: ${errorText}`);
       }
-
       const result = await response.json();
       console.log('[RouteStarItems] Page data received:', {
         items: result.data?.items?.length || 0,
         stats: result.data?.stats,
       });
-
       if (result.success && result.data) {
         return {
           items: result.data.items || [],
@@ -240,7 +211,6 @@ class RouteStarItemsService {
           },
         };
       }
-
       return {
         items: [],
         pagination: {total: 0, page: 1, limit: 50, pages: 0},
@@ -253,5 +223,4 @@ class RouteStarItemsService {
     }
   }
 }
-
 export default new RouteStarItemsService();

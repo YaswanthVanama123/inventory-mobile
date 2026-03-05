@@ -34,17 +34,14 @@ export const PickerModal: React.FC<PickerModalProps> = ({
   getValue = (item) => item.value || item._id || item,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-
   const filteredItems = items.filter(item =>
     getLabel(item).toLowerCase().includes(searchQuery.toLowerCase())
   );
-
   const handleSelect = (item: any) => {
     onValueChange(getValue(item));
     setSearchQuery('');
     onClose();
   };
-
   return (
     <Modal
       visible={visible}
@@ -64,7 +61,6 @@ export const PickerModal: React.FC<PickerModalProps> = ({
           </Typography>
           <View style={styles.closeButton} />
         </View>
-
         {/* Search */}
         <View style={styles.searchContainer}>
           <TextInput
@@ -75,7 +71,6 @@ export const PickerModal: React.FC<PickerModalProps> = ({
             placeholderTextColor={theme.colors.gray[400]}
           />
         </View>
-
         {/* List */}
         <FlatList
           data={filteredItems}
@@ -113,7 +108,6 @@ export const PickerModal: React.FC<PickerModalProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

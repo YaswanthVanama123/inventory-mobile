@@ -58,19 +58,14 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     admins: 0,
     employees: 0,
   });
-
-  // Modals
   const [userFormVisible, setUserFormVisible] = useState(false);
   const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-
   useEffect(() => {
     if (visible && token) {
       loadData();
     }
   }, [visible, token, filterStatus]);
-
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (visible && token) {
@@ -79,48 +74,37 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
   const loadData = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
       setError(null);
-
       const params: any = {
         page: 1,
         limit: 100,
       };
-
       if (searchQuery) params.search = searchQuery;
-
       if (filterStatus === 'active') params.isActive = true;
       else if (filterStatus === 'inactive') params.isActive = false;
       else if (filterStatus === 'admin') params.role = 'admin';
       else if (filterStatus === 'employee') params.role = 'employee';
-
       const data = await userService.getAll(token, params);
-
       setUsers(data.users || []);
       setStats(data.stats || {total: 0, active: 0, inactive: 0, admins: 0, employees: 0});
     } catch (error: any) {
       console.error('Failed to fetch users:', error);
-
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       setError(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleUserPress = (userId: string) => {
     const newExpanded = new Set(expandedUsers);
     if (newExpanded.has(userId)) {
@@ -130,22 +114,18 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     }
     setExpandedUsers(newExpanded);
   };
-
   const handleAddUser = () => {
     setSelectedUser(null);
     setUserFormVisible(true);
   };
-
   const handleEditUser = (user: any) => {
     setSelectedUser(user);
     setUserFormVisible(true);
   };
-
   const handleResetPassword = (user: any) => {
     setSelectedUser(user);
     setResetPasswordVisible(true);
   };
-
   const handleToggleStatus = async (user: any) => {
     Alert.alert(
       user.isActive ? 'Deactivate User' : 'Activate User',
@@ -170,13 +150,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       ]
     );
   };
-
   const handleDeleteUser = (user: any) => {
     if (user._id === currentUser?._id) {
       Alert.alert('Error', 'You cannot delete your own account');
       return;
     }
-
     Alert.alert(
       'Delete User',
       `Are you sure you want to delete ${user.fullName}? This action cannot be undone.`,
@@ -198,23 +176,18 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       ]
     );
   };
-
   const getUserStatusColor = (isActive: boolean) => {
     return isActive ? theme.colors.success[600] : theme.colors.error[600];
   };
-
   const getUserStatusBgColor = (isActive: boolean) => {
     return isActive ? theme.colors.success[100] : theme.colors.error[100];
   };
-
   const getRoleBadgeColor = (role: string) => {
     return role === 'admin' ? theme.colors.primary[600] : theme.colors.gray[600];
   };
-
   const getRoleBadgeBgColor = (role: string) => {
     return role === 'admin' ? theme.colors.primary[100] : theme.colors.gray[200];
   };
-
   return (
     <Modal
       visible={visible}
@@ -236,7 +209,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             <PlusIcon size={20} color={theme.colors.primary[600]} />
           </TouchableOpacity>
         </View>
-
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -268,7 +240,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
                   <CheckCircleIcon size={18} color={theme.colors.white} />
@@ -280,7 +251,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.error[600]}]}>
                   <WarningIcon size={18} color={theme.colors.white} />
@@ -292,7 +262,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <UserIcon size={18} color={theme.colors.white} />
@@ -305,7 +274,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </View>
               </View>
             </View>
-
             {/* Filter Tabs */}
             <View style={styles.tabsContainer}>
               <TouchableOpacity
@@ -325,7 +293,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   All
                 </Typography>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -343,7 +310,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   Active
                 </Typography>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -361,7 +327,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   Inactive
                 </Typography>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -379,7 +344,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   Admin
                 </Typography>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -398,7 +362,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </Typography>
               </TouchableOpacity>
             </View>
-
             {/* Search Bar */}
             <View style={styles.searchContainer}>
               <RNTextInput
@@ -409,7 +372,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 placeholderTextColor={theme.colors.gray[400]}
               />
             </View>
-
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -424,7 +386,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </View>
               </Card>
             )}
-
             {/* Empty State */}
             {!error && users.length === 0 && (
               <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -446,13 +407,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </Typography>
               </Card>
             )}
-
             {/* Users List */}
             <View style={styles.usersList}>
               {users.map((user, index) => {
                 const isExpanded = expandedUsers.has(user._id);
                 const isCurrentUser = user._id === currentUser?._id;
-
                 return (
                   <Card
                     key={user._id || index}
@@ -499,7 +458,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                         </View>
                       </View>
                     </TouchableOpacity>
-
                     {/* User Meta */}
                     <View style={styles.userMeta}>
                       <View style={styles.metaRow}>
@@ -534,7 +492,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                         </View>
                       )}
                     </View>
-
                     {/* Expanded Content - Actions */}
                     {isExpanded && (
                       <View style={styles.expandedContent}>
@@ -547,7 +504,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                               Edit
                             </Typography>
                           </TouchableOpacity>
-
                           <TouchableOpacity
                             style={styles.actionButton}
                             onPress={() => handleResetPassword(user)}>
@@ -556,7 +512,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                               Reset Password
                             </Typography>
                           </TouchableOpacity>
-
                           <TouchableOpacity
                             style={styles.actionButton}
                             onPress={() => handleToggleStatus(user)}>
@@ -565,7 +520,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                               {user.isActive ? 'Deactivate' : 'Activate'}
                             </Typography>
                           </TouchableOpacity>
-
                           {!isCurrentUser && (
                             <TouchableOpacity
                               style={styles.actionButton}
@@ -585,7 +539,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             </View>
           </ScrollView>
         )}
-
         {/* User Form Modal */}
         <UserFormModal
           visible={userFormVisible}
@@ -594,7 +547,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
           token={token!}
           user={selectedUser}
         />
-
         {/* Reset Password Modal */}
         <ResetPasswordModal
           visible={resetPasswordVisible}
@@ -607,7 +559,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

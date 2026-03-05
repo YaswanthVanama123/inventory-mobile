@@ -42,13 +42,11 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     status: '',
     type: '',
   });
-
   useEffect(() => {
     if (visible) {
       loadData();
     }
   }, [visible, filters]);
-
   const loadData = async () => {
     try {
       setLoading(true);
@@ -61,11 +59,9 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         }),
         discrepancyService.getSummary(),
       ]);
-
       if (discrepancyResponse.success) {
         setDiscrepancies(discrepancyResponse.data?.discrepancies || []);
       }
-
       if (summaryResponse.success) {
         setSummary(summaryResponse.data);
       }
@@ -77,12 +73,10 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       setRefreshing(false);
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleApprove = async (discrepancyId: string) => {
     Alert.alert(
       'Approve Discrepancy',
@@ -104,7 +98,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       ]
     );
   };
-
   const handleReject = async (discrepancyId: string) => {
     Alert.alert(
       'Reject Discrepancy',
@@ -127,7 +120,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       ]
     );
   };
-
   const handleDelete = async (discrepancyId: string) => {
     Alert.alert(
       'Delete Discrepancy',
@@ -150,7 +142,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       ]
     );
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -163,7 +154,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         return {bg: theme.colors.gray[100], text: theme.colors.gray[700]};
     }
   };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -176,7 +166,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         return <ClockIcon size={16} color={theme.colors.gray[600]} />;
     }
   };
-
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'Overage':
@@ -191,7 +180,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         return {bg: theme.colors.gray[100], text: theme.colors.gray[700]};
     }
   };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -204,7 +192,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       return 'Invalid Date';
     }
   };
-
   if (loading) {
     return (
       <Modal visible={visible} animationType="slide">
@@ -220,7 +207,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       </Modal>
     );
   }
-
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -240,7 +226,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
             </Typography>
           </TouchableOpacity>
         </View>
-
         {/* Summary Cards */}
         {summary && (
           <View style={styles.summaryContainer}>
@@ -275,7 +260,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
             </View>
           </View>
         )}
-
         {/* Filter Buttons */}
         <View style={styles.filterContainer}>
           <ScrollView
@@ -333,7 +317,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
             </TouchableOpacity>
           </ScrollView>
         </View>
-
         {/* Discrepancies List */}
         <ScrollView
           style={styles.listContainer}
@@ -358,7 +341,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
               const isExpanded = expandedRow === discrepancy._id;
               const statusColors = getStatusColor(discrepancy.status);
               const typeColors = getTypeColor(discrepancy.discrepancyType);
-
               return (
                 <Card key={discrepancy._id} variant="elevated" padding="none" style={styles.discrepancyCard}>
                   <TouchableOpacity
@@ -392,7 +374,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                       </View>
                     </View>
                   </TouchableOpacity>
-
                   {isExpanded && (
                     <View style={styles.discrepancyDetails}>
                       <View style={styles.detailRow}>
@@ -473,7 +454,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                           </Typography>
                         </View>
                       )}
-
                       {/* Action Buttons */}
                       {user?.role === 'admin' && discrepancy.status === 'Pending' && (
                         <View style={styles.actionButtons}>
@@ -503,7 +483,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                           </TouchableOpacity>
                         </View>
                       )}
-
                       {/* Delete Button (Admin only) */}
                       {user?.role === 'admin' && (
                         <TouchableOpacity
@@ -525,7 +504,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -37,20 +37,17 @@ export const InventoryScreen = () => {
       setIsMounted(false);
     };
   }, []);
-
   useEffect(() => {
     if (token && isMounted) {
-      setExpandedItems({}); // Clear expanded items when tab changes
+      setExpandedItems({});
       fetchData();
     } else if (isMounted) {
       setLoading(false);
     }
   }, [token, activeTab]);
-
   useEffect(() => {
     applySearch();
   }, [searchQuery, groupedItems]);
-
   const fetchData = async () => {
     try {
       if (token && isMounted) {
@@ -67,11 +64,8 @@ export const InventoryScreen = () => {
       }
     } catch (error: any) {
       console.error('Failed to fetch grouped items:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       if (isMounted) {
         setError(error.message || 'Failed to load inventory');
         setGroupedItems([]);
@@ -83,20 +77,16 @@ export const InventoryScreen = () => {
       }
     }
   };
-
   const applySearch = () => {
     if (!isMounted) return;
-
     if (!groupedItems || !Array.isArray(groupedItems)) {
       setFilteredItems([]);
       return;
     }
-
     if (!searchQuery) {
       setFilteredItems(groupedItems);
       return;
     }
-
     const search = searchQuery.toLowerCase();
     const filtered = groupedItems.filter(
       item =>
@@ -105,33 +95,23 @@ export const InventoryScreen = () => {
     );
     setFilteredItems(filtered);
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();
   };
-
   const toggleExpand = async (sku: string, itemName: string) => {
     const isCurrentlyExpanded = expandedItems[sku];
-
-    // Toggle expansion state
     setExpandedItems(prev => ({
       ...prev,
       [sku]: !prev[sku],
     }));
-
-    // If expanding and data not already loaded, fetch it
     if (!isCurrentlyExpanded && token) {
       const item = groupedItems.find(i => i.sku === sku);
-
-      // Check if data already loaded
       const hasData = activeTab === 'purchases'
         ? (item?.orders && item.orders.length > 0)
         : (item?.invoices && item.invoices.length > 0);
-
       if (!hasData) {
         setLoadingDetails(prev => ({ ...prev, [sku]: true }));
-
         try {
           let details;
           if (activeTab === 'purchases') {
@@ -139,9 +119,7 @@ export const InventoryScreen = () => {
           } else {
             details = await inventoryService.getInvoicesForItem(token, itemName);
           }
-
           if (isMounted) {
-            // Update the specific item with fetched details
             setGroupedItems(prev =>
               prev.map(item =>
                 item.sku === sku
@@ -157,7 +135,6 @@ export const InventoryScreen = () => {
           console.error('Failed to fetch details:', error);
           const wasHandled = await handleApiError(error);
           if (!wasHandled && isMounted) {
-            // Set empty array so we don't keep trying to fetch
             setGroupedItems(prev =>
               prev.map(item =>
                 item.sku === sku
@@ -177,11 +154,9 @@ export const InventoryScreen = () => {
       }
     }
   };
-
   const formatCurrency = (amount: number) => {
     return `$${amount.toFixed(2)}`;
   };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -194,7 +169,6 @@ export const InventoryScreen = () => {
       return 'Invalid Date';
     }
   };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -208,7 +182,6 @@ export const InventoryScreen = () => {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -230,7 +203,6 @@ export const InventoryScreen = () => {
             {filteredItems.length} items in stock
           </Typography>
         </View>
-
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <RNTextInput
@@ -241,7 +213,6 @@ export const InventoryScreen = () => {
             placeholderTextColor={theme.colors.gray[400]}
           />
         </View>
-
         {/* Tabs */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
@@ -261,7 +232,6 @@ export const InventoryScreen = () => {
               Purchases
             </Typography>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[
               styles.tab,
@@ -280,7 +250,6 @@ export const InventoryScreen = () => {
             </Typography>
           </TouchableOpacity>
         </View>
-
         {/* Error State */}
         {error && (
           <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -295,7 +264,6 @@ export const InventoryScreen = () => {
             </View>
           </Card>
         )}
-
         {/* Empty State */}
         {!error && filteredItems.length === 0 && (
           <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -317,12 +285,10 @@ export const InventoryScreen = () => {
             </Typography>
           </Card>
         )}
-
         {/* Grouped Items List */}
         <View style={styles.itemsList}>
           {filteredItems.map((group, index) => {
             const isExpanded = expandedItems[group.sku];
-
             return (
               <Card
                 key={group._id || `${group.sku}-${index}`}
@@ -342,12 +308,10 @@ export const InventoryScreen = () => {
                         <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
                       )}
                     </View>
-
                     {/* Box Icon */}
                     <View style={styles.boxIconContainer}>
                       <BoxIcon size={24} color={theme.colors.primary[600]} />
                     </View>
-
                     {/* Item Info */}
                     <View style={styles.groupInfo}>
                       <Typography
@@ -366,7 +330,6 @@ export const InventoryScreen = () => {
                       </Typography>
                     </View>
                   </View>
-
                   {/* Stats on the right */}
                   <View style={styles.groupStats}>
                     <View style={styles.statItem}>
@@ -383,7 +346,6 @@ export const InventoryScreen = () => {
                         {group.totalQuantity}
                       </Typography>
                     </View>
-
                     <View style={styles.statItem}>
                       <Typography
                         variant="caption"
@@ -398,7 +360,6 @@ export const InventoryScreen = () => {
                         {formatCurrency(group.avgUnitPrice)}
                       </Typography>
                     </View>
-
                     <View style={styles.statItem}>
                       <Typography
                         variant="caption"
@@ -415,7 +376,6 @@ export const InventoryScreen = () => {
                     </View>
                   </View>
                 </TouchableOpacity>
-
                 {/* Expanded Orders */}
                 {isExpanded && (
                   <>
@@ -431,7 +391,6 @@ export const InventoryScreen = () => {
                         </Typography>
                       </View>
                     )}
-
                     {/* For Purchases - show orders */}
                     {!loadingDetails[group.sku] && activeTab === 'purchases' && group.orders && group.orders.length > 0 && (
                       <View style={styles.ordersContainer}>
@@ -442,7 +401,6 @@ export const InventoryScreen = () => {
                           style={styles.ordersTitle}>
                           Order Details
                         </Typography>
-
                         {group.orders.map((order: any, index: number) => (
                           <View
                             key={`${order.orderNumber}-${index}`}
@@ -461,7 +419,6 @@ export const InventoryScreen = () => {
                                 {order.orderNumber}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -475,7 +432,6 @@ export const InventoryScreen = () => {
                                 {order.poNumber || 'N/A'}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -489,7 +445,6 @@ export const InventoryScreen = () => {
                                 {formatDate(order.orderDate)}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -504,7 +459,6 @@ export const InventoryScreen = () => {
                                 {order.vendor || 'N/A'}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -519,7 +473,6 @@ export const InventoryScreen = () => {
                                 {order.qty}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -534,7 +487,6 @@ export const InventoryScreen = () => {
                                 {formatCurrency(order.unitPrice)}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -549,7 +501,6 @@ export const InventoryScreen = () => {
                                 {formatCurrency(order.lineTotal)}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -570,7 +521,6 @@ export const InventoryScreen = () => {
                         ))}
                       </View>
                     )}
-
                     {/* For Sells - show invoices */}
                     {!loadingDetails[group.sku] && activeTab === 'sells' && group.invoices && group.invoices.length > 0 && (
                       <View style={styles.ordersContainer}>
@@ -581,7 +531,6 @@ export const InventoryScreen = () => {
                           style={styles.ordersTitle}>
                           Invoice Details
                         </Typography>
-
                         {group.invoices.map((invoice: any, index: number) => (
                           <View
                             key={`${invoice.invoiceNumber}-${index}`}
@@ -600,7 +549,6 @@ export const InventoryScreen = () => {
                                 {invoice.invoiceNumber}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -617,7 +565,6 @@ export const InventoryScreen = () => {
                                 </Typography>
                               </View>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -631,7 +578,6 @@ export const InventoryScreen = () => {
                                 {formatDate(invoice.date)}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -646,7 +592,6 @@ export const InventoryScreen = () => {
                                 {invoice.customerName || 'N/A'}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -661,7 +606,6 @@ export const InventoryScreen = () => {
                                 {invoice.qty}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -676,7 +620,6 @@ export const InventoryScreen = () => {
                                 {formatCurrency(invoice.rate)}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -691,7 +634,6 @@ export const InventoryScreen = () => {
                                 {formatCurrency(invoice.amount)}
                               </Typography>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -708,7 +650,6 @@ export const InventoryScreen = () => {
                                 </Typography>
                               </View>
                             </View>
-
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -729,7 +670,6 @@ export const InventoryScreen = () => {
                         ))}
                       </View>
                     )}
-
                     {/* Empty state - when not loading and no data */}
                     {!loadingDetails[group.sku] && activeTab === 'purchases' &&
                      group.orders !== undefined && (!group.orders || group.orders.length === 0) && (
@@ -742,7 +682,6 @@ export const InventoryScreen = () => {
                         </Typography>
                       </View>
                     )}
-
                     {!loadingDetails[group.sku] && activeTab === 'sells' &&
                      group.invoices !== undefined && (!group.invoices || group.invoices.length === 0) && (
                       <View style={styles.ordersContainer}>
@@ -764,7 +703,6 @@ export const InventoryScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

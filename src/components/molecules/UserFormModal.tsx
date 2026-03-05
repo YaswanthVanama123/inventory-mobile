@@ -34,8 +34,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   user,
 }) => {
   const isEditMode = Boolean(user);
-
-  // Form state
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -47,11 +45,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  // Picker state
   const [rolePickerVisible, setRolePickerVisible] = useState(false);
-
-  // Password strength
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
     hasUpperCase: false,
@@ -59,11 +53,9 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     hasNumber: false,
     hasSpecialChar: false,
   });
-
   useEffect(() => {
     if (visible) {
       if (isEditMode && user) {
-        // Pre-fill form for edit mode
         setUsername(user.username || '');
         setEmail(user.email || '');
         setFullName(user.fullName || '');
@@ -73,14 +65,11 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         setPassword('');
         setConfirmPassword('');
       } else {
-        // Reset form for create mode
         resetForm();
       }
     }
   }, [visible, user, isEditMode]);
-
   useEffect(() => {
-    // Check password strength
     if (password) {
       setPasswordStrength({
         hasMinLength: password.length >= 8,
@@ -99,7 +88,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       });
     }
   }, [password]);
-
   const resetForm = () => {
     setUsername('');
     setEmail('');
@@ -112,39 +100,29 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     setShowPassword(false);
     setShowConfirmPassword(false);
   };
-
   const validateForm = (): string | null => {
     if (!isEditMode) {
-      // Create mode validations
       if (!username.trim()) return 'Username is required';
       if (username.length < 3 || username.length > 50) return 'Username must be 3-50 characters';
       if (!/^[a-zA-Z0-9_]+$/.test(username)) return 'Username can only contain letters, numbers, and underscores';
-
       if (!password) return 'Password is required';
       if (!Object.values(passwordStrength).every(Boolean)) return 'Password does not meet requirements';
       if (password !== confirmPassword) return 'Passwords do not match';
     }
-
     if (!email.trim()) return 'Email is required';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Invalid email format';
-
     if (!fullName.trim()) return 'Full name is required';
-
     return null;
   };
-
   const handleSubmit = async () => {
     const validationError = validateForm();
     if (validationError) {
       Alert.alert('Validation Error', validationError);
       return;
     }
-
     try {
       setSaving(true);
-
       if (isEditMode) {
-        // Update user
         await userService.update(token, user._id, {
           email: email.trim(),
           fullName: fullName.trim(),
@@ -154,7 +132,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         });
         Alert.alert('Success', 'User updated successfully');
       } else {
-        // Create user
         await userService.create(token, {
           username: username.trim(),
           email: email.trim(),
@@ -165,7 +142,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         });
         Alert.alert('Success', 'User created successfully');
       }
-
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -174,17 +150,14 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       setSaving(false);
     }
   };
-
   const handleRoleSelect = (value: string) => {
     setRole(value);
     setRolePickerVisible(false);
   };
-
   const roleOptions = [
     {label: 'Administrator', value: 'admin'},
     {label: 'Employee', value: 'employee'},
   ];
-
   return (
     <Modal
       visible={visible}
@@ -204,7 +177,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           </Typography>
           <View style={styles.closeButton} />
         </View>
-
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {/* Username (Create only) */}
           {!isEditMode && (
@@ -226,7 +198,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               </Typography>
             </View>
           )}
-
           {/* Email */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -243,7 +214,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCorrect={false}
             />
           </View>
-
           {/* Full Name */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -258,7 +228,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCapitalize="words"
             />
           </View>
-
           {/* Role */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -273,7 +242,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               <ChevronDownIcon size={20} color={theme.colors.gray[400]} />
             </TouchableOpacity>
           </View>
-
           {/* Truck Number */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -288,7 +256,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCapitalize="characters"
             />
           </View>
-
           {/* Password (Create only or optional for edit) */}
           {!isEditMode && (
             <>
@@ -317,7 +284,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     )}
                   </TouchableOpacity>
                 </View>
-
                 {/* Password Strength Indicators */}
                 {password && (
                   <Card variant="outlined" padding="sm" style={styles.strengthCard}>
@@ -382,7 +348,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                   </Card>
                 )}
               </View>
-
               <View style={styles.inputSection}>
                 <Typography variant="small" weight="semibold" style={styles.inputLabel}>
                   Confirm Password *
@@ -419,7 +384,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               </View>
             </>
           )}
-
           {/* Status (Edit only) */}
           {isEditMode && (
             <Card variant="outlined" padding="md" style={styles.statusCard}>
@@ -441,7 +405,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               </View>
             </Card>
           )}
-
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <Button
@@ -453,7 +416,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             />
           </View>
         </ScrollView>
-
         {/* Role Picker Modal */}
         <PickerModal
           visible={rolePickerVisible}
@@ -469,7 +431,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

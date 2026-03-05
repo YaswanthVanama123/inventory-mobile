@@ -35,38 +35,30 @@ export const OrderDiscrepancyListScreen: React.FC<
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const isAdmin = user?.role === 'admin';
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  // Filters
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-
   useEffect(() => {
     if (token) {
       loadData();
     }
   }, [token, statusFilter, typeFilter]);
-
   const loadData = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
       const params: any = {limit: 100};
       if (statusFilter) params.status = statusFilter;
       if (typeFilter) params.discrepancyType = typeFilter;
-
       const [discrepanciesResponse, statsResponse] = await Promise.all([
         orderDiscrepancyService.getOrderDiscrepancies(token, params),
         orderDiscrepancyService.getOrderDiscrepancyStats(token),
       ]);
-
       setDiscrepancies(discrepanciesResponse.discrepancies);
       setStats(statsResponse);
     } catch (error: any) {
@@ -79,13 +71,11 @@ export const OrderDiscrepancyListScreen: React.FC<
       setLoading(false);
     }
   };
-
   const onRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
-
   const handleApprove = (discrepancy: any) => {
     Alert.alert(
       'Approve Discrepancy',
@@ -123,7 +113,6 @@ export const OrderDiscrepancyListScreen: React.FC<
       ],
     );
   };
-
   const handleReject = (discrepancy: any) => {
     Alert.alert(
       'Reject Discrepancy',
@@ -157,7 +146,6 @@ export const OrderDiscrepancyListScreen: React.FC<
       ],
     );
   };
-
   const getStatusBadge = (status: string) => {
     const config: any = {
       pending: {color: theme.colors.warning, label: 'Pending', icon: ClockIcon},
@@ -168,9 +156,7 @@ export const OrderDiscrepancyListScreen: React.FC<
       },
       rejected: {color: theme.colors.error, label: 'Rejected', icon: XCircleIcon},
     };
-
     const {color, label, icon: Icon} = config[status] || config.pending;
-
     return (
       <View style={[styles.badge, {backgroundColor: color + '20'}]}>
         <Icon size={14} color={color} />
@@ -180,19 +166,16 @@ export const OrderDiscrepancyListScreen: React.FC<
       </View>
     );
   };
-
   const getTypeBadge = (type: string) => {
     const config: any = {
       Shortage: {color: theme.colors.warning, label: 'Shortage'},
       Overage: {color: theme.colors.info, label: 'Overage'},
       Matched: {color: theme.colors.success, label: 'Matched'},
     };
-
     const {color, label} = config[type] || {
       color: theme.colors.textSecondary,
       label: type,
     };
-
     return (
       <View style={[styles.badge, {backgroundColor: color + '20'}]}>
         <Typography variant="body2" style={[styles.badgeText, {color}]}>
@@ -201,7 +184,6 @@ export const OrderDiscrepancyListScreen: React.FC<
       </View>
     );
   };
-
   const formatDate = (date: string) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleString('en-US', {
@@ -212,7 +194,6 @@ export const OrderDiscrepancyListScreen: React.FC<
       minute: '2-digit',
     });
   };
-
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.container}>
@@ -225,7 +206,6 @@ export const OrderDiscrepancyListScreen: React.FC<
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -240,7 +220,6 @@ export const OrderDiscrepancyListScreen: React.FC<
             Track and manage order verification discrepancies
           </Typography>
         </View>
-
         {/* Stats Cards */}
         {stats && (
           <View style={styles.statsRow}>
@@ -276,7 +255,6 @@ export const OrderDiscrepancyListScreen: React.FC<
             </Card>
           </View>
         )}
-
         {/* Filters */}
         <Card style={styles.card}>
           <TouchableOpacity
@@ -289,7 +267,6 @@ export const OrderDiscrepancyListScreen: React.FC<
               <ChevronDownIcon size={20} color={theme.colors.text} />
             )}
           </TouchableOpacity>
-
           {showFilters && (
             <View style={styles.filterContent}>
               <View style={styles.filterRow}>
@@ -367,7 +344,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                     </TouchableOpacity>
                   </View>
                 </View>
-
                 <View style={styles.filterItem}>
                   <Typography variant="body2" style={styles.filterLabel}>
                     Type
@@ -426,13 +402,11 @@ export const OrderDiscrepancyListScreen: React.FC<
             </View>
           )}
         </Card>
-
         {/* Discrepancies List */}
         <Card style={styles.card}>
           <Typography variant="h3" style={styles.sectionTitle}>
             Discrepancies ({discrepancies.length})
           </Typography>
-
           {discrepancies.length === 0 ? (
             <View style={styles.emptyState}>
               <AlertCircleIcon size={48} color={theme.colors.textSecondary} />
@@ -471,7 +445,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                       {getTypeBadge(discrepancy.discrepancyType)}
                     </View>
                   </View>
-
                   <View style={styles.quantityRow}>
                     <View style={styles.quantityItem}>
                       <Typography variant="body2" style={styles.quantityLabel}>
@@ -508,7 +481,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                       </Typography>
                     </View>
                   </View>
-
                   {expandedId === discrepancy._id && (
                     <View style={styles.expandedContent}>
                       {discrepancy.notes && (
@@ -523,7 +495,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                           </Typography>
                         </View>
                       )}
-
                       <View style={styles.expandedItem}>
                         <Typography variant="body2" style={styles.expandedLabel}>
                           Reported By:
@@ -539,7 +510,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                           {formatDate(discrepancy.reportedAt)}
                         </Typography>
                       </View>
-
                       {discrepancy.resolvedBy && (
                         <View style={styles.expandedItem}>
                           <Typography
@@ -558,7 +528,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                           </Typography>
                         </View>
                       )}
-
                       {discrepancy.resolutionNotes && (
                         <View style={styles.expandedItem}>
                           <Typography
@@ -573,7 +542,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                       )}
                     </View>
                   )}
-
                   {isAdmin && discrepancy.status === 'pending' && (
                     <View style={styles.actionButtons}>
                       <TouchableOpacity
@@ -606,7 +574,6 @@ export const OrderDiscrepancyListScreen: React.FC<
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

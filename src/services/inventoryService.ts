@@ -20,11 +20,9 @@ class InventoryService {
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         throw new Error('Failed to fetch grouped items');
       }
-
       const data = await response.json();
       return data.data?.items || data.items || [];
     } catch (error) {
@@ -32,7 +30,6 @@ class InventoryService {
       throw error;
     }
   }
-
   async getGroupedSalesItems(token: string) {
     try {
       const response = await fetch(`${API_BASE_URL}/routestar/items/grouped`, {
@@ -41,11 +38,9 @@ class InventoryService {
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         throw new Error('Failed to fetch grouped sales items');
       }
-
       const data = await response.json();
       return data.data?.items || data.items || [];
     } catch (error) {
@@ -53,8 +48,6 @@ class InventoryService {
       throw error;
     }
   }
-
-  // LAZY LOADING: Get orders for a specific item (purchases)
   async getOrdersForItem(token: string, sku: string) {
     try {
       const response = await fetch(
@@ -66,11 +59,9 @@ class InventoryService {
           },
         }
       );
-
       if (!response.ok) {
         throw new Error('Failed to fetch orders for item');
       }
-
       const data = await response.json();
       return data.data?.entries || data.entries || [];
     } catch (error) {
@@ -78,8 +69,6 @@ class InventoryService {
       throw error;
     }
   }
-
-  // LAZY LOADING: Get invoices for a specific item (sales)
   async getInvoicesForItem(token: string, itemName: string) {
     try {
       const response = await fetch(
@@ -91,11 +80,9 @@ class InventoryService {
           },
         }
       );
-
       if (!response.ok) {
         throw new Error('Failed to fetch invoices for item');
       }
-
       const data = await response.json();
       return data.data?.entries || data.entries || [];
     } catch (error) {
@@ -103,11 +90,9 @@ class InventoryService {
       throw error;
     }
   }
-
   async getInventoryItems(token: string, params: InventoryParams = {}) {
     try {
       const queryParams = new URLSearchParams();
-
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.limit) queryParams.append('limit', params.limit.toString());
       if (params.search) queryParams.append('search', params.search);
@@ -116,20 +101,16 @@ class InventoryService {
       if (params.adequateStock) queryParams.append('adequateStock', 'true');
       if (params.sortBy) queryParams.append('sortBy', params.sortBy);
       if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
-
       const url = `${API_BASE_URL}/inventory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         throw new Error('Failed to fetch inventory items');
       }
-
       const data = await response.json();
       return {
         items: data.items || data || [],
@@ -142,7 +123,6 @@ class InventoryService {
       throw error;
     }
   }
-
   async getItemDetails(token: string, itemId: string) {
     try {
       const response = await fetch(`${API_BASE_URL}/inventory/${itemId}`, {
@@ -151,11 +131,9 @@ class InventoryService {
           'Content-Type': 'application/json',
         },
       });
-
       if (!response.ok) {
         throw new Error('Failed to fetch item details');
       }
-
       const data = await response.json();
       return data.data || data;
     } catch (error) {
@@ -163,23 +141,18 @@ class InventoryService {
       throw error;
     }
   }
-
   getImageUrl(imagePath: string | null | undefined): string {
     if (!imagePath) {
       return 'https://via.placeholder.com/150?text=No+Image';
     }
-
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath;
     }
-
     if (imagePath.startsWith('/uploads')) {
       const backendUrl = 'http://192.168.1.18:5001';
       return `${backendUrl}${imagePath}`;
     }
-
     return imagePath;
   }
 }
-
 export default new InventoryService();

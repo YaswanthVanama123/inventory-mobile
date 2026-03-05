@@ -16,22 +16,16 @@ class StockService {
       if (!response.ok) {
         throw new Error('Failed to fetch stock summary');
       }
-
       const result = await response.json();
       console.log('[StockService] Response result:', JSON.stringify(result, null, 2));
-
-      // The API might return { success: true, data: { useStock, sellStock } }
-      // or just { useStock, sellStock }
       const data = result.data || result;
       console.log('[StockService] Parsed data:', JSON.stringify(data, null, 2));
-
       return data;
     } catch (error) {
       console.error('Stock Summary Service Error:', error);
       throw error;
     }
   }
-
   async getCategorySKUs(token: string, categoryName: string) {
     try {
       console.log('[StockService] getCategorySKUs called for:', categoryName);
@@ -44,11 +38,9 @@ class StockService {
           },
         }
       );
-
       if (!response.ok) {
         throw new Error('Failed to fetch category SKUs');
       }
-
       const result = await response.json();
       console.log('[StockService] Category SKUs result:', result);
       const data = result.data || result;
@@ -58,7 +50,6 @@ class StockService {
       throw error;
     }
   }
-
   async getCategorySales(token: string, categoryName: string) {
     try {
       console.log('[StockService] getCategorySales called for:', categoryName);
@@ -71,11 +62,9 @@ class StockService {
           },
         }
       );
-
       if (!response.ok) {
         throw new Error('Failed to fetch category sales');
       }
-
       const result = await response.json();
       console.log('[StockService] Category sales result:', result);
       const data = result.data || result;
@@ -86,5 +75,4 @@ class StockService {
     }
   }
 }
-
 export default new StockService();

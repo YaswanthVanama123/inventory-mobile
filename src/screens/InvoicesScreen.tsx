@@ -34,14 +34,12 @@ export const InvoicesScreen = () => {
   const [isMounted, setIsMounted] = useState(true);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
-
   useEffect(() => {
     setIsMounted(true);
     return () => {
       setIsMounted(false);
     };
   }, []);
-
   useEffect(() => {
     if (token && isMounted) {
       fetchInvoices();
@@ -49,39 +47,30 @@ export const InvoicesScreen = () => {
       setLoading(false);
     }
   }, [token, statusFilter, paymentStatusFilter]);
-
-  // Debounced search
   useEffect(() => {
     if (!isMounted) return;
-
     const timer = setTimeout(() => {
       if (token) {
         fetchInvoices();
       }
     }, 500);
-
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
   const fetchInvoices = async () => {
     try {
       if (token && isMounted) {
         const params: any = {
           limit: 50,
         };
-
         if (searchQuery) params.search = searchQuery;
         if (statusFilter) params.status = statusFilter;
         if (paymentStatusFilter) params.paymentStatus = paymentStatusFilter;
-
         const response = await invoiceService.getInvoices(token, params);
         console.log('Fetched invoices response:', response);
         console.log('Number of invoices:', response.invoices?.length);
-
         if (response.invoices && response.invoices.length > 0) {
           console.log('First invoice structure:', JSON.stringify(response.invoices[0], null, 2));
         }
-
         if (isMounted) {
           setInvoices(response.invoices || []);
           setError(null);
@@ -89,11 +78,8 @@ export const InvoicesScreen = () => {
       }
     } catch (error: any) {
       console.error('Failed to fetch invoices:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       if (isMounted) {
         setError(error.message || 'Failed to load invoices');
         setInvoices([]);
@@ -105,35 +91,27 @@ export const InvoicesScreen = () => {
       }
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchInvoices();
   };
-
   const handleInvoicePress = (invoice: any) => {
     console.log('Invoice pressed - Full invoice object:', JSON.stringify(invoice, null, 2));
     console.log('Invoice _id:', invoice._id);
     console.log('Invoice id:', invoice.id);
     console.log('Invoice invoiceNumber:', invoice.invoiceNumber);
-
-    // Use invoice number for RouteStar invoices
     const invoiceIdentifier = invoice.invoiceNumber || invoice._id || invoice.id;
     console.log('Using invoice identifier:', invoiceIdentifier);
-
     setSelectedInvoiceId(invoiceIdentifier);
     setDetailModalVisible(true);
   };
-
   const handleCloseDetail = () => {
     setDetailModalVisible(false);
     setSelectedInvoiceId(null);
   };
-
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
   };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -146,7 +124,6 @@ export const InvoicesScreen = () => {
       return 'Invalid Date';
     }
   };
-
   const getStatusColor = (status: string) => {
     const colors: {[key: string]: string} = {
       draft: theme.colors.gray[500],
@@ -156,7 +133,6 @@ export const InvoicesScreen = () => {
     };
     return colors[status?.toLowerCase()] || theme.colors.gray[500];
   };
-
   const getPaymentStatusColor = (paymentStatus: string) => {
     const colors: {[key: string]: string} = {
       pending: theme.colors.warning[600],
@@ -165,7 +141,6 @@ export const InvoicesScreen = () => {
     };
     return colors[paymentStatus?.toLowerCase()] || theme.colors.gray[500];
   };
-
   const getStatusBgColor = (status: string) => {
     const colors: {[key: string]: string} = {
       draft: theme.colors.gray[100],
@@ -175,7 +150,6 @@ export const InvoicesScreen = () => {
     };
     return colors[status?.toLowerCase()] || theme.colors.gray[100];
   };
-
   const getPaymentStatusBgColor = (paymentStatus: string) => {
     const colors: {[key: string]: string} = {
       pending: theme.colors.warning[100],
@@ -184,7 +158,6 @@ export const InvoicesScreen = () => {
     };
     return colors[paymentStatus?.toLowerCase()] || theme.colors.gray[100];
   };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -198,7 +171,6 @@ export const InvoicesScreen = () => {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -220,7 +192,6 @@ export const InvoicesScreen = () => {
             {invoices.length} {invoices.length === 1 ? 'invoice' : 'invoices'} found
           </Typography>
         </View>
-
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <RNTextInput
@@ -231,7 +202,6 @@ export const InvoicesScreen = () => {
             placeholderTextColor={theme.colors.gray[400]}
           />
         </View>
-
         {/* Status Filter */}
         <View style={styles.filterSection}>
           <Typography variant="small" weight="semibold" style={styles.filterLabel}>
@@ -268,7 +238,6 @@ export const InvoicesScreen = () => {
             </View>
           </ScrollView>
         </View>
-
         {/* Payment Status Filter */}
         <View style={styles.filterSection}>
           <Typography variant="small" weight="semibold" style={styles.filterLabel}>
@@ -304,7 +273,6 @@ export const InvoicesScreen = () => {
             </View>
           </ScrollView>
         </View>
-
         {/* Error State */}
         {error && (
           <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -319,7 +287,6 @@ export const InvoicesScreen = () => {
             </View>
           </Card>
         )}
-
         {/* Empty State */}
         {!error && invoices.length === 0 && (
           <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -341,7 +308,6 @@ export const InvoicesScreen = () => {
             </Typography>
           </Card>
         )}
-
         {/* Invoices List */}
         <View style={styles.invoicesList}>
           {invoices.map((invoice) => (
@@ -386,7 +352,6 @@ export const InvoicesScreen = () => {
                     </Typography>
                   </View>
                 </View>
-
                 {/* Invoice Details */}
                 <View style={styles.invoiceDetails}>
                   <View style={styles.detailRow}>
@@ -406,7 +371,6 @@ export const InvoicesScreen = () => {
                       </Typography>
                     </View>
                   </View>
-
                   <View style={styles.detailRow}>
                     <Typography variant="caption" color={theme.colors.gray[500]}>
                       Payment
@@ -430,7 +394,6 @@ export const InvoicesScreen = () => {
           ))}
         </View>
       </ScrollView>
-
       {/* Invoice Detail Modal */}
       <InvoiceDetailScreen
         visible={detailModalVisible}
@@ -440,7 +403,6 @@ export const InvoicesScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

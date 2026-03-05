@@ -28,44 +28,31 @@ type SubTabType = 'all' | 'employees';
 export const TruckCheckoutListScreen = () => {
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
-
   const [activeTab, setActiveTab] = useState<TabType>('checkouts');
   const [checkoutsSubTab, setCheckoutsSubTab] = useState<SubTabType>('all');
   const [salesSubTab, setSalesSubTab] = useState<SubTabType>('all');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
-
-  // Checkouts data
   const [checkouts, setCheckouts] = useState<any[]>([]);
   const [pagination, setPagination] = useState({total: 0, page: 1, limit: 50, pages: 0});
-
-  // Employees data
   const [employees, setEmployees] = useState<any[]>([]);
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
   const [employeeCheckouts, setEmployeeCheckouts] = useState<any[]>([]);
-
-  // Sales tracking data
   const [salesTracking, setSalesTracking] = useState<any[]>([]);
   const [salesSummary, setSalesSummary] = useState<any>({});
-
-  // Sales employees data
   const [salesEmployees, setSalesEmployees] = useState<any[]>([]);
   const [expandedSalesEmployee, setExpandedSalesEmployee] = useState<string | null>(null);
   const [employeeSalesTracking, setEmployeeSalesTracking] = useState<any[]>([]);
-
-  // Filters
   const [statusFilter, setStatusFilter] = useState('all');
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-
   useEffect(() => {
     setIsMounted(true);
     return () => {
       setIsMounted(false);
     };
   }, []);
-
   useEffect(() => {
     if (activeTab === 'checkouts') {
       if (checkoutsSubTab === 'all') {
@@ -81,23 +68,17 @@ export const TruckCheckoutListScreen = () => {
       }
     }
   }, [activeTab, checkoutsSubTab, salesSubTab, statusFilter, employeeFilter, searchTerm, pagination.page]);
-
   const loadCheckouts = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
-
       const filters: any = {
         page: pagination.page,
         limit: pagination.limit,
       };
-
       if (statusFilter !== 'all') filters.status = statusFilter;
       if (employeeFilter.trim()) filters.employeeName = employeeFilter.trim();
-
       const result = await truckCheckoutService.getCheckouts(token, filters);
-
       if (isMounted) {
         setCheckouts(result.checkouts || []);
         setPagination(result.pagination || {total: 0, page: 1, limit: 50, pages: 0});
@@ -114,18 +95,13 @@ export const TruckCheckoutListScreen = () => {
       }
     }
   };
-
   const loadSalesTracking = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
-
       const filters: any = {};
       if (employeeFilter.trim()) filters.employeeName = employeeFilter.trim();
-
       const result = await truckCheckoutService.getSalesTracking(token, filters);
-
       if (isMounted) {
         setSalesTracking(result.checkouts || []);
         setSalesSummary(result.summary || {});
@@ -143,18 +119,13 @@ export const TruckCheckoutListScreen = () => {
       }
     }
   };
-
   const loadEmployees = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
-
       const filters: any = {};
       if (searchTerm.trim()) filters.search = searchTerm.trim();
-
       const result = await truckCheckoutService.getAllEmployeesWithStats(token, filters);
-
       if (isMounted) {
         setEmployees(result || []);
       }
@@ -170,19 +141,13 @@ export const TruckCheckoutListScreen = () => {
       }
     }
   };
-
   const loadSalesEmployees = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
-
       const filters: any = {};
-
       const result = await truckCheckoutService.getSalesTracking(token, filters);
       const allSalesTracking = result.checkouts || [];
-
-      // Group by employee
       const employeeMap = new Map<string, any>();
       allSalesTracking.forEach((item: any) => {
         const key = `${item.employeeName}-${item.truckNumber || 'N/A'}`;
@@ -195,7 +160,6 @@ export const TruckCheckoutListScreen = () => {
         }
         employeeMap.get(key).items.push(item);
       });
-
       const groupedEmployees = Array.from(employeeMap.values()).map(emp => ({
         ...emp,
         totalCheckouts: emp.items.length,
@@ -203,7 +167,6 @@ export const TruckCheckoutListScreen = () => {
         shortageCount: emp.items.filter((i: any) => i.status === 'Shortage').length,
         overageCount: emp.items.filter((i: any) => i.status === 'Overage').length,
       }));
-
       if (isMounted) {
         if (searchTerm.trim()) {
           const searchLower = searchTerm.toLowerCase();
@@ -230,7 +193,6 @@ export const TruckCheckoutListScreen = () => {
       }
     }
   };
-
   const handleEmployeeExpand = async (employeeName: string, truckNumber: string) => {
     const key = `${employeeName}-${truckNumber}`;
     if (expandedEmployee === key) {
@@ -238,19 +200,14 @@ export const TruckCheckoutListScreen = () => {
       setEmployeeCheckouts([]);
       return;
     }
-
     setExpandedEmployee(key);
-
     if (!token) return;
-
     try {
       const filters: any = {
         employeeName,
         limit: 100,
       };
-
       const result = await truckCheckoutService.getCheckouts(token, filters);
-
       if (isMounted) {
         const filtered = (result.checkouts || []).filter(
           (c: any) => (c.truckNumber || 'N/A') === truckNumber,
@@ -262,7 +219,6 @@ export const TruckCheckoutListScreen = () => {
       await handleApiError(error);
     }
   };
-
   const handleSalesEmployeeExpand = async (employeeName: string, truckNumber: string) => {
     const key = `${employeeName}-${truckNumber}`;
     if (expandedSalesEmployee === key) {
@@ -270,19 +226,14 @@ export const TruckCheckoutListScreen = () => {
       setEmployeeSalesTracking([]);
       return;
     }
-
     setExpandedSalesEmployee(key);
-
     if (!token) return;
-
     try {
       const filters: any = {
         employeeName,
       };
       if (truckNumber !== 'N/A') filters.truckNumber = truckNumber;
-
       const result = await truckCheckoutService.getSalesTracking(token, filters);
-
       if (isMounted) {
         setEmployeeSalesTracking(result.checkouts || []);
       }
@@ -291,7 +242,6 @@ export const TruckCheckoutListScreen = () => {
       await handleApiError(error);
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     if (activeTab === 'checkouts') {
@@ -308,7 +258,6 @@ export const TruckCheckoutListScreen = () => {
       }
     }
   };
-
   const formatDate = (date: string) => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleDateString('en-US', {
@@ -319,16 +268,13 @@ export const TruckCheckoutListScreen = () => {
       minute: '2-digit',
     });
   };
-
   const getStatusBadge = (status: string) => {
     const config: any = {
       checked_out: {color: theme.colors.warning[600], label: 'Checked Out'},
       completed: {color: theme.colors.success[600], label: 'Completed'},
       cancelled: {color: theme.colors.error[600], label: 'Cancelled'},
     };
-
     const {color, label} = config[status] || config.checked_out;
-
     return (
       <View style={[styles.badge, {backgroundColor: `${color}20`}]}>
         <Typography variant="caption" style={{color}} weight="semibold">
@@ -337,16 +283,13 @@ export const TruckCheckoutListScreen = () => {
       </View>
     );
   };
-
   const getStatusBadgeForTracking = (status: string) => {
     const config: any = {
       Good: {color: theme.colors.success[600], label: 'Good'},
       Shortage: {color: theme.colors.warning[600], label: 'Shortage'},
       Overage: {color: theme.colors.error[600], label: 'Overage'},
     };
-
     const {color, label} = config[status] || config.Good;
-
     return (
       <View style={[styles.badge, {backgroundColor: `${color}20`}]}>
         <Typography variant="caption" style={{color}} weight="semibold">
@@ -355,7 +298,6 @@ export const TruckCheckoutListScreen = () => {
       </View>
     );
   };
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -380,7 +322,6 @@ export const TruckCheckoutListScreen = () => {
             Track items taken by employees in trucks
           </Typography>
         </View>
-
         {/* Tabs */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
@@ -412,7 +353,6 @@ export const TruckCheckoutListScreen = () => {
             </Typography>
           </TouchableOpacity>
         </View>
-
         {/* Sub-Tabs for Checkouts */}
         {activeTab === 'checkouts' && (
           <View style={styles.subTabsContainer}>
@@ -453,7 +393,6 @@ export const TruckCheckoutListScreen = () => {
             </TouchableOpacity>
           </View>
         )}
-
         {/* Sub-Tabs for Sales */}
         {activeTab === 'sales' && (
           <View style={styles.subTabsContainer}>
@@ -494,13 +433,11 @@ export const TruckCheckoutListScreen = () => {
             </TouchableOpacity>
           </View>
         )}
-
         {/* Filters */}
         <Card variant="elevated" padding="md" style={styles.filtersCard}>
           <Typography variant="body" weight="semibold" style={styles.filterTitle}>
             Filters
           </Typography>
-
           {/* Status filter - only for All Checkouts */}
           {activeTab === 'checkouts' && checkoutsSubTab === 'all' && (
             <View style={styles.filterGroup}>
@@ -531,7 +468,6 @@ export const TruckCheckoutListScreen = () => {
               </View>
             </View>
           )}
-
           {/* Employee Name filter - only for All Checkouts and All Sales */}
           {((activeTab === 'checkouts' && checkoutsSubTab === 'all') ||
             (activeTab === 'sales' && salesSubTab === 'all')) && (
@@ -548,7 +484,6 @@ export const TruckCheckoutListScreen = () => {
               />
             </View>
           )}
-
           {/* Search filter - only for Organize by Employees */}
           {((activeTab === 'checkouts' && checkoutsSubTab === 'employees') ||
             (activeTab === 'sales' && salesSubTab === 'employees')) && (
@@ -565,7 +500,6 @@ export const TruckCheckoutListScreen = () => {
               />
             </View>
           )}
-
           <TouchableOpacity
             style={styles.clearFiltersButton}
             onPress={() => {
@@ -579,14 +513,12 @@ export const TruckCheckoutListScreen = () => {
             </Typography>
           </TouchableOpacity>
         </Card>
-
         {/* Checkouts Tab */}
         {activeTab === 'checkouts' && checkoutsSubTab === 'all' && (
           <Card variant="elevated" padding="md" style={styles.contentCard}>
             <Typography variant="body" weight="semibold" style={styles.contentTitle}>
               Checkouts ({pagination.total} records)
             </Typography>
-
             {loading && checkouts.length === 0 ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -606,14 +538,12 @@ export const TruckCheckoutListScreen = () => {
                     </Typography>
                     {getStatusBadge(checkout.status)}
                   </View>
-
                   <View style={styles.checkoutRow}>
                     <Typography variant="small" color={theme.colors.gray[500]}>
                       Truck:
                     </Typography>
                     <Typography variant="small">{checkout.truckNumber || '-'}</Typography>
                   </View>
-
                   <View style={styles.checkoutRow}>
                     <Typography variant="small" color={theme.colors.gray[500]}>
                       Item:
@@ -644,14 +574,12 @@ export const TruckCheckoutListScreen = () => {
                       )}
                     </View>
                   </View>
-
                   <View style={styles.checkoutRow}>
                     <Typography variant="small" color={theme.colors.gray[500]}>
                       Date:
                     </Typography>
                     <Typography variant="small">{formatDate(checkout.checkoutDate)}</Typography>
                   </View>
-
                   {checkout.invoiceNumbers && checkout.invoiceNumbers.length > 0 && (
                     <View style={styles.checkoutRow}>
                       <Typography variant="small" color={theme.colors.gray[500]}>
@@ -667,7 +595,6 @@ export const TruckCheckoutListScreen = () => {
             )}
           </Card>
         )}
-
         {/* Checkouts by Employees */}
         {activeTab === 'checkouts' && checkoutsSubTab === 'employees' && (
           <Card variant="elevated" padding="md" style={styles.contentCard}>
@@ -677,7 +604,6 @@ export const TruckCheckoutListScreen = () => {
             <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 12}}>
               Click on an employee to view their checkouts
             </Typography>
-
             {loading && employees.length === 0 ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -692,7 +618,6 @@ export const TruckCheckoutListScreen = () => {
               employees.map((emp: any) => {
                 const key = `${emp.employeeName}-${emp.truckNumber}`;
                 const isExpanded = expandedEmployee === key;
-
                 return (
                   <View key={key} style={styles.employeeCard}>
                     <TouchableOpacity
@@ -712,7 +637,6 @@ export const TruckCheckoutListScreen = () => {
                         </Typography>
                       </View>
                     </TouchableOpacity>
-
                     {isExpanded && (
                       <View style={styles.employeeDetails}>
                         {employeeCheckouts.length === 0 ? (
@@ -745,7 +669,6 @@ export const TruckCheckoutListScreen = () => {
             )}
           </Card>
         )}
-
         {/* Sales & Remaining Tab - All Sales */}
         {activeTab === 'sales' && salesSubTab === 'all' && (
           <>
@@ -762,7 +685,6 @@ export const TruckCheckoutListScreen = () => {
                 </View>
                 <CheckCircleIcon size={32} color={theme.colors.success[600]} />
               </View>
-
               <View style={[styles.summaryCard, styles.summaryCardShortage]}>
                 <View style={styles.summaryCardContent}>
                   <Typography variant="small" weight="semibold" color={theme.colors.warning[700]}>
@@ -774,7 +696,6 @@ export const TruckCheckoutListScreen = () => {
                 </View>
                 <ClockIcon size={32} color={theme.colors.warning[600]} />
               </View>
-
               <View style={[styles.summaryCard, styles.summaryCardOverage]}>
                 <View style={styles.summaryCardContent}>
                   <Typography variant="small" weight="semibold" color={theme.colors.error[700]}>
@@ -787,7 +708,6 @@ export const TruckCheckoutListScreen = () => {
                 <AlertCircleIcon size={32} color={theme.colors.error[600]} />
               </View>
             </View>
-
             {/* Sales Tracking List */}
             <Card variant="elevated" padding="md" style={styles.contentCard}>
               <Typography variant="body" weight="semibold" style={styles.contentTitle}>
@@ -796,7 +716,6 @@ export const TruckCheckoutListScreen = () => {
               <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 12}}>
                 Track what was sold vs what was checked out
               </Typography>
-
               {loading && salesTracking.length === 0 ? (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -821,11 +740,9 @@ export const TruckCheckoutListScreen = () => {
                       </View>
                       {getStatusBadgeForTracking(item.status)}
                     </View>
-
                     <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
                       {item.itemName}
                     </Typography>
-
                     <View style={styles.salesRow}>
                       <Typography variant="small" color={theme.colors.gray[500]}>
                         Checked Out:
@@ -834,7 +751,6 @@ export const TruckCheckoutListScreen = () => {
                         {item.quantityCheckedOut}
                       </Typography>
                     </View>
-
                     <View style={styles.salesRow}>
                       <Typography variant="small" color={theme.colors.gray[500]}>
                         Sold:
@@ -843,7 +759,6 @@ export const TruckCheckoutListScreen = () => {
                         {item.totalSold}
                       </Typography>
                     </View>
-
                     <View style={styles.salesRow}>
                       <Typography variant="small" color={theme.colors.gray[500]}>
                         Remaining:
@@ -852,7 +767,6 @@ export const TruckCheckoutListScreen = () => {
                         {item.remaining}
                       </Typography>
                     </View>
-
                     {item.matchedInvoices > 0 && (
                       <View style={styles.salesRow}>
                         <Typography variant="small" color={theme.colors.gray[500]}>
@@ -869,7 +783,6 @@ export const TruckCheckoutListScreen = () => {
             </Card>
           </>
         )}
-
         {/* Sales by Employees */}
         {activeTab === 'sales' && salesSubTab === 'employees' && (
           <Card variant="elevated" padding="md" style={styles.contentCard}>
@@ -879,7 +792,6 @@ export const TruckCheckoutListScreen = () => {
             <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 12}}>
               Click on an employee to view their sales tracking
             </Typography>
-
             {loading && salesEmployees.length === 0 ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -894,7 +806,6 @@ export const TruckCheckoutListScreen = () => {
               salesEmployees.map((emp: any) => {
                 const key = `${emp.employeeName}-${emp.truckNumber}`;
                 const isExpanded = expandedSalesEmployee === key;
-
                 return (
                   <View key={key} style={styles.employeeCard}>
                     <TouchableOpacity
@@ -920,7 +831,6 @@ export const TruckCheckoutListScreen = () => {
                         </Typography>
                       </View>
                     </TouchableOpacity>
-
                     {isExpanded && (
                       <View style={styles.employeeDetails}>
                         {employeeSalesTracking.length === 0 ? (
@@ -975,7 +885,6 @@ export const TruckCheckoutListScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

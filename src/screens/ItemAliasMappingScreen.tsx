@@ -56,61 +56,45 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
     mappedItems: 0,
     unmappedItems: 0,
   });
-
-  // Quick Map Modal State
   const [quickMapVisible, setQuickMapVisible] = useState(false);
   const [quickMapItem, setQuickMapItem] = useState<any>(null);
   const [quickCanonicalName, setQuickCanonicalName] = useState('');
   const [quickMapSelectedItems, setQuickMapSelectedItems] = useState<Set<string>>(new Set());
   const [quickMapSearchQuery, setQuickMapSearchQuery] = useState('');
-
   useEffect(() => {
     if (visible && token) {
       loadData();
     }
   }, [visible, token]);
-
   useEffect(() => {
     filterItems();
   }, [uniqueItems, searchQuery, filterStatus]);
-
   const loadData = async () => {
     if (!token) return;
-
     try {
       setLoading(true);
       setError(null);
-
-      // OPTIMIZED: Use single API call instead of two separate calls
       const pageData = await itemAliasService.getPageData(token);
-
       console.log('[ItemAliasScreen] Page data loaded:', {
         mappings: pageData.mappings?.length || 0,
         items: pageData.items?.length || 0,
         stats: pageData.stats,
       });
-
       setMappings(pageData.mappings || []);
       setUniqueItems(pageData.items || []);
       setStats(pageData.stats || {totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0});
     } catch (error: any) {
       console.error('Failed to fetch item alias data:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       setError(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
-
   const filterItems = () => {
     let filtered = [...uniqueItems];
-
-    // Search filter
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -120,22 +104,17 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
           (item.itemParent && item.itemParent.toLowerCase().includes(searchLower))
       );
     }
-
-    // Status filter
     if (filterStatus === 'mapped') {
       filtered = filtered.filter(item => item.isMapped);
     } else if (filterStatus === 'unmapped') {
       filtered = filtered.filter(item => !item.isMapped);
     }
-
     setFilteredItems(filtered);
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleItemPress = (itemName: string) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(itemName)) {
@@ -145,39 +124,28 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
     }
     setExpandedItems(newExpanded);
   };
-
   const openQuickMapModal = (item: any) => {
     setQuickMapItem(item);
     setQuickCanonicalName(item.itemName);
     setQuickMapSearchQuery('');
-
-    // Check if item is already mapped
     const currentMapping = mappings.find(m =>
       m.aliases.some((a: any) => a.name === item.itemName)
     );
-
     if (currentMapping) {
-      // Item is already mapped
       setQuickCanonicalName(currentMapping.canonicalName);
       const aliasNames = new Set(currentMapping.aliases.map((a: any) => a.name));
       setQuickMapSelectedItems(aliasNames);
     } else {
-      // New mapping
       setQuickMapSelectedItems(new Set([item.itemName]));
     }
-
     setQuickMapVisible(true);
   };
-
   const toggleQuickMapItem = (itemName: string) => {
     const newSelected = new Set(quickMapSelectedItems);
-
-    // Don't allow unchecking if it's the only item and the main item
     if (itemName === quickMapItem?.itemName && newSelected.has(itemName) && newSelected.size === 1) {
       Alert.alert('Warning', 'You must select at least the current item');
       return;
     }
-
     if (newSelected.has(itemName)) {
       newSelected.delete(itemName);
     } else {
@@ -185,20 +153,14 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
     }
     setQuickMapSelectedItems(newSelected);
   };
-
   const getFilteredItemsForQuickMap = () => {
-    // Get the current mapping for the quick map item
     const currentMapping = mappings.find(m =>
       m.aliases.some((a: any) => a.name === quickMapItem?.itemName)
     );
-
     return uniqueItems.filter(item => {
-      // Exclude items that are mapped to different mappings
       if (item.isMapped && currentMapping && item.canonicalName !== currentMapping.canonicalName) {
         return false;
       }
-
-      // Apply search filter
       if (quickMapSearchQuery) {
         const searchLower = quickMapSearchQuery.toLowerCase();
         return (
@@ -209,38 +171,29 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
       return true;
     });
   };
-
   const quickMapSubmit = async () => {
     if (!quickCanonicalName.trim()) {
       Alert.alert('Error', 'Please enter a canonical name');
       return;
     }
-
     if (quickMapSelectedItems.size === 0) {
       Alert.alert('Error', 'Please select at least one item');
       return;
     }
-
     try {
       setSaving(true);
-
-      // Check if we need to delete existing mapping first
       const currentMapping = mappings.find(m =>
         m.aliases.some((a: any) => a.name === quickMapItem?.itemName)
       );
-
       if (currentMapping) {
         await itemAliasService.deleteMapping(token!, currentMapping._id);
       }
-
-      // Create new mapping
       await itemAliasService.saveMapping(token!, {
         canonicalName: quickCanonicalName.trim(),
         aliases: Array.from(quickMapSelectedItems),
         description: currentMapping ? 'Updated mapping' : 'Quick mapped',
         autoMerge: true,
       });
-
       Alert.alert('Success', `Mapped ${quickMapSelectedItems.size} items to "${quickCanonicalName}"`);
       setQuickMapVisible(false);
       setQuickMapItem(null);
@@ -254,7 +207,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
       setSaving(false);
     }
   };
-
   return (
     <Modal
       visible={visible}
@@ -278,7 +230,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
             </Typography>
           </TouchableOpacity>
         </View>
-
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -310,7 +261,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
                   <CheckCircleIcon size={18} color={theme.colors.white} />
@@ -328,7 +278,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.warning[600]}]}>
                   <WarningIcon size={18} color={theme.colors.white} />
@@ -343,7 +292,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   </Typography>
                 </View>
               </View>
-
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <LinkIcon size={18} color={theme.colors.white} />
@@ -359,7 +307,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                 </View>
               </View>
             </View>
-
             {/* Filter Tabs */}
             <View style={styles.tabsContainer}>
               <TouchableOpacity
@@ -379,7 +326,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   All Items
                 </Typography>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -397,7 +343,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   Mapped
                 </Typography>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -416,7 +361,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                 </Typography>
               </TouchableOpacity>
             </View>
-
             {/* Search Bar */}
             <View style={styles.searchContainer}>
               <RNTextInput
@@ -427,7 +371,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                 placeholderTextColor={theme.colors.gray[400]}
               />
             </View>
-
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -442,7 +385,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                 </View>
               </Card>
             )}
-
             {/* Empty State */}
             {!error && filteredItems.length === 0 && (
               <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -464,13 +406,11 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                 </Typography>
               </Card>
             )}
-
             {/* Items List */}
             <View style={styles.itemsList}>
               {filteredItems.map((item, index) => {
                 const isExpanded = expandedItems.has(item.itemName);
                 const isMapped = Boolean(item.isMapped);
-
                 return (
                   <Card
                     key={item.itemName || index}
@@ -522,7 +462,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                         )}
                       </View>
                     </TouchableOpacity>
-
                     {/* Item Details */}
                     <View style={styles.itemMeta}>
                       <View style={styles.metaRow}>
@@ -550,7 +489,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                         </Typography>
                       </View>
                     </View>
-
                     {/* Expanded Content */}
                     {isExpanded && !isMapped && (
                       <View style={styles.expandedContent}>
@@ -568,7 +506,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
             </View>
           </ScrollView>
         )}
-
         {/* Quick Map Modal */}
         <Modal
           visible={quickMapVisible}
@@ -587,7 +524,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
               </Typography>
               <View style={styles.closeButton} />
             </View>
-
             <ScrollView style={styles.quickMapScroll} contentContainerStyle={styles.quickMapContent}>
               {/* Main Item Info */}
               <Card variant="elevated" padding="md" style={styles.mainItemCard}>
@@ -598,7 +534,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   {quickMapItem?.itemName}
                 </Typography>
               </Card>
-
               {/* Canonical Name Input */}
               <View style={styles.inputSection}>
                 <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -615,7 +550,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   All selected items will be displayed as this name in reports
                 </Typography>
               </View>
-
               {/* Selected Items */}
               <Card variant="elevated" padding="md" style={styles.selectedItemsCard}>
                 <Typography variant="small" weight="semibold" color={theme.colors.success[700]}>
@@ -631,7 +565,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   ))}
                 </View>
               </Card>
-
               {/* Search Items */}
               <View style={styles.inputSection}>
                 <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -645,7 +578,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   placeholderTextColor={theme.colors.gray[400]}
                 />
               </View>
-
               {/* Items List */}
               <Card variant="elevated" padding="none" style={styles.itemsListCard}>
                 {getFilteredItemsForQuickMap().map((item, idx) => {
@@ -679,7 +611,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   );
                 })}
               </Card>
-
               {/* Action Buttons */}
               <View style={styles.actionButtons}>
                 <Button
@@ -697,7 +628,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
     </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

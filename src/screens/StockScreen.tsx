@@ -41,7 +41,6 @@ export const StockScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(true);
 
-  // Discrepancy modal state
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false);
   const [prefilledItem, setPrefilledItem] = useState<any>(null);
   const [discrepancyFormData, setDiscrepancyFormData] = useState({
@@ -51,14 +50,12 @@ export const StockScreen = () => {
     notes: '',
   });
   const [submittingDiscrepancy, setSubmittingDiscrepancy] = useState(false);
-
   useEffect(() => {
     setIsMounted(true);
     return () => {
       setIsMounted(false);
     };
   }, []);
-
   useEffect(() => {
     if (token && isMounted) {
       loadData();
@@ -66,16 +63,13 @@ export const StockScreen = () => {
       setLoading(false);
     }
   }, [token]);
-
   const loadData = async () => {
     try {
       if (token && isMounted) {
         const response = await stockService.getStockSummary(token);
-
         if (isMounted) {
           const useStock = response.useStock || {items: [], totals: {}};
           const sellStock = response.sellStock || {items: [], totals: {}};
-
           setUseStockData(useStock);
           setSellStockData(sellStock);
           setError(null);
@@ -83,11 +77,8 @@ export const StockScreen = () => {
       }
     } catch (error: any) {
       console.error('Failed to fetch stock data:', error);
-
-      // Check if token expired and handle auto-logout
       const wasHandled = await handleApiError(error);
       if (wasHandled) return;
-
       if (isMounted) {
         setError(error.message || 'Failed to load stock data');
       }
@@ -98,46 +89,36 @@ export const StockScreen = () => {
       }
     }
   };
-
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
-
   const handleCategoryClick = async (categoryName: string) => {
     const newExpanded = new Set(expandedCategories);
-
     if (newExpanded.has(categoryName)) {
       newExpanded.delete(categoryName);
       setExpandedCategories(newExpanded);
     } else {
       newExpanded.add(categoryName);
       setExpandedCategories(newExpanded);
-
       if (!categorySkuData[categoryName]) {
         try {
           const newLoadingCategories = new Set(loadingCategories);
           newLoadingCategories.add(categoryName);
           setLoadingCategories(newLoadingCategories);
-
           const response = activeTab === 'use'
             ? await stockService.getCategorySKUs(token!, categoryName)
             : await stockService.getCategorySales(token!, categoryName);
-
           setCategorySkuData(prev => ({
             ...prev,
             [categoryName]: response || [],
           }));
-
           newLoadingCategories.delete(categoryName);
           setLoadingCategories(newLoadingCategories);
         } catch (error: any) {
           console.error('Error loading category data:', error);
-
-          // Check if token expired and handle auto-logout
           const wasHandled = await handleApiError(error);
           if (wasHandled) return;
-
           const newLoadingCategories = new Set(loadingCategories);
           newLoadingCategories.delete(categoryName);
           setLoadingCategories(newLoadingCategories);
@@ -145,7 +126,6 @@ export const StockScreen = () => {
       }
     }
   };
-
   const handleSKUClick = (skuId: string) => {
     const newExpanded = new Set(expandedSKUs);
     if (newExpanded.has(skuId)) {
@@ -155,13 +135,10 @@ export const StockScreen = () => {
     }
     setExpandedSKUs(newExpanded);
   };
-
   const currentData = activeTab === 'use' ? useStockData : sellStockData;
-
   const formatCurrency = (amount: number) => {
     return `$${amount.toFixed(2)}`;
   };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -174,23 +151,18 @@ export const StockScreen = () => {
       return 'Invalid Date';
     }
   };
-
   const handleSubmitDiscrepancy = async () => {
     if (!prefilledItem) return;
-
     if (discrepancyFormData.actualQuantity === prefilledItem.systemQuantity) {
       Alert.alert('Error', 'Actual quantity matches system quantity - no discrepancy to record');
       return;
     }
-
     if (!discrepancyFormData.discrepancyType) {
       Alert.alert('Error', 'Please select a discrepancy type');
       return;
     }
-
     try {
       setSubmittingDiscrepancy(true);
-
       const data = {
         itemName: prefilledItem.itemName,
         itemSku: prefilledItem.itemSku,
@@ -201,9 +173,7 @@ export const StockScreen = () => {
         reason: discrepancyFormData.reason,
         notes: discrepancyFormData.notes,
       };
-
       await discrepancyService.createDiscrepancy(data);
-
       Alert.alert('Success', 'Discrepancy recorded successfully');
       setShowDiscrepancyModal(false);
       setPrefilledItem(null);
@@ -213,8 +183,6 @@ export const StockScreen = () => {
         reason: '',
         notes: '',
       });
-
-      // Refresh stock data
       loadData();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to record discrepancy');
@@ -222,7 +190,6 @@ export const StockScreen = () => {
       setSubmittingDiscrepancy(false);
     }
   };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -236,7 +203,6 @@ export const StockScreen = () => {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -258,7 +224,6 @@ export const StockScreen = () => {
             View stock summary by category
           </Typography>
         </View>
-
         {/* Tabs */}
         <View style={styles.tabsContainer}>
           <TouchableOpacity
@@ -283,7 +248,6 @@ export const StockScreen = () => {
               Use Stock
             </Typography>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[
               styles.tab,
@@ -307,7 +271,6 @@ export const StockScreen = () => {
             </Typography>
           </TouchableOpacity>
         </View>
-
         {/* Stats Cards */}
         {activeTab === 'sell' && (
           <View style={styles.statsGrid}>
@@ -324,7 +287,6 @@ export const StockScreen = () => {
                 </Typography>
               </View>
             </View>
-
             <View style={styles.statCard}>
               <View style={[{backgroundColor: theme.colors.success[600]}, styles.statCardContent]}>
                 <Typography variant="caption" style={styles.statLabel}>
@@ -338,7 +300,6 @@ export const StockScreen = () => {
                 </Typography>
               </View>
             </View>
-
             <View style={styles.statCard}>
               <View style={[{backgroundColor: theme.colors.warning[600]}, styles.statCardContent]}>
                 <Typography variant="caption" style={styles.statLabel}>
@@ -352,7 +313,6 @@ export const StockScreen = () => {
                 </Typography>
               </View>
             </View>
-
             <View style={styles.statCard}>
               <View style={[{backgroundColor: '#9333ea'}, styles.statCardContent]}>
                 <Typography variant="caption" style={styles.statLabel}>
@@ -366,7 +326,6 @@ export const StockScreen = () => {
                 </Typography>
               </View>
             </View>
-
             <View style={styles.statCard}>
               <View style={[{backgroundColor: theme.colors.error[600]}, styles.statCardContent]}>
                 <Typography variant="caption" style={styles.statLabel}>
@@ -382,7 +341,6 @@ export const StockScreen = () => {
             </View>
           </View>
         )}
-
         {/* Error State */}
         {error && (
           <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -397,7 +355,6 @@ export const StockScreen = () => {
             </View>
           </Card>
         )}
-
         {/* Empty State */}
         {!error && currentData.items.length === 0 && (
           <Card variant="outlined" padding="lg" style={styles.emptyCard}>
@@ -419,13 +376,11 @@ export const StockScreen = () => {
             </Typography>
           </Card>
         )}
-
         {/* Categories List */}
         <View style={styles.categoriesList}>
           {currentData.items.map((category: any) => {
             const isExpanded = expandedCategories.has(category.categoryName);
             const isLoading = loadingCategories.has(category.categoryName);
-
             return (
               <Card
                 key={category.categoryName}
@@ -445,11 +400,9 @@ export const StockScreen = () => {
                         <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
                       )}
                     </View>
-
                     <View style={styles.boxIconContainer}>
                       <BoxIcon size={24} color={theme.colors.primary[600]} />
                     </View>
-
                     <View style={styles.categoryInfo}>
                       <Typography
                         variant="body"
@@ -465,7 +418,6 @@ export const StockScreen = () => {
                       )}
                     </View>
                   </View>
-
                   {/* Second Row: Stats */}
                   <View style={styles.categoryStatsRow}>
                     {activeTab === 'use' ? (
@@ -560,7 +512,6 @@ export const StockScreen = () => {
                     )}
                   </View>
                 </TouchableOpacity>
-
                 {/* Expanded SKUs */}
                 {isExpanded && (
                   <View style={styles.skusContainer}>
@@ -577,7 +528,6 @@ export const StockScreen = () => {
                     ) : categorySkuData[category.categoryName]?.length > 0 ? (
                       categorySkuData[category.categoryName].map((sku: any) => {
                         const isSkuExpanded = expandedSKUs.has(sku.sku);
-
                         return (
                           <View key={sku.sku} style={styles.skuItem}>
                             <TouchableOpacity
@@ -606,7 +556,6 @@ export const StockScreen = () => {
                                   </Typography>
                                 </View>
                               </View>
-
                               <View style={styles.skuStats}>
                                 {activeTab === 'use' ? (
                                   <Typography variant="body" weight="bold">
@@ -629,7 +578,6 @@ export const StockScreen = () => {
                                 )}
                               </View>
                             </TouchableOpacity>
-
                             {/* SKU Details */}
                             {isSkuExpanded && (
                               <View style={styles.skuDetails}>
@@ -672,19 +620,15 @@ export const StockScreen = () => {
                                           <TouchableOpacity
                                             onPress={() => {
                                               const stockRemaining = (sku.totalPurchased || 0) - (sku.totalSold || 0) - (sku.totalCheckedOut || 0);
-
-                                              // Extract actual RouteStarItem category from itemName
                                               const itemNameUpper = sku.itemName.toUpperCase();
                                               const categoryKeywords = ['WHITE', 'BLACK', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'BROWN', 'GRAY', 'GREY', 'ORANGE', 'PINK', 'PURPLE'];
                                               let actualCategory = null;
-
                                               for (const keyword of categoryKeywords) {
                                                 if (itemNameUpper.includes(keyword)) {
                                                   actualCategory = keyword;
                                                   break;
                                                 }
                                               }
-
                                               setPrefilledItem({
                                                 itemName: sku.itemName,
                                                 itemSku: sku.sku,
@@ -715,7 +659,6 @@ export const StockScreen = () => {
                                     </View>
                                   </View>
                                 )}
-
                                 {/* Purchase History */}
                                 {sku.purchaseHistory && sku.purchaseHistory.length > 0 && (
                                   <View style={styles.historySection}>
@@ -780,7 +723,6 @@ export const StockScreen = () => {
                                     ))}
                                   </View>
                                 )}
-
                                 {/* Sales History (for sell stock) */}
                                 {activeTab === 'sell' && sku.salesHistory && sku.salesHistory.length > 0 && (
                                   <View style={[styles.historySection, {backgroundColor: theme.colors.success[50]}]}>
@@ -845,7 +787,6 @@ export const StockScreen = () => {
                                     ))}
                                   </View>
                                 )}
-
                                 {/* Discrepancy History (for sell stock) */}
                                 {activeTab === 'sell' && sku.discrepancyHistory && sku.discrepancyHistory.length > 0 && (
                                   <View style={[styles.historySection, {backgroundColor: theme.colors.error[50]}]}>
@@ -966,7 +907,6 @@ export const StockScreen = () => {
           })}
         </View>
       </ScrollView>
-
       {/* Discrepancy Modal */}
       <Modal
         visible={showDiscrepancyModal}
@@ -992,7 +932,6 @@ export const StockScreen = () => {
                 </Typography>
               </TouchableOpacity>
             </View>
-
             <ScrollView style={styles.modalBody}>
               {prefilledItem && (
                 <View style={styles.itemDetailsCard}>
@@ -1013,7 +952,6 @@ export const StockScreen = () => {
                   </Typography>
                 </View>
               )}
-
               <View style={styles.formGroup}>
                 <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
                   System Quantity
@@ -1024,7 +962,6 @@ export const StockScreen = () => {
                   editable={false}
                 />
               </View>
-
               <View style={styles.formGroup}>
                 <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
                   Actual Quantity (Physical Count) *
@@ -1049,7 +986,6 @@ export const StockScreen = () => {
                   placeholder="Enter actual counted quantity"
                 />
               </View>
-
               {discrepancyFormData.actualQuantity !== 0 && (
                 <View style={styles.differenceCard}>
                   <Typography variant="small" weight="semibold">
@@ -1068,7 +1004,6 @@ export const StockScreen = () => {
                   </Typography>
                 </View>
               )}
-
               <View style={styles.formGroup}>
                 <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
                   Discrepancy Type *
@@ -1097,7 +1032,6 @@ export const StockScreen = () => {
                   ))}
                 </View>
               </View>
-
               <View style={styles.formGroup}>
                 <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
                   Reason
@@ -1113,7 +1047,6 @@ export const StockScreen = () => {
                   numberOfLines={3}
                 />
               </View>
-
               <View style={styles.formGroup}>
                 <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
                   Additional Notes
@@ -1130,7 +1063,6 @@ export const StockScreen = () => {
                 />
               </View>
             </ScrollView>
-
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -1166,7 +1098,6 @@ export const StockScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

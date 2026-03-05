@@ -13,7 +13,6 @@ export type CheckoutStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<CheckoutStackParamList>();
-
 export const CheckoutStackNavigator = () => {
   return (
     <Stack.Navigator>

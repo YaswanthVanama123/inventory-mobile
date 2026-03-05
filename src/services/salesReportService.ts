@@ -13,7 +13,6 @@ class SalesReportService {
       if (!response.ok) {
         throw new Error('Failed to fetch sales report');
       }
-
       const result = await response.json();
       return {
         items: result.data?.items || result.items || [],
@@ -25,5 +24,4 @@ class SalesReportService {
     }
   }
 }
-
 export default new SalesReportService();

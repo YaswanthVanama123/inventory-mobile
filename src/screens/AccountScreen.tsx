@@ -47,7 +47,6 @@ export const AccountScreen = () => {
       {cancelable: true},
     );
   };
-
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -65,7 +64,6 @@ export const AccountScreen = () => {
             Manage your profile and preferences
           </Typography>
         </View>
-
         {/* User Info Card */}
         {user && (
           <Card variant="elevated" padding="lg" style={styles.userCard}>
@@ -89,7 +87,6 @@ export const AccountScreen = () => {
             </View>
           </Card>
         )}
-
         {/* Menu Items */}
         <Card variant="elevated" padding="none" style={styles.menuCard}>
           {/* User Management (Admin Only) */}
@@ -108,11 +105,9 @@ export const AccountScreen = () => {
                 </View>
                 <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
               </TouchableOpacity>
-
               <View style={styles.menuSeparator} />
             </>
           )}
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => setOrdersVisible(true)}>
@@ -126,9 +121,7 @@ export const AccountScreen = () => {
             </View>
             <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
-
           <View style={styles.menuSeparator} />
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => setModelMappingVisible(true)}>
@@ -142,9 +135,7 @@ export const AccountScreen = () => {
             </View>
             <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
-
           <View style={styles.menuSeparator} />
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => setItemAliasVisible(true)}>
@@ -158,9 +149,7 @@ export const AccountScreen = () => {
             </View>
             <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
-
           <View style={styles.menuSeparator} />
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => setRouteStarItemsVisible(true)}>
@@ -174,9 +163,7 @@ export const AccountScreen = () => {
             </View>
             <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
-
           <View style={styles.menuSeparator} />
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => setFetchHistoryVisible(true)}>
@@ -190,9 +177,7 @@ export const AccountScreen = () => {
             </View>
             <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
-
           <View style={styles.menuSeparator} />
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => setDiscrepancyManagementVisible(true)}>
@@ -206,9 +191,7 @@ export const AccountScreen = () => {
             </View>
             <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
-
           <View style={styles.menuSeparator} />
-
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => setSalesReportVisible(true)}>
@@ -223,7 +206,6 @@ export const AccountScreen = () => {
             <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
           </TouchableOpacity>
         </Card>
-
         {/* Logout Button */}
         <Button
           title="Logout"
@@ -233,37 +215,31 @@ export const AccountScreen = () => {
           leftIcon={<LogoutIcon size={16} color={theme.colors.white} />}
         />
       </ScrollView>
-
       {/* Sales Report Modal */}
       <SalesReportScreen
         visible={salesReportVisible}
         onClose={() => setSalesReportVisible(false)}
       />
-
       {/* Orders Modal */}
       <OrdersScreen
         visible={ordersVisible}
         onClose={() => setOrdersVisible(false)}
       />
-
       {/* Model Category Mapping Modal */}
       <ModelCategoryMappingScreen
         visible={modelMappingVisible}
         onClose={() => setModelMappingVisible(false)}
       />
-
       {/* Item Alias Mapping Modal */}
       <ItemAliasMappingScreen
         visible={itemAliasVisible}
         onClose={() => setItemAliasVisible(false)}
       />
-
       {/* RouteStar Items Modal */}
       <RouteStarItemsScreen
         visible={routeStarItemsVisible}
         onClose={() => setRouteStarItemsVisible(false)}
       />
-
       {/* User Management Modal */}
       {user?.role === 'admin' && (
         <UserManagementScreen
@@ -271,13 +247,11 @@ export const AccountScreen = () => {
           onClose={() => setUserManagementVisible(false)}
         />
       )}
-
       {/* Fetch History Modal */}
       <FetchHistoryScreen
         visible={fetchHistoryVisible}
         onClose={() => setFetchHistoryVisible(false)}
       />
-
       {/* Discrepancy Management Modal */}
       <DiscrepancyManagementScreen
         visible={discrepancyManagementVisible}
@@ -286,7 +260,6 @@ export const AccountScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -306,7 +279,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
   },
   headerSubtitle: {
-    fontSize: theme.typography.fontSizes.sm,  // 13 instead of 14
+    fontSize: theme.typography.fontSizes.sm, 
   },
   userCard: {
     alignItems: 'center',

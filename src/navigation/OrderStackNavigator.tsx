@@ -12,7 +12,6 @@ export type OrderStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<OrderStackParamList>();
-
 export const OrderStackNavigator = () => {
   return (
     <Stack.Navigator>
