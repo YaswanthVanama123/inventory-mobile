@@ -205,6 +205,68 @@ export const StockScreen = () => {
   }
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {/* Header - Fixed */}
+      <View style={styles.header}>
+        <Typography variant="h2" weight="bold" style={styles.headerTitle}>
+          Stock Management
+        </Typography>
+        <Typography
+          variant="body"
+          color={theme.colors.gray[500]}
+          style={styles.headerSubtitle}>
+          View stock summary by category
+        </Typography>
+      </View>
+
+      {/* Tabs - Fixed */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === 'use' && styles.tabActive,
+          ]}
+          onPress={() => {
+            setActiveTab('use');
+            setExpandedCategories(new Set());
+            setExpandedSKUs(new Set());
+            setCategorySkuData({});
+          }}>
+          <Typography
+            variant="body"
+            weight="semibold"
+            color={
+              activeTab === 'use'
+                ? theme.colors.white
+                : theme.colors.gray[600]
+            }>
+            Use Stock
+          </Typography>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            activeTab === 'sell' && styles.tabActive,
+          ]}
+          onPress={() => {
+            setActiveTab('sell');
+            setExpandedCategories(new Set());
+            setExpandedSKUs(new Set());
+            setCategorySkuData({});
+          }}>
+          <Typography
+            variant="body"
+            weight="semibold"
+            color={
+              activeTab === 'sell'
+                ? theme.colors.white
+                : theme.colors.gray[600]
+            }>
+            Sell Stock
+          </Typography>
+        </TouchableOpacity>
+      </View>
+
+      {/* Scrollable Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -212,65 +274,6 @@ export const StockScreen = () => {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
-        {/* Header */}
-        <View style={styles.header}>
-          <Typography variant="h2" weight="bold" style={styles.headerTitle}>
-            Stock Management
-          </Typography>
-          <Typography
-            variant="body"
-            color={theme.colors.gray[500]}
-            style={styles.headerSubtitle}>
-            View stock summary by category
-          </Typography>
-        </View>
-        {/* Tabs */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeTab === 'use' && styles.tabActive,
-            ]}
-            onPress={() => {
-              setActiveTab('use');
-              setExpandedCategories(new Set());
-              setExpandedSKUs(new Set());
-              setCategorySkuData({});
-            }}>
-            <Typography
-              variant="body"
-              weight="semibold"
-              color={
-                activeTab === 'use'
-                  ? theme.colors.white
-                  : theme.colors.gray[600]
-              }>
-              Use Stock
-            </Typography>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeTab === 'sell' && styles.tabActive,
-            ]}
-            onPress={() => {
-              setActiveTab('sell');
-              setExpandedCategories(new Set());
-              setExpandedSKUs(new Set());
-              setCategorySkuData({});
-            }}>
-            <Typography
-              variant="body"
-              weight="semibold"
-              color={
-                activeTab === 'sell'
-                  ? theme.colors.white
-                  : theme.colors.gray[600]
-              }>
-              Sell Stock
-            </Typography>
-          </TouchableOpacity>
-        </View>
         {/* Stats Cards */}
         {activeTab === 'sell' && (
           <View style={styles.statsGrid}>
@@ -1114,10 +1117,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: theme.spacing.lg,
-    paddingTop: theme.spacing.xl,
+    paddingTop: theme.spacing.md,
   },
   header: {
-    marginBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    marginBottom: theme.spacing.md,
   },
   headerTitle: {
     marginBottom: theme.spacing.xs,
@@ -1128,7 +1133,8 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   tab: {
     flex: 1,

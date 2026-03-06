@@ -242,10 +242,11 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            stickyHeaderIndices={[1]}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }>
-            {/* Stats Cards */}
+            {/* Stats Cards - Scrollable */}
             <View style={styles.statsGrid}>
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.gray[600]}]}>
@@ -301,8 +302,11 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 </View>
               </View>
             </View>
-            {/* Filter Tabs */}
-            <View style={styles.tabsContainer}>
+
+            {/* Sticky Header: Tabs + Search */}
+            <View style={styles.stickyHeaderContainer}>
+              {/* Filter Tabs */}
+              <View style={styles.tabsContainer}>
               <TouchableOpacity
                 style={[
                   styles.tab,
@@ -365,6 +369,10 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 placeholderTextColor={theme.colors.gray[400]}
               />
             </View>
+          </View>
+
+          {/* Scrollable Content */}
+          <View>
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -522,6 +530,7 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 );
               })}
             </View>
+          </View>
           </ScrollView>
         )}
         {/* Picker Modal */}
@@ -580,13 +589,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -4,
-    marginBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  stickyHeaderContainer: {
+    backgroundColor: theme.colors.gray[50],
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
   },
   statCardWrapper: {
     width: '50%',
@@ -630,7 +646,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary[600],
   },
   searchContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: 0,
   },
   searchInput: {
     backgroundColor: theme.colors.white,
@@ -643,6 +659,8 @@ const styles = StyleSheet.create({
     color: theme.colors.gray[900],
   },
   errorCard: {
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.md,
     marginBottom: theme.spacing.lg,
     backgroundColor: theme.colors.error[50],
   },
@@ -655,6 +673,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyCard: {
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.md,
     alignItems: 'center',
     paddingVertical: theme.spacing.xl * 2,
   },
@@ -664,6 +684,8 @@ const styles = StyleSheet.create({
   },
   modelsList: {
     gap: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
   },
   modelCard: {
     marginBottom: 0,

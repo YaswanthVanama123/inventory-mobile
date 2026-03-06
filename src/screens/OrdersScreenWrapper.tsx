@@ -211,14 +211,8 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
           </Typography>
         </View>
       ) : (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }>
-          {/* Stats */}
+        <>
+          {/* Stats - Fixed */}
           <View style={styles.statsContainer}>
             <Card style={styles.statCard}>
               <Typography variant="small" color={theme.colors.gray[600]}>
@@ -251,7 +245,8 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               </Typography>
             </Card>
           </View>
-          {/* Search */}
+
+          {/* Search - Fixed */}
           <View style={styles.searchContainer}>
             <RNTextInput
               style={styles.searchInput}
@@ -261,6 +256,15 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               placeholderTextColor={theme.colors.gray[400]}
             />
           </View>
+
+          {/* Scrollable Content */}
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }>
           {/* Orders List */}
           {error ? (
             <View style={styles.errorContainer}>
@@ -506,6 +510,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
             </View>
           )}
         </ScrollView>
+        </>
       )}
       {/* Discrepancies Button */}
       {isAdmin && (
@@ -536,12 +541,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
+    paddingTop: 0,
     paddingBottom: 80,
   },
   statsContainer: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    marginBottom: 12,
   },
   statCard: {
     flex: 1,
@@ -549,7 +557,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchContainer: {
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   searchInput: {
     backgroundColor: theme.colors.white,

@@ -362,7 +362,12 @@ export const DashboardScreen = () => {
               </View>
             </View>
             <BarChart
-              data={data.topProducts}
+              data={{
+                ...data.topProducts,
+                labels: data.topProducts.labels.map((label: string) =>
+                  label.length > 8 ? label.substring(0, 8) + '...' : label
+                ),
+              }}
               width={screenWidth - 72}
               height={240}
               chartConfig={{
@@ -371,6 +376,11 @@ export const DashboardScreen = () => {
                 fillShadowGradientFrom: theme.colors.primary[500],
                 fillShadowGradientTo: theme.colors.primary[600],
                 fillShadowGradientOpacity: 1,
+                propsForLabels: {
+                  fontSize: 9,
+                  fontWeight: '500',
+                  rotation: 0,
+                },
               }}
               style={styles.chart}
               withInnerLines={false}

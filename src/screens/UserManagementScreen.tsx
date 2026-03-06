@@ -224,10 +224,11 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            stickyHeaderIndices={[1]}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }>
-            {/* Stats Cards */}
+            {/* Stats Cards - Scrollable */}
             <View style={styles.statsGrid}>
               <View style={styles.statCardWrapper}>
                 <View style={[styles.statCard, {backgroundColor: theme.colors.gray[600]}]}>
@@ -274,104 +275,111 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </View>
               </View>
             </View>
-            {/* Filter Tabs */}
-            <View style={styles.tabsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  filterStatus === 'all' && styles.tabActive,
-                ]}
-                onPress={() => setFilterStatus('all')}>
-                <Typography
-                  variant="small"
-                  weight="semibold"
-                  color={
-                    filterStatus === 'all'
-                      ? theme.colors.white
-                      : theme.colors.gray[600]
-                  }>
-                  All
-                </Typography>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  filterStatus === 'active' && styles.tabActive,
-                ]}
-                onPress={() => setFilterStatus('active')}>
-                <Typography
-                  variant="small"
-                  weight="semibold"
-                  color={
-                    filterStatus === 'active'
-                      ? theme.colors.white
-                      : theme.colors.gray[600]
-                  }>
-                  Active
-                </Typography>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  filterStatus === 'inactive' && styles.tabActive,
-                ]}
-                onPress={() => setFilterStatus('inactive')}>
-                <Typography
-                  variant="small"
-                  weight="semibold"
-                  color={
-                    filterStatus === 'inactive'
-                      ? theme.colors.white
-                      : theme.colors.gray[600]
-                  }>
-                  Inactive
-                </Typography>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  filterStatus === 'admin' && styles.tabActive,
-                ]}
-                onPress={() => setFilterStatus('admin')}>
-                <Typography
-                  variant="small"
-                  weight="semibold"
-                  color={
-                    filterStatus === 'admin'
-                      ? theme.colors.white
-                      : theme.colors.gray[600]
-                  }>
-                  Admin
-                </Typography>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  filterStatus === 'employee' && styles.tabActive,
-                ]}
-                onPress={() => setFilterStatus('employee')}>
-                <Typography
-                  variant="small"
-                  weight="semibold"
-                  color={
-                    filterStatus === 'employee'
-                      ? theme.colors.white
-                      : theme.colors.gray[600]
-                  }>
-                  Employee
-                </Typography>
-              </TouchableOpacity>
+
+            {/* Sticky Header: Tabs + Search */}
+            <View style={styles.stickyHeaderContainer}>
+              {/* Filter Tabs */}
+              <View style={styles.tabsContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    filterStatus === 'all' && styles.tabActive,
+                  ]}
+                  onPress={() => setFilterStatus('all')}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={
+                      filterStatus === 'all'
+                        ? theme.colors.white
+                        : theme.colors.gray[600]
+                    }>
+                    All
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    filterStatus === 'active' && styles.tabActive,
+                  ]}
+                  onPress={() => setFilterStatus('active')}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={
+                      filterStatus === 'active'
+                        ? theme.colors.white
+                        : theme.colors.gray[600]
+                    }>
+                    Active
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    filterStatus === 'inactive' && styles.tabActive,
+                  ]}
+                  onPress={() => setFilterStatus('inactive')}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={
+                      filterStatus === 'inactive'
+                        ? theme.colors.white
+                        : theme.colors.gray[600]
+                    }>
+                    Inactive
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    filterStatus === 'admin' && styles.tabActive,
+                  ]}
+                  onPress={() => setFilterStatus('admin')}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={
+                      filterStatus === 'admin'
+                        ? theme.colors.white
+                        : theme.colors.gray[600]
+                    }>
+                    Admin
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.tab,
+                    filterStatus === 'employee' && styles.tabActive,
+                  ]}
+                  onPress={() => setFilterStatus('employee')}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={
+                      filterStatus === 'employee'
+                        ? theme.colors.white
+                        : theme.colors.gray[600]
+                    }>
+                    Employee
+                  </Typography>
+                </TouchableOpacity>
+              </View>
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <RNTextInput
+                  style={styles.searchInput}
+                  placeholder="Search by username, email, or name..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
             </View>
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-              <RNTextInput
-                style={styles.searchInput}
-                placeholder="Search by username, email, or name..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor={theme.colors.gray[400]}
-              />
-            </View>
+
+            {/* Scrollable Content */}
+            <View>
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -537,6 +545,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 );
               })}
             </View>
+          </View>
           </ScrollView>
         )}
         {/* User Form Modal */}
@@ -596,13 +605,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -4,
-    marginBottom: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  stickyHeaderContainer: {
+    backgroundColor: theme.colors.gray[50],
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
   },
   statCardWrapper: {
     width: '50%',
@@ -640,7 +656,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary[600],
   },
   searchContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: 0,
   },
   searchInput: {
     backgroundColor: theme.colors.white,
@@ -653,6 +669,8 @@ const styles = StyleSheet.create({
     color: theme.colors.gray[900],
   },
   errorCard: {
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.md,
     marginBottom: theme.spacing.lg,
     backgroundColor: theme.colors.error[50],
   },
@@ -665,6 +683,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   emptyCard: {
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.md,
     alignItems: 'center',
     paddingVertical: theme.spacing.xl * 2,
   },
@@ -674,6 +694,8 @@ const styles = StyleSheet.create({
   },
   usersList: {
     gap: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
   },
   userCard: {
     marginBottom: 0,

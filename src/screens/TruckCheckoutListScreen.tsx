@@ -292,7 +292,7 @@ export const TruckCheckoutListScreen = () => {
     const {color, label} = config[status] || config.Good;
     return (
       <View style={[styles.badge, {backgroundColor: `${color}20`}]}>
-        <Typography variant="caption" style={{color}} weight="semibold">
+        <Typography variant="small" style={{color}} weight="semibold">
           {label}
         </Typography>
       </View>
@@ -675,37 +675,37 @@ export const TruckCheckoutListScreen = () => {
             {/* Summary Cards */}
             <View style={styles.summaryContainer}>
               <View style={[styles.summaryCard, styles.summaryCardGood]}>
-                <View style={styles.summaryCardContent}>
-                  <Typography variant="small" weight="semibold" color={theme.colors.success[700]}>
-                    Good (Matched)
-                  </Typography>
-                  <Typography variant="h2" weight="bold" color={theme.colors.success[700]}>
+                <Typography variant="caption" weight="medium" color={theme.colors.success[700]} style={styles.summaryLabel}>
+                  Good{'\n'}(Matched)
+                </Typography>
+                <View style={styles.summaryValueRow}>
+                  <CheckCircleIcon size={28} color={theme.colors.success[600]} />
+                  <Typography variant="h3" weight="bold" color={theme.colors.success[700]} style={styles.summaryValue}>
                     {salesSummary.good || 0}
                   </Typography>
                 </View>
-                <CheckCircleIcon size={32} color={theme.colors.success[600]} />
               </View>
               <View style={[styles.summaryCard, styles.summaryCardShortage]}>
-                <View style={styles.summaryCardContent}>
-                  <Typography variant="small" weight="semibold" color={theme.colors.warning[700]}>
-                    Shortage
-                  </Typography>
-                  <Typography variant="h2" weight="bold" color={theme.colors.warning[700]}>
+                <Typography variant="caption" weight="medium" color={theme.colors.warning[700]} style={styles.summaryLabel}>
+                  Shortage
+                </Typography>
+                <View style={styles.summaryValueRow}>
+                  <ClockIcon size={28} color={theme.colors.warning[600]} />
+                  <Typography variant="h3" weight="bold" color={theme.colors.warning[700]} style={styles.summaryValue}>
                     {salesSummary.shortage || 0}
                   </Typography>
                 </View>
-                <ClockIcon size={32} color={theme.colors.warning[600]} />
               </View>
               <View style={[styles.summaryCard, styles.summaryCardOverage]}>
-                <View style={styles.summaryCardContent}>
-                  <Typography variant="small" weight="semibold" color={theme.colors.error[700]}>
-                    Overage
-                  </Typography>
-                  <Typography variant="h2" weight="bold" color={theme.colors.error[700]}>
+                <Typography variant="caption" weight="medium" color={theme.colors.error[700]} style={styles.summaryLabel}>
+                  Overage
+                </Typography>
+                <View style={styles.summaryValueRow}>
+                  <AlertCircleIcon size={28} color={theme.colors.error[600]} />
+                  <Typography variant="h3" weight="bold" color={theme.colors.error[700]} style={styles.summaryValue}>
                     {salesSummary.overage || 0}
                   </Typography>
                 </View>
-                <AlertCircleIcon size={32} color={theme.colors.error[600]} />
               </View>
             </View>
             {/* Sales Tracking List */}
@@ -740,11 +740,11 @@ export const TruckCheckoutListScreen = () => {
                       </View>
                       {getStatusBadgeForTracking(item.status)}
                     </View>
-                    <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
+                    <Typography variant="body" weight="semibold" style={{marginTop: 8, marginBottom: 8}}>
                       {item.itemName}
                     </Typography>
                     <View style={styles.salesRow}>
-                      <Typography variant="small" color={theme.colors.gray[500]}>
+                      <Typography variant="small" color={theme.colors.gray[600]}>
                         Checked Out:
                       </Typography>
                       <Typography variant="small" weight="bold">
@@ -752,7 +752,7 @@ export const TruckCheckoutListScreen = () => {
                       </Typography>
                     </View>
                     <View style={styles.salesRow}>
-                      <Typography variant="small" color={theme.colors.gray[500]}>
+                      <Typography variant="small" color={theme.colors.gray[600]}>
                         Sold:
                       </Typography>
                       <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>
@@ -760,7 +760,7 @@ export const TruckCheckoutListScreen = () => {
                       </Typography>
                     </View>
                     <View style={styles.salesRow}>
-                      <Typography variant="small" color={theme.colors.gray[500]}>
+                      <Typography variant="small" color={theme.colors.gray[600]}>
                         Remaining:
                       </Typography>
                       <Typography variant="small" weight="bold">
@@ -769,7 +769,7 @@ export const TruckCheckoutListScreen = () => {
                     </View>
                     {item.matchedInvoices > 0 && (
                       <View style={styles.salesRow}>
-                        <Typography variant="small" color={theme.colors.gray[500]}>
+                        <Typography variant="small" color={theme.colors.gray[600]}>
                           Invoices:
                         </Typography>
                         <Typography variant="small">
@@ -894,11 +894,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
-    paddingTop: theme.spacing.xl,
+    paddingHorizontal: 0,
+    paddingBottom: theme.spacing.lg,
+    paddingTop: 0,
   },
   header: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: 0,
+    paddingTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
   },
   headerTop: {
     flexDirection: 'row',
@@ -917,7 +920,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderRadius: 12,
     padding: 4,
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.md,
   },
   tab: {
     flex: 1,
@@ -934,6 +939,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 3,
     marginBottom: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
   },
   subTab: {
     flex: 1,
@@ -945,7 +951,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
   },
   filtersCard: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
   },
   filterTitle: {
     marginBottom: theme.spacing.md,
@@ -985,7 +992,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   contentCard: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
   },
   contentTitle: {
     marginBottom: theme.spacing.md,
@@ -1056,14 +1064,15 @@ const styles = StyleSheet.create({
   summaryContainer: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
   },
   summaryCard: {
     flex: 1,
     borderRadius: 12,
-    padding: theme.spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 12,
+    minHeight: 100,
+    flexDirection: 'column',
     justifyContent: 'space-between',
   },
   summaryCardGood: {
@@ -1081,13 +1090,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.error[200],
   },
-  summaryCardContent: {
-    flex: 1,
+  summaryLabel: {
+    fontSize: 10,
+    lineHeight: 13,
+    marginBottom: 4,
+  },
+  summaryValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  summaryValue: {
+    fontSize: 28,
+    lineHeight: 32,
   },
   salesCard: {
-    backgroundColor: theme.colors.gray[50],
+    backgroundColor: theme.colors.white,
     borderRadius: 12,
-    padding: theme.spacing.md,
+    padding: 12,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.gray[200],
@@ -1095,13 +1115,13 @@ const styles = StyleSheet.create({
   salesHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    alignItems: 'flex-start',
+    marginBottom: 4,
   },
   salesRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 6,
   },
 });
