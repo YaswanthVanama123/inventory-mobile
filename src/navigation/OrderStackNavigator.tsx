@@ -3,12 +3,14 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {OrdersScreenWrapper} from '../screens/OrdersScreenWrapper';
 import {OrderVerificationScreen} from '../screens/OrderVerificationScreen';
 import {OrderDiscrepancyListScreen} from '../screens/OrderDiscrepancyListScreen';
+import {ManualOrderFormScreen} from '../screens/ManualOrderFormScreen';
 import {theme} from '../theme';
 
 export type OrderStackParamList = {
   OrdersList: undefined;
   OrderVerification: {orderId: string};
   OrderDiscrepancies: undefined;
+  ManualOrderForm: undefined;
 };
 
 const Stack = createNativeStackNavigator<OrderStackParamList>();
@@ -54,6 +56,23 @@ export const OrderStackNavigator = () => {
         options={{
           headerShown: true,
           title: 'Order Discrepancies',
+          headerStyle: {
+            backgroundColor: theme.colors.white,
+          },
+          headerTitleStyle: {
+            fontSize: 18,
+            fontWeight: '600',
+            color: theme.colors.gray[900],
+          },
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen
+        name="ManualOrderForm"
+        component={ManualOrderFormScreen}
+        options={{
+          headerShown: true,
+          title: 'Create Manual Order',
           headerStyle: {
             backgroundColor: theme.colors.white,
           },

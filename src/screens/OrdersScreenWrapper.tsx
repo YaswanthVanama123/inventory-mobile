@@ -24,6 +24,7 @@ import {
   CheckCircleIcon,
   ClockIcon,
   FileTextIcon,
+  PlusIcon,
 } from '../components/icons';
 
 interface OrdersScreenWrapperProps {
@@ -308,6 +309,16 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                           {order.status}
                         </Typography>
                       </View>
+                      {order.source === 'manual' && (
+                        <View style={styles.manualBadge}>
+                          <Typography
+                            variant="small"
+                            weight="bold"
+                            color={theme.colors.purple[700]}>
+                            MANUAL
+                          </Typography>
+                        </View>
+                      )}
                     </View>
                     {expandedOrders.has(order.orderNumber) ? (
                       <ChevronDownIcon
@@ -512,16 +523,26 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
         </ScrollView>
         </>
       )}
-      {/* Discrepancies Button */}
+      {/* Floating Action Buttons */}
       {isAdmin && (
-        <TouchableOpacity
-          style={styles.floatingButton}
-          onPress={() => navigation.navigate('OrderDiscrepancies')}>
-          <FileTextIcon size={20} color={theme.colors.white} />
-          <Typography style={styles.floatingButtonText}>
-            View Discrepancies
-          </Typography>
-        </TouchableOpacity>
+        <View style={styles.floatingButtonContainer}>
+          <TouchableOpacity
+            style={[styles.floatingButton, styles.createOrderButton]}
+            onPress={() => navigation.navigate('ManualOrderForm')}>
+            <PlusIcon size={20} color={theme.colors.white} />
+            <Typography style={styles.floatingButtonText}>
+              Create Order
+            </Typography>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={() => navigation.navigate('OrderDiscrepancies')}>
+            <FileTextIcon size={20} color={theme.colors.white} />
+            <Typography style={styles.floatingButtonText}>
+              View Discrepancies
+            </Typography>
+          </TouchableOpacity>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -601,6 +622,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 4,
   },
+  manualBadge: {
+    backgroundColor: theme.colors.purple[100],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
   orderInfo: {
     marginBottom: 12,
   },
@@ -644,10 +671,13 @@ const styles = StyleSheet.create({
   itemQuantity: {
     alignItems: 'flex-end',
   },
-  floatingButton: {
+  floatingButtonContainer: {
     position: 'absolute',
     bottom: 16,
     right: 16,
+    gap: 12,
+  },
+  floatingButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.primary[600],
@@ -660,6 +690,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  createOrderButton: {
+    backgroundColor: theme.colors.success[600],
   },
   floatingButtonText: {
     color: theme.colors.white,
