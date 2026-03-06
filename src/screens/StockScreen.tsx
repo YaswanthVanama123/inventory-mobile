@@ -412,6 +412,15 @@ export const StockScreen = () => {
                         weight="semibold">
                         {category.categoryName}
                       </Typography>
+                      {/* Show aliases if present */}
+                      {category.aliases && category.aliases.length > 0 && (
+                        <Typography
+                          variant="caption"
+                          color={theme.colors.gray[500]}
+                          style={{marginTop: 2}}>
+                          ({category.aliases.join(', ')})
+                        </Typography>
+                      )}
                       {activeTab === 'sell' && (
                         <Typography
                           variant="caption"

@@ -6,7 +6,7 @@ import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
-import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon} from '../components/icons';
+import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon, TruckIcon} from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
 import {OrdersScreen} from './OrdersScreen';
 import {ModelCategoryMappingScreen} from './ModelCategoryMappingScreen';
@@ -15,6 +15,8 @@ import {RouteStarItemsScreen} from './RouteStarItemsScreen';
 import {UserManagementScreen} from './UserManagementScreen';
 import {FetchHistoryScreen} from './FetchHistoryScreen';
 import {DiscrepancyManagementScreen} from './DiscrepancyManagementScreen';
+import {ManualPOItemsScreen} from './ManualPOItemsScreen';
+import {VendorManagementScreen} from './VendorManagementScreen';
 
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
@@ -26,6 +28,8 @@ export const AccountScreen = () => {
   const [userManagementVisible, setUserManagementVisible] = useState(false);
   const [fetchHistoryVisible, setFetchHistoryVisible] = useState(false);
   const [discrepancyManagementVisible, setDiscrepancyManagementVisible] = useState(false);
+  const [manualPOItemsVisible, setManualPOItemsVisible] = useState(false);
+  const [vendorManagementVisible, setVendorManagementVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -166,6 +170,34 @@ export const AccountScreen = () => {
           <View style={styles.menuSeparator} />
           <TouchableOpacity
             style={styles.menuItem}
+            onPress={() => setManualPOItemsVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <ClipboardIcon size={16} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Manual PO Items
+              </Typography>
+            </View>
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+          <View style={styles.menuSeparator} />
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setVendorManagementVisible(true)}>
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconContainer}>
+                <TruckIcon size={16} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Vendors
+              </Typography>
+            </View>
+            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+          <View style={styles.menuSeparator} />
+          <TouchableOpacity
+            style={styles.menuItem}
             onPress={() => setFetchHistoryVisible(true)}>
             <View style={styles.menuItemLeft}>
               <View style={styles.menuIconContainer}>
@@ -256,6 +288,16 @@ export const AccountScreen = () => {
       <DiscrepancyManagementScreen
         visible={discrepancyManagementVisible}
         onClose={() => setDiscrepancyManagementVisible(false)}
+      />
+      {/* Manual PO Items Modal */}
+      <ManualPOItemsScreen
+        visible={manualPOItemsVisible}
+        onClose={() => setManualPOItemsVisible(false)}
+      />
+      {/* Vendor Management Modal */}
+      <VendorManagementScreen
+        visible={vendorManagementVisible}
+        onClose={() => setVendorManagementVisible(false)}
       />
     </SafeAreaView>
   );
