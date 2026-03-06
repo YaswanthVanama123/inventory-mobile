@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TextInput as RNTextInput,
   RefreshControl,
+  Switch,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -39,6 +40,10 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncingNew, setSyncingNew] = useState(false);
+  const [syncingOld, setSyncingOld] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +57,8 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     processed: 0,
     pending: 0,
   });
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [autoSyncInterval, setAutoSyncInterval] = useState(30);
   useEffect(() => {
     if (visible && token) {
       setCurrentPage(1);
@@ -71,6 +78,24 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
       setFilteredOrders(orders);
     }
   }, [searchQuery, orders]);
+  useEffect(() => {
+    if (!autoSyncEnabled || !visible || !token) return;
+    const intervalMs = autoSyncInterval * 60 * 1000;
+    const autoSyncTimer = setInterval(async () => {
+      if (!syncing) {
+        try {
+          console.log('Running auto-sync for orders...');
+          const response = await ordersService.syncOrders(token, 0, 'new');
+          if (response.success && (response.data.created > 0 || response.data.updated > 0)) {
+            loadData(currentPage);
+          }
+        } catch (error) {
+          console.error('Auto-sync error:', error);
+        }
+      }
+    }, intervalMs);
+    return () => clearInterval(autoSyncTimer);
+  }, [autoSyncEnabled, autoSyncInterval, syncing, visible, token, currentPage]);
   const loadData = async (page: number = 1) => {
     if (!token) return;
     try {
@@ -111,6 +136,84 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
     setCurrentPage(1);
     setOrders([]);
     loadData(1);
+  };
+  const handleSyncNew = async () => {
+    if (!token) return;
+    setSyncingNew(true);
+    setSyncing(true);
+    try {
+      const response = await ordersService.syncOrders(token, 0, 'new');
+      if (response.success) {
+        const { created = 0, updated = 0, skipped = 0 } = response.data;
+        setCurrentPage(1);
+        setOrders([]);
+        loadData(1);
+      }
+    } catch (error: any) {
+      console.error('Failed to sync new orders:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        setError(error.message || 'Failed to sync new orders');
+      }
+    } finally {
+      setSyncingNew(false);
+      setSyncing(false);
+    }
+  };
+  const handleSyncOld = async () => {
+    if (!token) return;
+    setSyncingOld(true);
+    setSyncing(true);
+    try {
+      const response = await ordersService.syncOrders(token, 0, 'old');
+      if (response.success) {
+        const { created = 0, updated = 0, skipped = 0 } = response.data;
+        setCurrentPage(1);
+        setOrders([]);
+        loadData(1);
+      }
+    } catch (error: any) {
+      console.error('Failed to sync old orders:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        setError(error.message || 'Failed to sync old orders');
+      }
+    } finally {
+      setSyncingOld(false);
+      setSyncing(false);
+    }
+  };
+  const handleSyncAll = async () => {
+    if (!token) return;
+    setSyncingAll(true);
+    setSyncing(true);
+    try {
+      const ordersResponse = await ordersService.syncOrders(token, 0, 'new');
+      if (ordersResponse.success) {
+        const { created = 0, updated = 0, skipped = 0 } = ordersResponse.data;
+        let detailsSynced = 0;
+        try {
+          const detailsResponse = await ordersService.syncAllOrderDetails(token, 0);
+          if (detailsResponse.success) {
+            detailsSynced = detailsResponse.data.synced || 0;
+          }
+        } catch (detailsError) {
+          console.error('Error syncing details:', detailsError);
+        }
+        setCurrentPage(1);
+        setOrders([]);
+        loadData(1);
+      }
+    } catch (error: any) {
+      console.error('Failed to sync all orders:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        setError(error.message || 'Failed to sync all orders');
+      }
+    } finally {
+      setSyncingAll(false);
+      setSyncing(false);
+    }
   };
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages && page !== currentPage && !loading) {
@@ -227,7 +330,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            stickyHeaderIndices={[1]}
+            stickyHeaderIndices={[3]}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }>
@@ -274,6 +377,83 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                     Not processed
                   </Typography>
                 </View>
+              </View>
+            </View>
+
+            {/* Sync Buttons */}
+            <View style={styles.syncButtonsContainer}>
+              <TouchableOpacity
+                onPress={handleSyncNew}
+                disabled={syncing}
+                style={[
+                  styles.syncActionButton,
+                  styles.syncNewButton,
+                  syncing && styles.syncButtonDisabled
+                ]}
+              >
+                {syncingNew ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                    ↑ New Sync
+                  </Typography>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSyncOld}
+                disabled={syncing}
+                style={[
+                  styles.syncActionButton,
+                  styles.syncOldButton,
+                  syncing && styles.syncButtonDisabled
+                ]}
+              >
+                {syncingOld ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+                ) : (
+                  <Typography variant="small" weight="semibold" color={theme.colors.primary[600]}>
+                    ↓ Old Sync
+                  </Typography>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSyncAll}
+                disabled={syncing}
+                style={[
+                  styles.syncActionButton,
+                  styles.syncAllButton,
+                  syncing && styles.syncButtonDisabled
+                ]}
+              >
+                {syncingAll ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                    ⟳ Sync All
+                  </Typography>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Automation Settings */}
+            <View style={styles.automationContainer}>
+              <View style={styles.automationRow}>
+                <View style={styles.automationLabel}>
+                  <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
+                    Auto-Sync
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    Every {autoSyncInterval} min
+                  </Typography>
+                </View>
+                <Switch
+                  value={autoSyncEnabled}
+                  onValueChange={setAutoSyncEnabled}
+                  trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[400] }}
+                  thumbColor={autoSyncEnabled ? theme.colors.primary[600] : theme.colors.gray[50]}
+                />
               </View>
             </View>
 
@@ -610,6 +790,53 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.gray[50],
     paddingHorizontal: theme.spacing.lg,
     paddingBottom: theme.spacing.md,
+  },
+  automationContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.primary[50],
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.primary[200],
+    marginBottom: theme.spacing.sm,
+  },
+  automationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  automationLabel: {
+    flex: 1,
+  },
+  syncButtonsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    justifyContent: 'space-between',
+  },
+  syncActionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    marginHorizontal: 4,
+  },
+  syncNewButton: {
+    backgroundColor: theme.colors.primary[600],
+  },
+  syncOldButton: {
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.primary[600],
+  },
+  syncAllButton: {
+    backgroundColor: theme.colors.success[600],
+  },
+  syncButtonDisabled: {
+    opacity: 0.5,
   },
   statCardWrapper: {
     width: '33.33%',

@@ -126,5 +126,63 @@ class OrdersService {
       throw error;
     }
   }
+  async syncOrders(token: string, limit: number = 0, direction: 'new' | 'old' = 'new') {
+    try {
+      const url = `${API_BASE_URL}/customerconnect/sync/orders`;
+      console.log('[SyncOrders] Syncing orders:', {limit, direction});
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({limit, direction}),
+      });
+      console.log('[SyncOrders] Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SyncOrders] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('[SyncOrders] Response data:', result);
+      if (result.success) {
+        return result;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      console.error('[SyncOrders] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async syncAllOrderDetails(token: string, limit: number = 0) {
+    try {
+      const url = `${API_BASE_URL}/customerconnect/sync/all-details`;
+      console.log('[SyncAllDetails] Syncing all order details, limit:', limit);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({limit}),
+      });
+      console.log('[SyncAllDetails] Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SyncAllDetails] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('[SyncAllDetails] Response data:', result);
+      if (result.success) {
+        return result;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      console.error('[SyncAllDetails] Service Error:', error.message);
+      throw error;
+    }
+  }
 }
 export default new OrdersService();

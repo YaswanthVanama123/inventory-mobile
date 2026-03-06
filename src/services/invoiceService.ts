@@ -127,5 +127,92 @@ class InvoiceService {
       throw error;
     }
   }
+  async syncPendingInvoices(token: string, limit: number = 0, direction: 'new' | 'old' = 'new') {
+    try {
+      const url = `${API_BASE_URL}/routestar/sync/pending`;
+      console.log('[SyncPendingInvoices] Syncing pending invoices:', {limit, direction});
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({limit, direction}),
+      });
+      console.log('[SyncPendingInvoices] Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SyncPendingInvoices] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('[SyncPendingInvoices] Response data:', result);
+      if (result.success) {
+        return result;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      console.error('[SyncPendingInvoices] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async syncClosedInvoices(token: string, limit: number = 0, direction: 'new' | 'old' = 'new') {
+    try {
+      const url = `${API_BASE_URL}/routestar/sync/closed`;
+      console.log('[SyncClosedInvoices] Syncing closed invoices:', {limit, direction});
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({limit, direction}),
+      });
+      console.log('[SyncClosedInvoices] Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SyncClosedInvoices] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('[SyncClosedInvoices] Response data:', result);
+      if (result.success) {
+        return result;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      console.error('[SyncClosedInvoices] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async syncAllInvoiceDetails(token: string, invoiceType: 'pending' | 'closed', limit: number = 0) {
+    try {
+      const url = `${API_BASE_URL}/routestar/sync/all-details`;
+      console.log('[SyncAllInvoiceDetails] Syncing all invoice details:', {invoiceType, limit});
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({invoiceType, limit}),
+      });
+      console.log('[SyncAllInvoiceDetails] Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[SyncAllInvoiceDetails] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('[SyncAllInvoiceDetails] Response data:', result);
+      if (result.success) {
+        return result;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      console.error('[SyncAllInvoiceDetails] Service Error:', error.message);
+      throw error;
+    }
+  }
 }
 export default new InvoiceService();

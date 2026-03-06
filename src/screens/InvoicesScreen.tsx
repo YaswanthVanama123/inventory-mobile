@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TextInput as RNTextInput,
+  Switch,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -26,14 +27,21 @@ export const InvoicesScreen = () => {
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncingNew, setSyncingNew] = useState(false);
+  const [syncingOld, setSyncingOld] = useState(false);
+  const [syncingAll, setSyncingAll] = useState(false);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [invoiceType, setInvoiceType] = useState<'pending' | 'closed'>('pending');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>('');
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(true);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [autoSyncInterval, setAutoSyncInterval] = useState(30);
   useEffect(() => {
     setIsMounted(true);
     return () => {
@@ -46,7 +54,27 @@ export const InvoicesScreen = () => {
     } else if (isMounted) {
       setLoading(false);
     }
-  }, [token, statusFilter, paymentStatusFilter]);
+  }, [token, statusFilter, paymentStatusFilter, invoiceType]);
+  useEffect(() => {
+    if (!autoSyncEnabled || !isMounted || !token) return;
+    const intervalMs = autoSyncInterval * 60 * 1000;
+    const autoSyncTimer = setInterval(async () => {
+      if (!syncing) {
+        try {
+          console.log('Running auto-sync for invoices...');
+          const response = invoiceType === 'pending'
+            ? await invoiceService.syncPendingInvoices(token, 0, 'new')
+            : await invoiceService.syncClosedInvoices(token, 0, 'new');
+          if (response.success && (response.data.created > 0 || response.data.updated > 0)) {
+            fetchInvoices();
+          }
+        } catch (error) {
+          console.error('Auto-sync error:', error);
+        }
+      }
+    }, intervalMs);
+    return () => clearInterval(autoSyncTimer);
+  }, [autoSyncEnabled, autoSyncInterval, syncing, isMounted, token, invoiceType]);
   useEffect(() => {
     if (!isMounted) return;
     const timer = setTimeout(() => {
@@ -94,6 +122,81 @@ export const InvoicesScreen = () => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchInvoices();
+  };
+  const handleSyncNew = async () => {
+    if (!token) return;
+    setSyncingNew(true);
+    setSyncing(true);
+    try {
+      const response = invoiceType === 'pending'
+        ? await invoiceService.syncPendingInvoices(token, 0, 'new')
+        : await invoiceService.syncClosedInvoices(token, 0, 'new');
+      if (response.success) {
+        fetchInvoices();
+      }
+    } catch (error: any) {
+      console.error('Failed to sync new invoices:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        setError(error.message || 'Failed to sync new invoices');
+      }
+    } finally {
+      setSyncingNew(false);
+      setSyncing(false);
+    }
+  };
+  const handleSyncOld = async () => {
+    if (!token) return;
+    setSyncingOld(true);
+    setSyncing(true);
+    try {
+      const response = invoiceType === 'pending'
+        ? await invoiceService.syncPendingInvoices(token, 0, 'old')
+        : await invoiceService.syncClosedInvoices(token, 0, 'old');
+      if (response.success) {
+        fetchInvoices();
+      }
+    } catch (error: any) {
+      console.error('Failed to sync old invoices:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        setError(error.message || 'Failed to sync old invoices');
+      }
+    } finally {
+      setSyncingOld(false);
+      setSyncing(false);
+    }
+  };
+  const handleSyncAll = async () => {
+    if (!token) return;
+    setSyncingAll(true);
+    setSyncing(true);
+    try {
+      const invoicesResponse = invoiceType === 'pending'
+        ? await invoiceService.syncPendingInvoices(token, 0, 'new')
+        : await invoiceService.syncClosedInvoices(token, 0, 'new');
+      if (invoicesResponse.success) {
+        let detailsSynced = 0;
+        try {
+          const detailsResponse = await invoiceService.syncAllInvoiceDetails(token, invoiceType, 0);
+          if (detailsResponse.success) {
+            detailsSynced = detailsResponse.data.synced || 0;
+          }
+        } catch (detailsError) {
+          console.error('Error syncing details:', detailsError);
+        }
+        fetchInvoices();
+      }
+    } catch (error: any) {
+      console.error('Failed to sync all invoices:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        setError(error.message || 'Failed to sync all invoices');
+      }
+    } finally {
+      setSyncingAll(false);
+      setSyncing(false);
+    }
   };
   const handleInvoicePress = (invoice: any) => {
     console.log('Invoice pressed - Full invoice object:', JSON.stringify(invoice, null, 2));
@@ -192,6 +295,105 @@ export const InvoicesScreen = () => {
             {invoices.length} {invoices.length === 1 ? 'invoice' : 'invoices'} found
           </Typography>
         </View>
+
+        {/* Invoice Type Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity
+            style={[styles.tab, invoiceType === 'pending' && styles.tabActive]}
+            onPress={() => setInvoiceType('pending')}>
+            <Typography
+              variant="small"
+              weight="semibold"
+              color={invoiceType === 'pending' ? theme.colors.primary[600] : theme.colors.gray[600]}>
+              Pending
+            </Typography>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, invoiceType === 'closed' && styles.tabActive]}
+            onPress={() => setInvoiceType('closed')}>
+            <Typography
+              variant="small"
+              weight="semibold"
+              color={invoiceType === 'closed' ? theme.colors.primary[600] : theme.colors.gray[600]}>
+              Closed
+            </Typography>
+          </TouchableOpacity>
+        </View>
+
+        {/* Sync Buttons */}
+        <View style={styles.syncButtonsContainer}>
+          <TouchableOpacity
+            onPress={handleSyncNew}
+            disabled={syncing}
+            style={[
+              styles.syncActionButton,
+              styles.syncNewButton,
+              syncing && styles.syncButtonDisabled
+            ]}>
+            {syncingNew ? (
+              <ActivityIndicator size="small" color={theme.colors.white} />
+            ) : (
+              <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                ↑ New Sync
+              </Typography>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleSyncOld}
+            disabled={syncing}
+            style={[
+              styles.syncActionButton,
+              styles.syncOldButton,
+              syncing && styles.syncButtonDisabled
+            ]}>
+            {syncingOld ? (
+              <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+            ) : (
+              <Typography variant="small" weight="semibold" color={theme.colors.primary[600]}>
+                ↓ Old Sync
+              </Typography>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleSyncAll}
+            disabled={syncing}
+            style={[
+              styles.syncActionButton,
+              styles.syncAllButton,
+              syncing && styles.syncButtonDisabled
+            ]}>
+            {syncingAll ? (
+              <ActivityIndicator size="small" color={theme.colors.white} />
+            ) : (
+              <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                ⟳ Sync All
+              </Typography>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Automation Settings */}
+        <View style={styles.automationContainer}>
+          <View style={styles.automationRow}>
+            <View style={styles.automationLabel}>
+              <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
+                Auto-Sync
+              </Typography>
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                Every {autoSyncInterval} min
+              </Typography>
+            </View>
+            <Switch
+              value={autoSyncEnabled}
+              onValueChange={setAutoSyncEnabled}
+              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[400] }}
+              thumbColor={autoSyncEnabled ? theme.colors.primary[600] : theme.colors.gray[50]}
+            />
+          </View>
+        </View>
+
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <RNTextInput
@@ -431,6 +633,71 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: theme.typography.fontSizes.md,
     color: theme.colors.text.tertiary,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.gray[100],
+    borderRadius: theme.borderRadius.xl,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: theme.borderRadius.lg,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: theme.colors.white,
+    ...theme.shadows.sm,
+  },
+  syncButtonsContainer: {
+    flexDirection: 'row',
+    marginBottom: theme.spacing.md,
+    justifyContent: 'space-between',
+  },
+  syncActionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    marginHorizontal: 4,
+  },
+  syncNewButton: {
+    backgroundColor: theme.colors.primary[600],
+  },
+  syncOldButton: {
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.primary[600],
+  },
+  syncAllButton: {
+    backgroundColor: theme.colors.success[600],
+  },
+  syncButtonDisabled: {
+    opacity: 0.5,
+  },
+  automationContainer: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.primary[50],
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.primary[200],
+    marginBottom: theme.spacing.md,
+    borderRadius: theme.borderRadius.xl,
+  },
+  automationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  automationLabel: {
+    flex: 1,
   },
   searchContainer: {
     marginBottom: theme.spacing.md,
