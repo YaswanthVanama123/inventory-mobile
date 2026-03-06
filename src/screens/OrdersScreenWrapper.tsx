@@ -43,6 +43,9 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
   const [stats, setStats] = useState({
     totalOrders: 0,
     processed: 0,
@@ -50,7 +53,9 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   });
   useEffect(() => {
     if (token) {
-      loadData();
+      setCurrentPage(1);
+      setOrders([]);
+      loadData(1);
     }
   }, [token]);
   useEffect(() => {
@@ -65,22 +70,30 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       setFilteredOrders(orders);
     }
   }, [searchQuery, orders]);
-  const loadData = async () => {
+  const loadData = async (page: number = 1) => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
       const response = await ordersService.getOrders(token, {
-        limit: 100,
+        page,
+        limit: 20,
       });
       const ordersData = response.orders || [];
       setOrders(ordersData);
       setFilteredOrders(ordersData);
+
+      if (response.pagination) {
+        setCurrentPage(response.pagination.page);
+        setTotalPages(response.pagination.pages);
+        setTotalOrders(response.pagination.total);
+      }
+
       const processed = ordersData.filter((o: any) => o.stockProcessed).length;
       setStats({
-        totalOrders: ordersData.length,
+        totalOrders: response.pagination?.total || ordersData.length,
         processed,
-        pending: ordersData.length - processed,
+        pending: (response.pagination?.total || ordersData.length) - processed,
       });
     } catch (error: any) {
       console.error('Failed to fetch orders:', error);
@@ -95,7 +108,42 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   };
   const onRefresh = () => {
     setRefreshing(true);
-    loadData();
+    setCurrentPage(1);
+    setOrders([]);
+    loadData(1);
+  };
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage && !loading) {
+      loadData(page);
+    }
+  };
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
   };
   const handleOrderPress = (orderNumber: string) => {
     const newExpanded = new Set(expandedOrders);
@@ -379,6 +427,84 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               </Card>
             ))
           )}
+          {/* Pagination Info and Page Numbers */}
+          {!error && !loading && filteredOrders.length > 0 && totalPages > 0 && (
+            <View style={styles.paginationContainer}>
+              <Typography variant="small" color={theme.colors.gray[600]} align="center" style={{marginBottom: 16}}>
+                Showing {(currentPage - 1) * 20 + 1}-{Math.min(currentPage * 20, totalOrders)} of {totalOrders} orders
+              </Typography>
+
+              <View style={styles.paginationControls}>
+                {/* Previous Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.pageButton,
+                    styles.navButton,
+                    currentPage === 1 && styles.pageButtonDisabled,
+                  ]}
+                  onPress={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={currentPage === 1 ? theme.colors.gray[400] : theme.colors.primary[600]}>
+                    Prev
+                  </Typography>
+                </TouchableOpacity>
+
+                {/* Page Numbers */}
+                <View style={styles.pageNumbersContainer}>
+                  {getPageNumbers().map((page, index) => {
+                    if (page === '...') {
+                      return (
+                        <View key={`ellipsis-${index}`} style={styles.ellipsis}>
+                          <Typography variant="small" color={theme.colors.gray[500]}>
+                            ...
+                          </Typography>
+                        </View>
+                      );
+                    }
+                    const pageNum = page as number;
+                    const isActive = pageNum === currentPage;
+                    return (
+                      <TouchableOpacity
+                        key={pageNum}
+                        style={[
+                          styles.pageButton,
+                          isActive && styles.pageButtonActive,
+                        ]}
+                        onPress={() => goToPage(pageNum)}
+                        disabled={loading}>
+                        <Typography
+                          variant="small"
+                          weight={isActive ? 'bold' : 'medium'}
+                          color={isActive ? theme.colors.white : theme.colors.gray[700]}>
+                          {pageNum}
+                        </Typography>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Next Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.pageButton,
+                    styles.navButton,
+                    currentPage === totalPages && styles.pageButtonDisabled,
+                  ]}
+                  onPress={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages || loading}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={currentPage === totalPages ? theme.colors.gray[400] : theme.colors.primary[600]}>
+                    Next
+                  </Typography>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </ScrollView>
       )}
       {/* Discrepancies Button */}
@@ -529,5 +655,50 @@ const styles = StyleSheet.create({
   floatingButtonText: {
     color: theme.colors.white,
     fontWeight: 'bold',
+  },
+  paginationContainer: {
+    marginTop: 16,
+    marginBottom: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  paginationControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  pageNumbersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pageButton: {
+    minWidth: 36,
+    height: 36,
+    backgroundColor: theme.colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[300],
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  navButton: {
+    minWidth: 60,
+    paddingHorizontal: 12,
+  },
+  pageButtonActive: {
+    backgroundColor: theme.colors.primary[600],
+    borderColor: theme.colors.primary[600],
+  },
+  pageButtonDisabled: {
+    backgroundColor: theme.colors.gray[100],
+    borderColor: theme.colors.gray[200],
+  },
+  ellipsis: {
+    minWidth: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
