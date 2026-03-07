@@ -3,7 +3,6 @@ import {View, StyleSheet, Alert, ScrollView, TouchableOpacity} from 'react-nativ
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
-import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
 import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon, TruckIcon} from '../components/icons';
@@ -55,197 +54,241 @@ export const AccountScreen = () => {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Typography variant="h2" weight="bold" style={styles.headerTitle}>
-            Account
-          </Typography>
-          <Typography
-            variant="body"
-            color={theme.colors.gray[500]}
-            style={styles.headerSubtitle}>
-            Manage your profile and preferences
-          </Typography>
-        </View>
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}>
+
         {/* User Info Card */}
         {user && (
           <Card variant="elevated" padding="lg" style={styles.userCard}>
             <View style={styles.userIcon}>
-              <UserIcon size={25} color={theme.colors.primary[600]} />
+              <UserIcon size={28} color={theme.colors.primary[600]} />
             </View>
-            <Typography variant="h3" weight="bold" align="center">
+            <Typography variant="h2" weight="bold" align="center">
               {user.fullName || user.username}
             </Typography>
             <Typography
               variant="body"
-              color={theme.colors.gray[600]}
+              color={theme.colors.gray[500]}
               align="center"
               style={styles.userEmail}>
               {user.email}
             </Typography>
             <View style={styles.roleBadge}>
-              <Typography variant="small" weight="semibold" color={theme.colors.primary[700]}>
-                {user.role === 'admin' ? 'Administrator' : 'Employee'}
+              <Typography variant="small" weight="bold" color={theme.colors.primary[700]}>
+                {user.role === 'admin' ? 'ADMINISTRATOR' : 'EMPLOYEE'}
               </Typography>
             </View>
           </Card>
         )}
-        {/* Menu Items */}
-        <Card variant="elevated" padding="none" style={styles.menuCard}>
-          {/* User Management (Admin Only) */}
-          {user?.role === 'admin' && (
-            <>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => setUserManagementVisible(true)}>
-                <View style={styles.menuItemLeft}>
-                  <View style={styles.menuIconContainer}>
-                    <SettingsIcon size={16} color={theme.colors.primary[600]} />
-                  </View>
-                  <Typography variant="body" weight="medium">
-                    User Management
-                  </Typography>
-                </View>
-                <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
-              </TouchableOpacity>
-              <View style={styles.menuSeparator} />
-            </>
-          )}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setOrdersVisible(true)}>
-            <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <ClipboardIcon size={16} color={theme.colors.primary[600]} />
-              </View>
-              <Typography variant="body" weight="medium">
-                Purchase Orders
+
+        {/* Admin Section */}
+        {user?.role === 'admin' && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Typography variant="small" weight="bold" color={theme.colors.gray[500]}>
+                ADMINISTRATION
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <View style={styles.menuSeparator} />
+            <Card variant="elevated" padding="none" style={styles.menuCard}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setUserManagementVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.adminIconBg]}>
+                    <SettingsIcon size={18} color={theme.colors.accent[600]} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Typography variant="body" weight="semibold">
+                      User Management
+                    </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                      Manage users and permissions
+                    </Typography>
+                  </View>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+            </Card>
+          </>
+        )}
+
+        {/* Inventory Section */}
+        <View style={styles.sectionHeader}>
+          <Typography variant="small" weight="bold" color={theme.colors.gray[500]}>
+            INVENTORY MANAGEMENT
+          </Typography>
+        </View>
+        <Card variant="elevated" padding="none" style={styles.menuCard}>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => setModelMappingVisible(true)}>
+            onPress={() => setModelMappingVisible(true)}
+            activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <LinkIcon size={16} color={theme.colors.primary[600]} />
+              <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
+                <LinkIcon size={18} color={theme.colors.info[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Model Mapping
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
           <View style={styles.menuSeparator} />
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => setItemAliasVisible(true)}>
+            onPress={() => setItemAliasVisible(true)}
+            activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <TagIcon size={16} color={theme.colors.primary[600]} />
+              <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
+                <TagIcon size={18} color={theme.colors.info[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Item Alias Mapping
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
           <View style={styles.menuSeparator} />
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => setRouteStarItemsVisible(true)}>
+            onPress={() => setRouteStarItemsVisible(true)}
+            activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <BoxIcon size={16} color={theme.colors.primary[600]} />
+              <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
+                <BoxIcon size={18} color={theme.colors.info[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 RouteStar Items
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
           <View style={styles.menuSeparator} />
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => setManualPOItemsVisible(true)}>
+            onPress={() => setManualPOItemsVisible(true)}
+            activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <ClipboardIcon size={16} color={theme.colors.primary[600]} />
+              <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
+                <ClipboardIcon size={18} color={theme.colors.info[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Manual PO Items
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+        </Card>
+
+        {/* Orders & Vendors Section */}
+        <View style={styles.sectionHeader}>
+          <Typography variant="small" weight="bold" color={theme.colors.gray[500]}>
+            ORDERS & VENDORS
+          </Typography>
+        </View>
+        <Card variant="elevated" padding="none" style={styles.menuCard}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => setOrdersVisible(true)}
+            activeOpacity={0.7}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
+                <ClipboardIcon size={18} color={theme.colors.success[600]} />
+              </View>
+              <Typography variant="body" weight="medium">
+                Purchase Orders
+              </Typography>
+            </View>
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
           <View style={styles.menuSeparator} />
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => setVendorManagementVisible(true)}>
+            onPress={() => setVendorManagementVisible(true)}
+            activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <TruckIcon size={16} color={theme.colors.primary[600]} />
+              <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
+                <TruckIcon size={18} color={theme.colors.success[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Vendors
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
           <View style={styles.menuSeparator} />
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => setFetchHistoryVisible(true)}>
+            onPress={() => setFetchHistoryVisible(true)}
+            activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <ClockIcon size={16} color={theme.colors.primary[600]} />
+              <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
+                <ClockIcon size={18} color={theme.colors.success[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Fetch History
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
           <View style={styles.menuSeparator} />
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => setDiscrepancyManagementVisible(true)}>
+            onPress={() => setDiscrepancyManagementVisible(true)}
+            activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <AlertCircleIcon size={16} color={theme.colors.primary[600]} />
+              <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
+                <AlertCircleIcon size={18} color={theme.colors.success[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Discrepancy Management
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
-          <View style={styles.menuSeparator} />
+        </Card>
+
+        {/* Reports Section */}
+        <View style={styles.sectionHeader}>
+          <Typography variant="small" weight="bold" color={theme.colors.gray[500]}>
+            REPORTS
+          </Typography>
+        </View>
+        <Card variant="elevated" padding="none" style={styles.menuCard}>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => setSalesReportVisible(true)}>
+            onPress={() => setSalesReportVisible(true)}
+            activeOpacity={0.7}>
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconContainer}>
-                <FileTextIcon size={16} color={theme.colors.primary[600]} />
+              <View style={[styles.menuIconContainer, styles.reportsIconBg]}>
+                <FileTextIcon size={18} color={theme.colors.warning[600]} />
               </View>
               <Typography variant="body" weight="medium">
                 Sales Report
               </Typography>
             </View>
-            <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
         </Card>
+
         {/* Logout Button */}
-        <Button
-          title="Logout"
-          variant="danger"
+        <TouchableOpacity
+          style={styles.logoutButton}
           onPress={handleLogout}
-          fullWidth
-          leftIcon={<LogoutIcon size={16} color={theme.colors.white} />}
-        />
+          activeOpacity={0.8}>
+          <LogoutIcon size={18} color={theme.colors.white} />
+          <Typography variant="body" weight="bold" color={theme.colors.white}>
+            Logout
+          </Typography>
+        </TouchableOpacity>
+
+        {/* App Version */}
+        <View style={styles.footer}>
+          <Typography variant="caption" color={theme.colors.gray[400]} align="center">
+            Inventory Management v1.0.0
+          </Typography>
+        </View>
       </ScrollView>
       {/* Sales Report Modal */}
       <SalesReportScreen
@@ -312,42 +355,38 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: theme.spacing.lg,
-    paddingTop: theme.spacing.xl,
-  },
-  header: {
-    marginBottom: theme.spacing.xl,
-  },
-  headerTitle: {
-    marginBottom: theme.spacing.xs,
-  },
-  headerSubtitle: {
-    fontSize: theme.typography.fontSizes.sm, 
+    paddingBottom: theme.spacing.xl * 2,
   },
   userCard: {
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
   },
   userIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: theme.colors.primary[100],
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   userEmail: {
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
   },
   roleBadge: {
-    marginTop: theme.spacing.lg,
-    paddingHorizontal: 20,
-    paddingVertical: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.primary[100],
   },
+  sectionHeader: {
+    paddingHorizontal: theme.spacing.sm,
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.sm,
+  },
   menuCard: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
     overflow: 'hidden',
   },
   menuItem: {
@@ -356,23 +395,62 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.white,
+    minHeight: 60,
   },
   menuSeparator: {
     height: 1,
     backgroundColor: theme.colors.gray[200],
-    marginHorizontal: theme.spacing.lg,
+    marginLeft: 68,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
+    flex: 1,
+  },
+  menuTextContainer: {
+    flex: 1,
   },
   menuIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 9,
-    backgroundColor: theme.colors.primary[100],
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  adminIconBg: {
+    backgroundColor: theme.colors.accent[100],
+  },
+  inventoryIconBg: {
+    backgroundColor: theme.colors.info[100],
+  },
+  ordersIconBg: {
+    backgroundColor: theme.colors.success[100],
+  },
+  reportsIconBg: {
+    backgroundColor: theme.colors.warning[100],
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.error[600],
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    shadowColor: theme.colors.error[600],
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    marginTop: theme.spacing.md,
+  },
+  footer: {
+    marginTop: theme.spacing.xl,
+    paddingVertical: theme.spacing.lg,
   },
 });
