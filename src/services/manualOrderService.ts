@@ -57,7 +57,9 @@ class ManualOrderService {
     });
     if (!response.ok) throw new Error('Failed to fetch manual orders');
     const result = await response.json();
-    return result.data || result;
+    // Backend returns: { success: true, data: { orders: [...], total: 1 } }
+    const orders = result.data?.orders || result.data || result.orders || [];
+    return Array.isArray(orders) ? orders : [];
   }
 }
 

@@ -69,6 +69,11 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
         manualPOItemService.getActiveManualPOItems(token),
       ]);
 
+      console.log('[ManualOrderForm] Order number:', orderNumData);
+      console.log('[ManualOrderForm] Vendors count:', vendorsData.length);
+      console.log('[ManualOrderForm] Manual PO Items count:', itemsData.length);
+      console.log('[ManualOrderForm] Manual PO Items data:', JSON.stringify(itemsData, null, 2));
+
       setOrderNumber(orderNumData);
       setVendors(vendorsData);
       setManualPOItems(itemsData);
@@ -304,27 +309,38 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
                   Item *
                 </Typography>
                 <View style={styles.pickerContainer}>
-                  {manualPOItems.map(poItem => (
-                    <TouchableOpacity
-                      key={poItem.sku}
-                      style={[
-                        styles.pickerOption,
-                        item.sku === poItem.sku && styles.pickerOptionSelected,
-                      ]}
-                      onPress={() =>
-                        handleItemChange(index, 'sku', poItem.sku)
-                      }>
-                      <Typography
-                        variant="small"
-                        color={
-                          item.sku === poItem.sku
-                            ? theme.colors.primary[700]
-                            : theme.colors.gray[700]
-                        }>
-                        {poItem.sku} - {poItem.name}
+                  {manualPOItems.length === 0 ? (
+                    <View style={styles.emptyPicker}>
+                      <Typography variant="small" color={theme.colors.gray[500]}>
+                        No manual PO items available
                       </Typography>
-                    </TouchableOpacity>
-                  ))}
+                      <Typography variant="caption" color={theme.colors.gray[400]} style={{marginTop: 4}}>
+                        Please add items in Account → Manual PO Items
+                      </Typography>
+                    </View>
+                  ) : (
+                    manualPOItems.map(poItem => (
+                      <TouchableOpacity
+                        key={poItem.sku}
+                        style={[
+                          styles.pickerOption,
+                          item.sku === poItem.sku && styles.pickerOptionSelected,
+                        ]}
+                        onPress={() =>
+                          handleItemChange(index, 'sku', poItem.sku)
+                        }>
+                        <Typography
+                          variant="small"
+                          color={
+                            item.sku === poItem.sku
+                              ? theme.colors.primary[700]
+                              : theme.colors.gray[700]
+                          }>
+                          {poItem.sku} - {poItem.name}
+                        </Typography>
+                      </TouchableOpacity>
+                    ))
+                  )}
                 </View>
               </View>
 
@@ -523,6 +539,11 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.gray[300],
     borderRadius: 8,
     maxHeight: 200,
+  },
+  emptyPicker: {
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pickerOption: {
     padding: 12,

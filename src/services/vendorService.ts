@@ -22,7 +22,9 @@ class VendorService {
     });
     if (!response.ok) throw new Error('Failed to fetch vendors');
     const result = await response.json();
-    return result.data || result;
+    // Backend returns: { success: true, data: { vendors: [...], total: 1 } }
+    const vendors = result.data?.vendors || result.data || result.vendors || [];
+    return Array.isArray(vendors) ? vendors : [];
   }
 
   async getActiveVendors(token: string): Promise<Vendor[]> {
@@ -34,7 +36,9 @@ class VendorService {
     });
     if (!response.ok) throw new Error('Failed to fetch active vendors');
     const result = await response.json();
-    return result.data || result;
+    // Backend returns: { success: true, data: { vendors: [...], total: 1 } }
+    const vendors = result.data?.vendors || result.data || result.vendors || [];
+    return Array.isArray(vendors) ? vendors : [];
   }
 
   async createVendor(token: string, data: Partial<Vendor>): Promise<Vendor> {

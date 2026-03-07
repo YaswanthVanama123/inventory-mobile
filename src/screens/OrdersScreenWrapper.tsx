@@ -314,7 +314,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                           <Typography
                             variant="small"
                             weight="bold"
-                            color={theme.colors.purple[700]}>
+                            color={theme.colors.accent[700]}>
                             MANUAL
                           </Typography>
                         </View>
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   manualBadge: {
-    backgroundColor: theme.colors.purple[100],
+    backgroundColor: theme.colors.accent[100],
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,

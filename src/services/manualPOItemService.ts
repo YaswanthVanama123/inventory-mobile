@@ -21,19 +21,39 @@ class ManualPOItemService {
     });
     if (!response.ok) throw new Error('Failed to fetch manual PO items');
     const result = await response.json();
-    return result.data || result;
+    // Backend returns: { success: true, data: { items: [...], total: 1 } }
+    const items = result.data?.items || result.data || result.items || [];
+    return Array.isArray(items) ? items : [];
   }
 
   async getActiveManualPOItems(token: string): Promise<ManualPOItem[]> {
-    const response = await fetch(`${API_BASE_URL}/manual-po-items/active`, {
+    const url = `${API_BASE_URL}/manual-po-items/active`;
+    console.log('[ManualPOItemService] Fetching from:', url);
+
+    const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
-    if (!response.ok) throw new Error('Failed to fetch active manual PO items');
+
+    console.log('[ManualPOItemService] Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[ManualPOItemService] Error response:', errorText);
+      throw new Error('Failed to fetch active manual PO items');
+    }
+
     const result = await response.json();
-    return result.data || result;
+    console.log('[ManualPOItemService] Raw result:', JSON.stringify(result, null, 2));
+
+    // Backend returns: { success: true, data: { items: [...], total: 1 } }
+    // So we need to access result.data.items, not result.data
+    const items = result.data?.items || result.data || result.items || [];
+    console.log('[ManualPOItemService] Returning items:', items.length, 'items');
+
+    return Array.isArray(items) ? items : [];
   }
 
   async createManualPOItem(token: string, data: Partial<ManualPOItem>): Promise<ManualPOItem> {
