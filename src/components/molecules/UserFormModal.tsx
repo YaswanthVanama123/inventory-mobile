@@ -108,6 +108,12 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       if (!password) return 'Password is required';
       if (!Object.values(passwordStrength).every(Boolean)) return 'Password does not meet requirements';
       if (password !== confirmPassword) return 'Passwords do not match';
+    } else {
+      // In edit mode, password is optional but must meet requirements if provided
+      if (password) {
+        if (!Object.values(passwordStrength).every(Boolean)) return 'Password does not meet requirements';
+        if (password !== confirmPassword) return 'Passwords do not match';
+      }
     }
     if (!email.trim()) return 'Email is required';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Invalid email format';
@@ -123,14 +129,19 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     try {
       setSaving(true);
       if (isEditMode) {
-        await userService.update(token, user._id, {
+        const updateData: any = {
           email: email.trim(),
           fullName: fullName.trim(),
           role,
           isActive,
           truckNumber: truckNumber.trim() || undefined,
-        });
-        Alert.alert('Success', 'User updated successfully');
+        };
+        // Include password if admin is resetting it
+        if (password) {
+          updateData.password = password;
+        }
+        await userService.update(token, user._id, updateData);
+        Alert.alert('Success', password ? 'User updated and password reset successfully' : 'User updated successfully');
       } else {
         await userService.create(token, {
           username: username.trim(),
@@ -256,8 +267,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCapitalize="characters"
             />
           </View>
-          {/* Password (Create only or optional for edit) */}
-          {!isEditMode && (
+          {/* Password */}
+          {!isEditMode ? (
             <>
               <View style={styles.inputSection}>
                 <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -373,6 +384,153 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     )}
                   </TouchableOpacity>
                 </View>
+                {confirmPassword && password !== confirmPassword && (
+                  <View style={styles.errorRow}>
+                    <AlertCircleIcon size={14} color={theme.colors.error[600]} />
+                    <Typography variant="caption" color={theme.colors.error[600]}>
+                      Passwords do not match
+                    </Typography>
+                  </View>
+                )}
+              </View>
+            </>
+          ) : (
+            <>
+              {/* Admin Password Reset Notice */}
+              <Card variant="outlined" padding="md" style={styles.adminNoticeCard}>
+                <View style={styles.adminNoticeRow}>
+                  <AlertCircleIcon size={20} color={theme.colors.primary[600]} />
+                  <View style={{flex: 1, marginLeft: 12}}>
+                    <Typography variant="small" weight="semibold" color={theme.colors.primary[700]}>
+                      Admin Password Reset
+                    </Typography>
+                    <Typography variant="caption" color={theme.colors.primary[600]} style={{marginTop: 2}}>
+                      As an admin, you can reset this employee's password. Enter a new password below, or leave blank to keep the current password.
+                    </Typography>
+                  </View>
+                </View>
+              </Card>
+
+              <View style={styles.inputSection}>
+                <Typography variant="small" weight="semibold" style={styles.inputLabel}>
+                  New Password (Optional)
+                </Typography>
+                <View style={styles.passwordInputContainer}>
+                  <RNTextInput
+                    style={styles.passwordInput}
+                    placeholder="Leave blank to keep current password"
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholderTextColor={theme.colors.gray[400]}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}>
+                    {showPassword ? (
+                      <EyeOffIcon size={20} color={theme.colors.gray[400]} />
+                    ) : (
+                      <EyeIcon size={20} color={theme.colors.gray[400]} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                  As admin, you can reset without knowing the current password
+                </Typography>
+                {/* Password Strength Indicators for Edit Mode */}
+                {password && (
+                  <Card variant="outlined" padding="sm" style={styles.strengthCard}>
+                    <Typography variant="caption" weight="semibold" style={{marginBottom: 6}}>
+                      Password Requirements:
+                    </Typography>
+                    <View style={styles.requirementRow}>
+                      <CheckIcon
+                        size={14}
+                        color={passwordStrength.hasMinLength ? theme.colors.success[600] : theme.colors.gray[400]}
+                      />
+                      <Typography
+                        variant="caption"
+                        color={passwordStrength.hasMinLength ? theme.colors.success[700] : theme.colors.gray[600]}>
+                        At least 8 characters
+                      </Typography>
+                    </View>
+                    <View style={styles.requirementRow}>
+                      <CheckIcon
+                        size={14}
+                        color={passwordStrength.hasUpperCase ? theme.colors.success[600] : theme.colors.gray[400]}
+                      />
+                      <Typography
+                        variant="caption"
+                        color={passwordStrength.hasUpperCase ? theme.colors.success[700] : theme.colors.gray[600]}>
+                        One uppercase letter
+                      </Typography>
+                    </View>
+                    <View style={styles.requirementRow}>
+                      <CheckIcon
+                        size={14}
+                        color={passwordStrength.hasLowerCase ? theme.colors.success[600] : theme.colors.gray[400]}
+                      />
+                      <Typography
+                        variant="caption"
+                        color={passwordStrength.hasLowerCase ? theme.colors.success[700] : theme.colors.gray[600]}>
+                        One lowercase letter
+                      </Typography>
+                    </View>
+                    <View style={styles.requirementRow}>
+                      <CheckIcon
+                        size={14}
+                        color={passwordStrength.hasNumber ? theme.colors.success[600] : theme.colors.gray[400]}
+                      />
+                      <Typography
+                        variant="caption"
+                        color={passwordStrength.hasNumber ? theme.colors.success[700] : theme.colors.gray[600]}>
+                        One number
+                      </Typography>
+                    </View>
+                    <View style={styles.requirementRow}>
+                      <CheckIcon
+                        size={14}
+                        color={passwordStrength.hasSpecialChar ? theme.colors.success[600] : theme.colors.gray[400]}
+                      />
+                      <Typography
+                        variant="caption"
+                        color={passwordStrength.hasSpecialChar ? theme.colors.success[700] : theme.colors.gray[600]}>
+                        One special character (@$!%*?&)
+                      </Typography>
+                    </View>
+                  </Card>
+                )}
+              </View>
+              <View style={styles.inputSection}>
+                <Typography variant="small" weight="semibold" style={styles.inputLabel}>
+                  Confirm New Password
+                </Typography>
+                <View style={styles.passwordInputContainer}>
+                  <RNTextInput
+                    style={styles.passwordInput}
+                    placeholder="Confirm new password (if changing)"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholderTextColor={theme.colors.gray[400]}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    {showConfirmPassword ? (
+                      <EyeOffIcon size={20} color={theme.colors.gray[400]} />
+                    ) : (
+                      <EyeIcon size={20} color={theme.colors.gray[400]} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                  Required only if changing password
+                </Typography>
                 {confirmPassword && password !== confirmPassword && (
                   <View style={styles.errorRow}>
                     <AlertCircleIcon size={14} color={theme.colors.error[600]} />
@@ -531,5 +689,14 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     marginTop: theme.spacing.md,
+  },
+  adminNoticeCard: {
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.primary[50],
+    borderColor: theme.colors.primary[200],
+  },
+  adminNoticeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
 });
