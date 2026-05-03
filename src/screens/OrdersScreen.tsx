@@ -646,6 +646,37 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                                 {formatCurrency(item.lineTotal || (item.qty || 0) * (item.unitPrice || 0))}
                               </Typography>
                             </View>
+                            <View style={styles.itemRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                Item Status
+                              </Typography>
+                              {item.itemVerified === true ? (
+                                <View style={{alignItems: 'flex-end', gap: 2}}>
+                                  <View style={[styles.statusBadge, {backgroundColor: theme.colors.success[100]}]}>
+                                    <Typography
+                                      variant="caption"
+                                      weight="semibold"
+                                      color={theme.colors.success[600]}>
+                                      Verified
+                                    </Typography>
+                                  </View>
+                                  {item.itemVerifiedAt && (
+                                    <Typography variant="caption" color={theme.colors.gray[500]} style={{fontSize: 10}}>
+                                      {formatDate(item.itemVerifiedAt)}
+                                    </Typography>
+                                  )}
+                                </View>
+                              ) : (
+                                <View style={[styles.statusBadge, {backgroundColor: theme.colors.warning[100]}]}>
+                                  <Typography
+                                    variant="caption"
+                                    weight="semibold"
+                                    color={theme.colors.warning[600]}>
+                                    Not Verified
+                                  </Typography>
+                                </View>
+                              )}
+                            </View>
                           </View>
                         ))}
                       </View>

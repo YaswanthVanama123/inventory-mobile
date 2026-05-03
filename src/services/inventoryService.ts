@@ -154,5 +154,38 @@ class InventoryService {
     }
     return imagePath;
   }
+  async verifyOrderItem(
+    token: string,
+    orderNumber: string,
+    itemIndex: number,
+    userId: string,
+    sku: string
+  ) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/customerconnect/orders/${orderNumber}/items/${itemIndex}/verify`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            sku,
+          }),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to verify order item');
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Verify Order Item Service Error:', error);
+      throw error;
+    }
+  }
 }
 export default new InventoryService();

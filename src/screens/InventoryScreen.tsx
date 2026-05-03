@@ -7,18 +7,20 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   TextInput as RNTextInput,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
 import inventoryService from '../services/inventoryService';
-import {BoxIcon, AlertCircleIcon, ChevronDownIcon, ChevronRightIcon} from '../components/icons';
+import {BoxIcon, AlertCircleIcon, ChevronDownIcon, ChevronRightIcon, CheckCircleIcon} from '../components/icons';
 
 export const InventoryScreen = () => {
-  const {token} = useAuth();
+  const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,6 +32,7 @@ export const InventoryScreen = () => {
   const [activeTab, setActiveTab] = useState<'purchases' | 'sells'>('purchases');
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(true);
+  const [verifyingItems, setVerifyingItems] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     setIsMounted(true);
@@ -168,6 +171,69 @@ export const InventoryScreen = () => {
     } catch {
       return 'Invalid Date';
     }
+  };
+  const handleVerifyItem = async (order: any, itemIndex: number, sku: string) => {
+    if (!token || !user) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    // Show confirmation dialog with item details
+    const message = `Please confirm that you want to verify this item arrival:\n\nSKU: ${sku}\nItem: ${order.name}\nOrder #: ${order.orderNumber}\nVendor: ${order.vendor || 'N/A'}\nQuantity: ${order.qty}\nUnit Price: $${order.unitPrice.toFixed(2)}\nLine Total: $${order.lineTotal.toFixed(2)}\nOrder Date: ${formatDate(order.orderDate)}`;
+
+    Alert.alert(
+      'Verify Item Arrival',
+      message,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Confirm Verification',
+          onPress: async () => {
+            const verifyKey = `${order.orderNumber}-${itemIndex}`;
+            setVerifyingItems(prev => ({...prev, [verifyKey]: true}));
+            try {
+              await inventoryService.verifyOrderItem(
+                token,
+                order.orderNumber,
+                itemIndex,
+                user.id || user._id,
+                sku
+              );
+              Alert.alert('Success', 'Item verified successfully');
+              const updatedOrders = await inventoryService.getOrdersForItem(token, sku);
+              if (isMounted) {
+                setGroupedItems(prev =>
+                  prev.map(item => {
+                    if (item.sku === sku) {
+                      return {...item, orders: updatedOrders};
+                    }
+                    return item;
+                  })
+                );
+              }
+            } catch (error: any) {
+              console.error('Verify item error:', error);
+              const wasHandled = await handleApiError(error);
+              if (!wasHandled) {
+                Alert.alert('Error', error.message || 'Failed to verify item');
+              }
+            } finally {
+              if (isMounted) {
+                setVerifyingItems(prev => {
+                  const newState = {...prev};
+                  delete newState[verifyKey];
+                  return newState;
+                });
+              }
+            }
+          },
+        },
+      ],
+      {cancelable: true}
+    );
   };
   if (loading) {
     return (
@@ -407,7 +473,16 @@ export const InventoryScreen = () => {
                           style={styles.ordersTitle}>
                           Order Details
                         </Typography>
-                        {group.orders.map((order: any, index: number) => (
+                        {group.orders.map((order: any, index: number) => {
+                          const isItemVerified = order.itemVerified === true;
+                          console.log(`[InventoryScreen] Order ${order.orderNumber} - index ${index}:`, {
+                            itemVerified: order.itemVerified,
+                            isItemVerified: isItemVerified,
+                            itemVerifiedAt: order.itemVerifiedAt,
+                            stockProcessed: order.stockProcessed,
+                            fullOrder: order
+                          });
+                          return (
                           <View
                             key={`${order.orderNumber}-${index}`}
                             style={styles.orderItem}>
@@ -523,8 +598,54 @@ export const InventoryScreen = () => {
                                 </Typography>
                               </View>
                             </View>
+                            <View style={styles.orderRow}>
+                              <Typography
+                                variant="caption"
+                                color={theme.colors.gray[500]}
+                                style={styles.orderLabel}>
+                                Item Verified
+                              </Typography>
+                              {isItemVerified ? (
+                                <View style={{alignItems: 'flex-end', gap: 2}}>
+                                  <View style={styles.statusBadge}>
+                                    <CheckCircleIcon size={14} color={theme.colors.success[600]} />
+                                    <Typography
+                                      variant="caption"
+                                      weight="medium"
+                                      color={theme.colors.success[600]}
+                                      style={{marginLeft: 4}}>
+                                      Verified
+                                    </Typography>
+                                  </View>
+                                  {order.itemVerifiedAt && (
+                                    <Typography
+                                      variant="caption"
+                                      color={theme.colors.gray[500]}
+                                      style={{fontSize: 10}}>
+                                      {formatDate(order.itemVerifiedAt)}
+                                    </Typography>
+                                  )}
+                                </View>
+                              ) : (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onPress={() => handleVerifyItem(order, index, group.sku)}
+                                  loading={verifyingItems[`${order.orderNumber}-${index}`]}
+                                  disabled={verifyingItems[`${order.orderNumber}-${index}`]}
+                                  style={{paddingHorizontal: 12, paddingVertical: 6}}>
+                                  <Typography
+                                    variant="caption"
+                                    weight="medium"
+                                    color={theme.colors.white}>
+                                    {verifyingItems[`${order.orderNumber}-${index}`] ? 'Verifying...' : 'Verify Arrival'}
+                                  </Typography>
+                                </Button>
+                              )}
+                            </View>
                           </View>
-                        ))}
+                          );
+                        })}
                       </View>
                     )}
                     {/* For Sells - show invoices */}
@@ -865,18 +986,24 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     backgroundColor: theme.colors.primary[100],
   },
   statusBadgeSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
     backgroundColor: theme.colors.success[100],
   },
   statusBadgeWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
