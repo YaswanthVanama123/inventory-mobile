@@ -468,10 +468,14 @@ export const TruckCheckoutScreen = () => {
                       <Typography variant="body" weight="semibold">
                         {item.itemName}
                       </Typography>
-                      <Typography variant="caption" color={theme.colors.gray[500]}>
-                        Stock: {item.currentStock || 0} • Purchased:{' '}
-                        {item.totalPurchased || 0} • Sold: {item.totalSold || 0}
-                      </Typography>
+                      <View style={{marginTop: 4, gap: 2}}>
+                        <Typography variant="caption" color={theme.colors.gray[600]}>
+                          Stock: {item.currentStock || 0} • Purchased: {item.totalPurchased || 0} • Sold: {item.totalSold || 0}
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[600]}>
+                          Checked Out: {item.totalCheckedOut || 0} • Discrepancies: {item.totalDiscrepancies || 0}
+                        </Typography>
+                      </View>
                     </View>
                   </View>
                   {selectedItem?.itemName === item.itemName && (
