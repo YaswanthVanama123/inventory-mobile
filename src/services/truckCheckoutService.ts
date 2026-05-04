@@ -68,6 +68,59 @@ class TruckCheckoutService {
       throw error;
     }
   }
+
+  /**
+   * Get current truck inventory for a specific truck and item
+   * Returns: totalCheckedOut, totalSold, discrepancyAdjustment, currentTruckInventory
+   */
+  async getTruckInventory(
+    token: string,
+    truckNumber: string,
+    itemName: string,
+    employeeName?: string
+  ) {
+    try {
+      const params = new URLSearchParams();
+      if (employeeName) {
+        params.append('employeeName', employeeName);
+      }
+
+      const url = `${API_BASE_URL}/truck-checkouts/truck-inventory/${encodeURIComponent(
+        truckNumber
+      )}/${encodeURIComponent(itemName)}${params.toString() ? `?${params.toString()}` : ''}`;
+      console.log(
+        `[TruckCheckout] Getting truck inventory for truck ${truckNumber}, item: ${itemName}${employeeName ? `, employee: ${employeeName}` : ''}`
+      );
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('[TruckCheckout] Truck inventory:', result.data);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return {
+        currentTruckInventory: 0,
+        totalCheckedOut: 0,
+        totalSold: 0,
+        discrepancyAdjustment: 0,
+      };
+    } catch (error: any) {
+      console.error(
+        '[TruckCheckout] Get truck inventory error:',
+        error.message
+      );
+      throw error;
+    }
+  }
+
   /**
    * Create new checkout with validation and auto-discrepancy
    */
