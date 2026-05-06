@@ -26,6 +26,7 @@ import {
   ClockIcon,
   FileTextIcon,
 } from '../components/icons';
+import {formatDate} from '../utils/dateUtils';
 
 interface OrdersScreenProps {
   visible: boolean;
@@ -259,18 +260,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   };
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
-  };
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return 'Invalid Date';
-    }
   };
   const getStatusColor = (status: string) => {
     const statusMap: {[key: string]: string} = {

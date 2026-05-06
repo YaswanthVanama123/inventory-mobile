@@ -16,6 +16,7 @@ import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
 import invoiceService from '../services/invoiceService';
 import {AlertCircleIcon, FileTextIcon} from '../components/icons';
+import {formatDate} from '../utils/dateUtils';
 
 interface InvoiceDetailScreenProps {
   visible: boolean;
@@ -78,18 +79,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   };
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
-  };
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    } catch {
-      return 'Invalid Date';
-    }
   };
   const getStatusColor = (status: string) => {
     const colors: {[key: string]: string} = {

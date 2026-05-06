@@ -27,6 +27,7 @@ import {
   ArrowRightIcon,
 } from '../components/icons';
 import dashboardService from '../services/dashboardService';
+import {formatDateTime} from '../utils/dateUtils';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -447,7 +448,7 @@ export const DashboardScreen = () => {
                     variant="caption"
                     color={theme.colors.gray[500]}
                     style={styles.activityTime}>
-                    {activity.timestamp ? new Date(activity.timestamp).toLocaleString() : 'Recently'}
+                    {activity.timestamp ? formatDateTime(activity.timestamp) : 'Recently'}
                   </Typography>
                 </View>
               </View>

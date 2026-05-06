@@ -18,6 +18,7 @@ import {theme} from '../theme';
 import invoiceService from '../services/invoiceService';
 import {AlertCircleIcon, FileTextIcon} from '../components/icons';
 import {InvoiceDetailScreen} from './InvoiceDetailScreen';
+import {formatDate} from '../utils/dateUtils';
 
 type StatusFilter = '' | 'draft' | 'issued' | 'paid' | 'cancelled';
 type PaymentStatusFilter = '' | 'pending' | 'paid' | 'overdue';
@@ -214,18 +215,6 @@ export const InvoicesScreen = () => {
   };
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
-  };
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return 'Invalid Date';
-    }
   };
   const getStatusColor = (status: string) => {
     const colors: {[key: string]: string} = {

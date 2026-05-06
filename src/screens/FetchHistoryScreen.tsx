@@ -28,6 +28,7 @@ import {
   ClipboardIcon,
   RefreshIcon,
 } from '../components/icons';
+import {formatDateTime} from '../utils/dateUtils';
 
 interface FetchHistoryScreenProps {
   visible: boolean;
@@ -221,16 +222,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
       return `${seconds}s`;
     }
   };
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
   const sourceOptions = [
     {label: 'All Sources', value: ''},
     {label: 'Orders', value: 'customer_connect'},
@@ -365,7 +356,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                           {getSourceLabel(fetch.source, fetch.fetchType)}
                         </Typography>
                         <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Started: {formatDate(fetch.startedAt)}
+                          Started: {formatDateTime(fetch.startedAt)}
                         </Typography>
                         {fetch.user && (
                           <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -498,7 +489,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
                             {getSourceLabel(item.source, item.fetchType)}
                           </Typography>
                           <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                            {formatDate(item.startedAt)}
+                            {formatDateTime(item.startedAt)}
                           </Typography>
                           {item.user && (
                             <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>

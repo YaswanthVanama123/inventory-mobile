@@ -25,6 +25,7 @@ import {
   AlertCircleIcon,
   PlusIcon,
 } from '../components/icons';
+import {formatDate} from '../utils/dateUtils';
 
 export const StockScreen = () => {
   const {token} = useAuth();
@@ -138,18 +139,6 @@ export const StockScreen = () => {
   const currentData = activeTab === 'use' ? useStockData : sellStockData;
   const formatCurrency = (amount: number) => {
     return `$${amount.toFixed(2)}`;
-  };
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return 'Invalid Date';
-    }
   };
   const handleSubmitDiscrepancy = async () => {
     if (!prefilledItem) return;

@@ -21,6 +21,7 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
 } from '../components/icons';
+import {formatDateTime} from '../utils/dateUtils';
 
 type TabType = 'checkouts' | 'sales';
 type SubTabType = 'all' | 'employees';
@@ -257,16 +258,6 @@ export const TruckCheckoutListScreen = () => {
         loadSalesEmployees().finally(() => setRefreshing(false));
       }
     }
-  };
-  const formatDate = (date: string) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
   const getStatusBadge = (status: string) => {
     const config: any = {
@@ -578,7 +569,7 @@ export const TruckCheckoutListScreen = () => {
                     <Typography variant="small" color={theme.colors.gray[500]}>
                       Date:
                     </Typography>
-                    <Typography variant="small">{formatDate(checkout.checkoutDate)}</Typography>
+                    <Typography variant="small">{formatDateTime(checkout.checkoutDate)}</Typography>
                   </View>
                   {checkout.invoiceNumbers && checkout.invoiceNumbers.length > 0 && (
                     <View style={styles.checkoutRow}>

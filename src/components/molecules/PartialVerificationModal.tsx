@@ -12,6 +12,7 @@ import {Typography} from '../atoms/Typography';
 import {Card} from '../atoms/Card';
 import {theme} from '../../theme';
 import {XIcon, CheckCircleIcon} from '../icons';
+import {formatDateTime} from '../../utils/dateUtils';
 
 interface VerificationHistoryEntry {
   receivedQty: number;
@@ -56,21 +57,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
       return;
     }
     onConfirm(qty, notes.trim());
-  };
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return 'Invalid Date';
-    }
   };
 
   const isValid = receivedQty && parseFloat(receivedQty) > 0;
@@ -250,7 +236,7 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                             </Typography>
                           </View>
                           <Typography variant="caption" color={theme.colors.gray[500]}>
-                            {formatDate(entry.verifiedAt)}
+                            {formatDateTime(entry.verifiedAt)}
                           </Typography>
                         </View>
                         <View style={styles.historyDetails}>

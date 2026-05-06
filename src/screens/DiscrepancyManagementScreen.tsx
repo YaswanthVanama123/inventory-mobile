@@ -22,6 +22,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
 } from '../components/icons';
+import {formatDate} from '../utils/dateUtils';
 
 interface DiscrepancyManagementScreenProps {
   visible: boolean;
@@ -178,18 +179,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         return {bg: '#9333ea20', text: '#9333ea'};
       default:
         return {bg: theme.colors.gray[100], text: theme.colors.gray[700]};
-    }
-  };
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return 'Invalid Date';
     }
   };
   if (loading) {

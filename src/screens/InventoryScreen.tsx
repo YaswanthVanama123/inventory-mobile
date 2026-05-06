@@ -19,6 +19,7 @@ import {theme} from '../theme';
 import inventoryService from '../services/inventoryService';
 import {BoxIcon, AlertCircleIcon, ChevronDownIcon, ChevronRightIcon, CheckCircleIcon} from '../components/icons';
 import {PartialVerificationModal} from '../components/molecules/PartialVerificationModal';
+import {formatDate} from '../utils/dateUtils';
 
 export const InventoryScreen = () => {
   const {token, user} = useAuth();
@@ -163,18 +164,6 @@ export const InventoryScreen = () => {
   };
   const formatCurrency = (amount: number) => {
     return `$${amount.toFixed(2)}`;
-  };
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return 'Invalid Date';
-    }
   };
   const handleVerifyItem = (order: any, itemIndex: number, sku: string) => {
     console.log('[InventoryScreen] Opening verify modal for order:', order);

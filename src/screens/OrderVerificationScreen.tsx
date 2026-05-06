@@ -22,6 +22,7 @@ import {
   AlertCircleIcon,
   ArrowLeftIcon,
 } from '../components/icons';
+import {formatDate} from '../utils/dateUtils';
 
 interface OrderVerificationScreenProps {
   route: any;
@@ -270,7 +271,7 @@ export const OrderVerificationScreen: React.FC<
               Order Date
             </Typography>
             <Typography variant="h3">
-              {new Date(order.orderDate).toLocaleDateString()}
+              {formatDate(order.orderDate)}
             </Typography>
           </View>
         </Card>

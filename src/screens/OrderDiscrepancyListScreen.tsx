@@ -24,6 +24,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from '../components/icons';
+import {formatDateTime} from '../utils/dateUtils';
 
 interface OrderDiscrepancyListScreenProps {
   navigation: any;
@@ -183,16 +184,6 @@ export const OrderDiscrepancyListScreen: React.FC<
         </Typography>
       </View>
     );
-  };
-  const formatDate = (date: string) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
   if (loading && !refreshing) {
     return (
@@ -507,7 +498,7 @@ export const OrderDiscrepancyListScreen: React.FC<
                         <Typography
                           variant="body2"
                           style={styles.expandedSubtext}>
-                          {formatDate(discrepancy.reportedAt)}
+                          {formatDateTime(discrepancy.reportedAt)}
                         </Typography>
                       </View>
                       {discrepancy.resolvedBy && (
@@ -524,7 +515,7 @@ export const OrderDiscrepancyListScreen: React.FC<
                           <Typography
                             variant="body2"
                             style={styles.expandedSubtext}>
-                            {formatDate(discrepancy.resolvedAt)}
+                            {formatDateTime(discrepancy.resolvedAt)}
                           </Typography>
                         </View>
                       )}
