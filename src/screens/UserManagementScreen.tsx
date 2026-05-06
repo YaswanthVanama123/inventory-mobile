@@ -492,7 +492,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                       {user.truckNumber && (
                         <View style={styles.metaRow}>
                           <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Truck Number
+                            Route Name
                           </Typography>
                           <Typography variant="small" weight="medium">
                             {user.truckNumber}

@@ -18,6 +18,7 @@ import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {theme} from '../theme';
 import inventoryService from '../services/inventoryService';
 import {BoxIcon, AlertCircleIcon, ChevronDownIcon, ChevronRightIcon, CheckCircleIcon} from '../components/icons';
+import {PartialVerificationModal} from '../components/molecules/PartialVerificationModal';
 
 export const InventoryScreen = () => {
   const {token, user} = useAuth();
@@ -33,6 +34,9 @@ export const InventoryScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(true);
   const [verifyingItems, setVerifyingItems] = useState<{[key: string]: boolean}>({});
+  const [verifyModalVisible, setVerifyModalVisible] = useState(false);
+  const [selectedOrderForVerify, setSelectedOrderForVerify] = useState<any>(null);
+  const [verifyingSku, setVerifyingSku] = useState<string>('');
 
   useEffect(() => {
     setIsMounted(true);
@@ -172,68 +176,81 @@ export const InventoryScreen = () => {
       return 'Invalid Date';
     }
   };
-  const handleVerifyItem = async (order: any, itemIndex: number, sku: string) => {
-    if (!token || !user) {
+  const handleVerifyItem = (order: any, itemIndex: number, sku: string) => {
+    console.log('[InventoryScreen] Opening verify modal for order:', order);
+    setSelectedOrderForVerify({...order, itemIndex});
+    setVerifyingSku(sku);
+    setVerifyModalVisible(true);
+  };
+
+  const handleConfirmVerification = async (receivedQty: number, notes: string) => {
+    if (!token || !user || !selectedOrderForVerify) {
       Alert.alert('Error', 'User not authenticated');
       return;
     }
 
-    // Show confirmation dialog with item details
-    const message = `Please confirm that you want to verify this item arrival:\n\nSKU: ${sku}\nItem: ${order.name}\nOrder #: ${order.orderNumber}\nVendor: ${order.vendor || 'N/A'}\nQuantity: ${order.qty}\nUnit Price: $${order.unitPrice.toFixed(2)}\nLine Total: $${order.lineTotal.toFixed(2)}\nOrder Date: ${formatDate(order.orderDate)}`;
+    const { itemIndex, orderNumber } = selectedOrderForVerify;
+    const verifyKey = `${orderNumber}-${itemIndex}`;
 
-    Alert.alert(
-      'Verify Item Arrival',
-      message,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Confirm Verification',
-          onPress: async () => {
-            const verifyKey = `${order.orderNumber}-${itemIndex}`;
-            setVerifyingItems(prev => ({...prev, [verifyKey]: true}));
-            try {
-              await inventoryService.verifyOrderItem(
-                token,
-                order.orderNumber,
-                itemIndex,
-                user.id || user._id,
-                sku
-              );
-              Alert.alert('Success', 'Item verified successfully');
-              const updatedOrders = await inventoryService.getOrdersForItem(token, sku);
-              if (isMounted) {
-                setGroupedItems(prev =>
-                  prev.map(item => {
-                    if (item.sku === sku) {
-                      return {...item, orders: updatedOrders};
-                    }
-                    return item;
-                  })
-                );
-              }
-            } catch (error: any) {
-              console.error('Verify item error:', error);
-              const wasHandled = await handleApiError(error);
-              if (!wasHandled) {
-                Alert.alert('Error', error.message || 'Failed to verify item');
-              }
-            } finally {
-              if (isMounted) {
-                setVerifyingItems(prev => {
-                  const newState = {...prev};
-                  delete newState[verifyKey];
-                  return newState;
-                });
-              }
+    try {
+      setVerifyingItems(prev => ({...prev, [verifyKey]: true}));
+
+      const result = await inventoryService.verifyOrderItem(
+        token,
+        orderNumber,
+        itemIndex,
+        user.id || user._id,
+        verifyingSku,
+        receivedQty,
+        notes
+      );
+
+      // Show success message
+      const message = result.data?.fullyReceived
+        ? 'Item fully received and verified'
+        : `Partial receipt recorded - ${result.data?.remaining || 0} unit(s) remaining`;
+
+      Alert.alert('Success', message);
+
+      // Fetch updated data from database
+      const updatedOrders = await inventoryService.getOrdersForItem(token, verifyingSku);
+
+      if (isMounted) {
+        setGroupedItems(prev =>
+          prev.map(item => {
+            if (item.sku === verifyingSku) {
+              return {...item, orders: updatedOrders};
             }
-          },
-        },
-      ],
-      {cancelable: true}
-    );
+            return item;
+          })
+        );
+      }
+
+      // Close modal
+      setVerifyModalVisible(false);
+      setSelectedOrderForVerify(null);
+      setVerifyingSku('');
+    } catch (error: any) {
+      console.error('Verify item error:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        Alert.alert('Error', error.message || 'Failed to verify item');
+      }
+    } finally {
+      if (isMounted) {
+        setVerifyingItems(prev => {
+          const newState = {...prev};
+          delete newState[verifyKey];
+          return newState;
+        });
+      }
+    }
+  };
+
+  const handleCloseVerifyModal = () => {
+    setVerifyModalVisible(false);
+    setSelectedOrderForVerify(null);
+    setVerifyingSku('');
   };
   if (loading) {
     return (
@@ -475,11 +492,20 @@ export const InventoryScreen = () => {
                         </Typography>
                         {group.orders.map((order: any, index: number) => {
                           const isItemVerified = order.itemVerified === true;
+                          const hasPartialReceipts = (order.verificationHistory && order.verificationHistory.length > 0);
+                          const receivedQty = order.receivedQuantity || 0;
+                          const expectedQty = order.qty || 0;
+                          const remainingQty = Math.max(0, expectedQty - receivedQty);
+                          const isPartiallyVerified = receivedQty > 0 && receivedQty < expectedQty;
+
                           console.log(`[InventoryScreen] Order ${order.orderNumber} - index ${index}:`, {
                             itemVerified: order.itemVerified,
                             isItemVerified: isItemVerified,
                             itemVerifiedAt: order.itemVerifiedAt,
                             stockProcessed: order.stockProcessed,
+                            receivedQty,
+                            remainingQty,
+                            hasPartialReceipts,
                             fullOrder: order
                           });
                           return (
@@ -554,6 +580,55 @@ export const InventoryScreen = () => {
                                 {order.qty}
                               </Typography>
                             </View>
+                            {/* Show received/remaining if partial verification enabled */}
+                            {hasPartialReceipts && (
+                              <>
+                                <View style={styles.orderRow}>
+                                  <Typography
+                                    variant="caption"
+                                    color={theme.colors.gray[500]}
+                                    style={styles.orderLabel}>
+                                    Received
+                                  </Typography>
+                                  <Typography
+                                    variant="small"
+                                    weight="bold"
+                                    color={theme.colors.success[600]}>
+                                    {receivedQty}
+                                  </Typography>
+                                </View>
+                                <View style={styles.orderRow}>
+                                  <Typography
+                                    variant="caption"
+                                    color={theme.colors.gray[500]}
+                                    style={styles.orderLabel}>
+                                    Remaining
+                                  </Typography>
+                                  <Typography
+                                    variant="small"
+                                    weight="bold"
+                                    color={theme.colors.warning[600]}>
+                                    {remainingQty}
+                                  </Typography>
+                                </View>
+                                <View style={styles.orderRow}>
+                                  <Typography
+                                    variant="caption"
+                                    color={theme.colors.gray[500]}
+                                    style={styles.orderLabel}>
+                                    Verification History
+                                  </Typography>
+                                  <View style={styles.statusBadge}>
+                                    <Typography
+                                      variant="caption"
+                                      weight="medium"
+                                      color={theme.colors.primary[600]}>
+                                      {order.verificationHistory.length} receipt{order.verificationHistory.length !== 1 ? 's' : ''}
+                                    </Typography>
+                                  </View>
+                                </View>
+                              </>
+                            )}
                             <View style={styles.orderRow}>
                               <Typography
                                 variant="caption"
@@ -614,7 +689,7 @@ export const InventoryScreen = () => {
                                       weight="medium"
                                       color={theme.colors.success[600]}
                                       style={{marginLeft: 4}}>
-                                      Verified
+                                      Fully Verified
                                     </Typography>
                                   </View>
                                   {order.itemVerifiedAt && (
@@ -626,19 +701,44 @@ export const InventoryScreen = () => {
                                     </Typography>
                                   )}
                                 </View>
+                              ) : isPartiallyVerified ? (
+                                <View style={{alignItems: 'flex-end', gap: 2}}>
+                                  <View style={[styles.statusBadge, {backgroundColor: theme.colors.warning[100]}]}>
+                                    <Typography
+                                      variant="caption"
+                                      weight="medium"
+                                      color={theme.colors.warning[700]}>
+                                      Partial ({receivedQty}/{expectedQty})
+                                    </Typography>
+                                  </View>
+                                  <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onPress={() => handleVerifyItem(order, order.itemIndex, group.sku)}
+                                    loading={verifyingItems[`${order.orderNumber}-${order.itemIndex}`]}
+                                    disabled={verifyingItems[`${order.orderNumber}-${order.itemIndex}`]}
+                                    style={{paddingHorizontal: 12, paddingVertical: 6, marginTop: 4}}>
+                                    <Typography
+                                      variant="caption"
+                                      weight="medium"
+                                      color={theme.colors.white}>
+                                      {verifyingItems[`${order.orderNumber}-${order.itemIndex}`] ? 'Verifying...' : 'Verify More'}
+                                    </Typography>
+                                  </Button>
+                                </View>
                               ) : (
                                 <Button
                                   variant="primary"
                                   size="sm"
-                                  onPress={() => handleVerifyItem(order, index, group.sku)}
-                                  loading={verifyingItems[`${order.orderNumber}-${index}`]}
-                                  disabled={verifyingItems[`${order.orderNumber}-${index}`]}
+                                  onPress={() => handleVerifyItem(order, order.itemIndex, group.sku)}
+                                  loading={verifyingItems[`${order.orderNumber}-${order.itemIndex}`]}
+                                  disabled={verifyingItems[`${order.orderNumber}-${order.itemIndex}`]}
                                   style={{paddingHorizontal: 12, paddingVertical: 6}}>
                                   <Typography
                                     variant="caption"
                                     weight="medium"
                                     color={theme.colors.white}>
-                                    {verifyingItems[`${order.orderNumber}-${index}`] ? 'Verifying...' : 'Verify Arrival'}
+                                    {verifyingItems[`${order.orderNumber}-${order.itemIndex}`] ? 'Verifying...' : 'Verify Arrival'}
                                   </Typography>
                                 </Button>
                               )}
@@ -827,6 +927,15 @@ export const InventoryScreen = () => {
           })}
         </View>
       </ScrollView>
+
+      {/* Partial Verification Modal */}
+      <PartialVerificationModal
+        visible={verifyModalVisible}
+        onClose={handleCloseVerifyModal}
+        onConfirm={handleConfirmVerification}
+        order={selectedOrderForVerify}
+        loading={selectedOrderForVerify ? verifyingItems[`${selectedOrderForVerify.orderNumber}-${selectedOrderForVerify.itemIndex}`] : false}
+      />
     </SafeAreaView>
   );
 };

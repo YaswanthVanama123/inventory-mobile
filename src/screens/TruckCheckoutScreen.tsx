@@ -159,7 +159,7 @@ export const TruckCheckoutScreen = () => {
       return;
     }
     if (!user.truckNumber?.trim()) {
-      Alert.alert('Error', 'Truck number is required. Please update your profile.');
+      Alert.alert('Error', 'Route name is required. Please update your profile.');
       return;
     }
     if (!selectedItem) {
@@ -375,10 +375,10 @@ export const TruckCheckoutScreen = () => {
               placeholderTextColor={theme.colors.gray[400]}
             />
           </View>
-          {/* Truck Number */}
+          {/* Route Name */}
           <View style={styles.formGroup}>
             <Typography variant="body" weight="semibold" style={styles.label}>
-              Truck Number *
+              Route Name *
             </Typography>
             <RNTextInput
               style={[styles.input, styles.inputDisabled]}

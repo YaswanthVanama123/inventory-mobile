@@ -253,14 +253,14 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               <ChevronDownIcon size={20} color={theme.colors.gray[400]} />
             </TouchableOpacity>
           </View>
-          {/* Truck Number */}
+          {/* Route Name */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
-              Truck Number (Optional)
+              Route Name (Optional)
             </Typography>
             <RNTextInput
               style={styles.textInput}
-              placeholder="Enter truck number"
+              placeholder="Enter route name"
               value={truckNumber}
               onChangeText={setTruckNumber}
               placeholderTextColor={theme.colors.gray[400]}

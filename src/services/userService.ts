@@ -200,7 +200,7 @@ class UserService {
   async updateOwnTruckNumber(token: string, truckNumber: string) {
     try {
       const url = `${API_BASE_URL}/users/me/truck-number`;
-      console.log('[UserService] Updating own truck number');
+      console.log('[UserService] Updating own route name');
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -216,7 +216,7 @@ class UserService {
       const result = await response.json();
       return result.data;
     } catch (error: any) {
-      console.error('[UserService] Update truck number error:', error.message);
+      console.error('[UserService] Update route name error:', error.message);
       throw error;
     }
   }

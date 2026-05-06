@@ -159,7 +159,9 @@ class InventoryService {
     orderNumber: string,
     itemIndex: number,
     userId: string,
-    sku: string
+    sku: string,
+    receivedQty?: number,
+    notes?: string
   ) {
     try {
       const response = await fetch(
@@ -173,6 +175,8 @@ class InventoryService {
           body: JSON.stringify({
             userId,
             sku,
+            receivedQty,
+            notes: notes || '',
           }),
         }
       );
