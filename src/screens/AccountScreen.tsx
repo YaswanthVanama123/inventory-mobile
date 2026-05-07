@@ -5,7 +5,7 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {theme} from '../theme';
-import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon, TruckIcon} from '../components/icons';
+import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon, TruckIcon, TimelineIcon} from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
 import {OrdersScreen} from './OrdersScreen';
 import {ModelCategoryMappingScreen} from './ModelCategoryMappingScreen';
@@ -16,6 +16,7 @@ import {FetchHistoryScreen} from './FetchHistoryScreen';
 import {DiscrepancyManagementScreen} from './DiscrepancyManagementScreen';
 import {ManualPOItemsScreen} from './ManualPOItemsScreen';
 import {VendorManagementScreen} from './VendorManagementScreen';
+import {ActivityLogScreen} from './ActivityLogScreen';
 
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
@@ -29,6 +30,7 @@ export const AccountScreen = () => {
   const [discrepancyManagementVisible, setDiscrepancyManagementVisible] = useState(false);
   const [manualPOItemsVisible, setManualPOItemsVisible] = useState(false);
   const [vendorManagementVisible, setVendorManagementVisible] = useState(false);
+  const [activityLogVisible, setActivityLogVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -104,6 +106,26 @@ export const AccountScreen = () => {
                     </Typography>
                     <Typography variant="caption" color={theme.colors.gray[500]}>
                       Manage users and permissions
+                    </Typography>
+                  </View>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setActivityLogVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.adminIconBg]}>
+                    <TimelineIcon size={18} color={theme.colors.accent[600]} />
+                  </View>
+                  <View style={styles.menuTextContainer}>
+                    <Typography variant="body" weight="semibold">
+                      Activity Logs
+                    </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                      View all system activities
                     </Typography>
                   </View>
                 </View>
@@ -342,6 +364,13 @@ export const AccountScreen = () => {
         visible={vendorManagementVisible}
         onClose={() => setVendorManagementVisible(false)}
       />
+      {/* Activity Log Modal */}
+      {user?.role === 'admin' && (
+        <ActivityLogScreen
+          visible={activityLogVisible}
+          onClose={() => setActivityLogVisible(false)}
+        />
+      )}
     </SafeAreaView>
   );
 };

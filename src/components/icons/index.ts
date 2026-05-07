@@ -30,3 +30,8 @@ export {RefreshIcon} from './RefreshIcon';
 export {TruckIcon} from './TruckIcon';
 export {SearchIcon} from './SearchIcon';
 export {XIcon} from './XIcon';
+export {TimelineIcon} from './TimelineIcon';
+export {XCircleIcon} from './XCircleIcon';
+export {FilterIcon} from './FilterIcon';
+export {CloseIcon} from './CloseIcon';
+export {ChevronUpIcon} from './ChevronUpIcon';
