@@ -179,7 +179,7 @@ class UserService {
       const url = `${API_BASE_URL}/users/${userId}/reset-password`;
       console.log('[UserService] Resetting password for user:', userId);
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

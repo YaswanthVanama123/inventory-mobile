@@ -4,12 +4,15 @@
  */
 
 // Your local machine IP address
-const LOCAL_IP = '192.168.0.100';
+// For iOS Simulator, you can use 'localhost' or your machine's local IP
+const LOCAL_IP = 'localhost';
 
-// API Port
-const API_PORT = '3001';
+// API Port - inventory-server runs on 5001
+const API_PORT = '5001';
+
 // API Base URL
 export const API_BASE_URL = `http://${LOCAL_IP}:${API_PORT}/api`;
+
 // Export individual parts if needed
 export const LOCAL_HOST = LOCAL_IP;
 export const PORT = API_PORT;

@@ -1,4 +1,4 @@
-import api from './api';
+import {API_BASE_URL} from '../config/api';
 
 /**
  * Activity Log Service
@@ -9,10 +9,23 @@ class ActivityLogService {
   /**
    * Get activity logs with filtering
    */
-  async getActivityLogs(params = {}) {
+  async getActivityLogs(token: string, params: any = {}) {
     try {
-      const response = await api.get('/activity-logs', { params });
-      return response.data.data;
+      const queryParams = new URLSearchParams(params);
+      const response = await fetch(
+        `${API_BASE_URL}/activity-logs?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity logs');
+      }
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error('Get activity logs error:', error);
       throw error;
@@ -22,10 +35,23 @@ class ActivityLogService {
   /**
    * Get activity statistics
    */
-  async getActivityStats(params = {}) {
+  async getActivityStats(token: string, params: any = {}) {
     try {
-      const response = await api.get('/activity-logs/stats', { params });
-      return response.data.data;
+      const queryParams = new URLSearchParams(params);
+      const response = await fetch(
+        `${API_BASE_URL}/activity-logs/stats?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity stats');
+      }
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error('Get activity stats error:', error);
       throw error;
@@ -35,10 +61,23 @@ class ActivityLogService {
   /**
    * Get current user's activity logs
    */
-  async getMyActivities(params = {}) {
+  async getMyActivities(token: string, params: any = {}) {
     try {
-      const response = await api.get('/activity-logs/my-activities', { params });
-      return response.data.data;
+      const queryParams = new URLSearchParams(params);
+      const response = await fetch(
+        `${API_BASE_URL}/activity-logs/my-activities?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch my activities');
+      }
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error('Get my activities error:', error);
       throw error;
@@ -48,12 +87,22 @@ class ActivityLogService {
   /**
    * Get recent activities
    */
-  async getRecentActivities(limit = 20) {
+  async getRecentActivities(token: string, limit: number = 20) {
     try {
-      const response = await api.get('/activity-logs/recent', {
-        params: { limit }
-      });
-      return response.data.data;
+      const response = await fetch(
+        `${API_BASE_URL}/activity-logs/recent?limit=${limit}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch recent activities');
+      }
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error('Get recent activities error:', error);
       throw error;
@@ -63,10 +112,23 @@ class ActivityLogService {
   /**
    * Get activity breakdown
    */
-  async getActivityBreakdown(params = {}) {
+  async getActivityBreakdown(token: string, params: any = {}) {
     try {
-      const response = await api.get('/activity-logs/breakdown', { params });
-      return response.data.data;
+      const queryParams = new URLSearchParams(params);
+      const response = await fetch(
+        `${API_BASE_URL}/activity-logs/breakdown?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity breakdown');
+      }
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error('Get activity breakdown error:', error);
       throw error;
@@ -76,12 +138,23 @@ class ActivityLogService {
   /**
    * Get top active users
    */
-  async getTopActiveUsers(limit = 10, params = {}) {
+  async getTopActiveUsers(token: string, limit: number = 10, params: any = {}) {
     try {
-      const response = await api.get('/activity-logs/top-users', {
-        params: { limit, ...params }
-      });
-      return response.data.data;
+      const queryParams = new URLSearchParams({...params, limit: limit.toString()});
+      const response = await fetch(
+        `${API_BASE_URL}/activity-logs/top-users?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch top active users');
+      }
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error('Get top active users error:', error);
       throw error;
@@ -91,10 +164,23 @@ class ActivityLogService {
   /**
    * Get failed activities
    */
-  async getFailedActivities(params = {}) {
+  async getFailedActivities(token: string, params: any = {}) {
     try {
-      const response = await api.get('/activity-logs/failed', { params });
-      return response.data.data;
+      const queryParams = new URLSearchParams(params);
+      const response = await fetch(
+        `${API_BASE_URL}/activity-logs/failed?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch failed activities');
+      }
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error('Get failed activities error:', error);
       throw error;
@@ -104,12 +190,23 @@ class ActivityLogService {
   /**
    * Export activity logs
    */
-  async exportActivityLogs(params = {}, format = 'json') {
+  async exportActivityLogs(token: string, params: any = {}, format: string = 'json') {
     try {
-      const response = await api.get('/activity-logs/export', {
-        params: { ...params, format }
-      });
-      return response.data.data;
+      const queryParams = new URLSearchParams({...params, format});
+      const response = await fetch(
+        `${API_BASE_URL}/activity-logs/export?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error('Failed to export activity logs');
+      }
+      const data = await response.json();
+      return data.data;
     } catch (error) {
       console.error('Export activity logs error:', error);
       throw error;

@@ -71,17 +71,17 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
       setLoading(true);
       const [logsData, statsData] = await Promise.all([
         isAdmin
-          ? activityLogService.getActivityLogs({
+          ? activityLogService.getActivityLogs(token!, {
               page: 1,
               limit: 50,
               ...filters,
             })
-          : activityLogService.getMyActivities({
+          : activityLogService.getMyActivities(token!, {
               page: 1,
               limit: 50,
               ...filters,
             }),
-        isAdmin ? activityLogService.getActivityStats() : Promise.resolve(null),
+        isAdmin ? activityLogService.getActivityStats(token!, {}) : Promise.resolve(null),
       ]);
 
       setLogs(logsData.logs || []);
@@ -103,12 +103,12 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
     try {
       const nextPage = page + 1;
       const logsData = isAdmin
-        ? await activityLogService.getActivityLogs({
+        ? await activityLogService.getActivityLogs(token!, {
             page: nextPage,
             limit: 50,
             ...filters,
           })
-        : await activityLogService.getMyActivities({
+        : await activityLogService.getMyActivities(token!, {
             page: nextPage,
             limit: 50,
             ...filters,
