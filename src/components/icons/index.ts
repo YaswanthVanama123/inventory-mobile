@@ -35,3 +35,5 @@ export {XCircleIcon} from './XCircleIcon';
 export {FilterIcon} from './FilterIcon';
 export {CloseIcon} from './CloseIcon';
 export {ChevronUpIcon} from './ChevronUpIcon';
+export {GridIcon} from './GridIcon';
+export {BarChartIcon} from './BarChartIcon';

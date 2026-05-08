@@ -1,0 +1,788 @@
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {Typography} from '../components/atoms/Typography';
+import {Card} from '../components/atoms/Card';
+import {Button} from '../components/atoms/Button';
+import {Checkbox} from '../components/atoms/Checkbox';
+import {useAuth} from '../contexts/AuthContext';
+import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
+import {theme} from '../theme';
+import screenPermissionService, {
+  Screen,
+  UserWithPermissions,
+} from '../services/screenPermissionService';
+import {
+  ShieldIcon,
+  UserIcon,
+  CheckIcon,
+  XIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  RefreshIcon,
+} from '../components/icons';
+
+interface ScreenPermissionsManagementScreenProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+export const ScreenPermissionsManagementScreen: React.FC<
+  ScreenPermissionsManagementScreenProps
+> = ({visible, onClose}) => {
+  const {token} = useAuth();
+  const {handleApiError} = useApiErrorHandler();
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Data
+  const [allScreens, setAllScreens] = useState<Screen[]>([]);
+  const [defaultScreenIds, setDefaultScreenIds] = useState<string[]>([]);
+  const [users, setUsers] = useState<UserWithPermissions[]>([]);
+
+  // Selected user
+  const [selectedUser, setSelectedUser] = useState<UserWithPermissions | null>(null);
+  const [userScreenIds, setUserScreenIds] = useState<string[]>([]);
+
+  // Tabs
+  const [activeTab, setActiveTab] = useState<'default' | 'users'>('default');
+
+  // Category expansion
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (visible && token) {
+      loadData();
+    }
+  }, [visible, token]);
+
+  const loadData = async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch screens
+      const screensData = await screenPermissionService.getAllScreens(token);
+      setAllScreens(Array.isArray(screensData) ? screensData : []);
+
+      // Set default screen IDs
+      const defaultIds = screensData
+        .filter((screen: Screen) => screen.isDefault)
+        .map((screen: Screen) => screen._id);
+      setDefaultScreenIds(defaultIds);
+
+      // Expand all categories by default
+      const categories = [...new Set(screensData.map((s: Screen) => s.category))];
+      setExpandedCategories(new Set(categories));
+
+      // Fetch users
+      const usersData = await screenPermissionService.getAllUsersWithPermissions(token);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+    } catch (error: any) {
+      console.error('Failed to fetch data:', error);
+      const wasHandled = await handleApiError(error);
+      if (wasHandled) return;
+      setError(error.message || 'Failed to load data');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const groupScreensByCategory = (screens: Screen[]) => {
+    const grouped: Record<string, Screen[]> = {};
+    screens.forEach(screen => {
+      if (!grouped[screen.category]) {
+        grouped[screen.category] = [];
+      }
+      grouped[screen.category].push(screen);
+    });
+    return grouped;
+  };
+
+  const toggleCategory = (category: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category);
+    } else {
+      newExpanded.add(category);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  const handleToggleDefaultScreen = (screenId: string) => {
+    setDefaultScreenIds(prev =>
+      prev.includes(screenId) ? prev.filter(id => id !== screenId) : [...prev, screenId]
+    );
+  };
+
+  const handleSaveDefaultScreens = async () => {
+    try {
+      setSaving(true);
+      await screenPermissionService.updateDefaultScreens(token!, defaultScreenIds);
+      Alert.alert('Success', 'Default screens updated successfully');
+      await loadData();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update default screens');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleInitializeScreens = () => {
+    Alert.alert(
+      'Initialize Screens',
+      'This will create default screens based on your application routes. Continue?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Initialize',
+          onPress: async () => {
+            try {
+              setSaving(true);
+              await screenPermissionService.initializeScreens(token!);
+              Alert.alert('Success', 'Screens initialized successfully');
+              await loadData();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to initialize screens');
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSelectUser = async (user: UserWithPermissions) => {
+    try {
+      setSelectedUser(user);
+      const screens = await screenPermissionService.getUserScreens(token!, user._id);
+      setUserScreenIds(screens.map(s => s._id));
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to load user screens');
+    }
+  };
+
+  const handleToggleUserScreen = (screenId: string) => {
+    setUserScreenIds(prev =>
+      prev.includes(screenId) ? prev.filter(id => id !== screenId) : [...prev, screenId]
+    );
+  };
+
+  const handleSaveUserPermissions = async () => {
+    if (!selectedUser) return;
+    try {
+      setSaving(true);
+      await screenPermissionService.updateUserPermissions(
+        token!,
+        selectedUser._id,
+        userScreenIds
+      );
+      Alert.alert('Success', `Permissions updated for ${selectedUser.name}`);
+      await loadData();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update user permissions');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderDefaultScreensTab = () => {
+    const groupedScreens = groupScreensByCategory(allScreens);
+
+    return (
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={styles.tabContentInner}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary[600]}
+          />
+        }>
+        <View style={styles.header}>
+          <Typography variant="body" weight="semibold">
+            Default Screens for All Employees
+          </Typography>
+          <Typography variant="caption" color={theme.colors.gray[500]} style={styles.subtitle}>
+            {defaultScreenIds.length} of {allScreens.length} selected
+          </Typography>
+        </View>
+
+        <Button
+          variant="primary"
+          size="sm"
+          onPress={handleSaveDefaultScreens}
+          disabled={saving}
+          style={styles.saveButton}>
+          Save Changes
+        </Button>
+
+        {Object.entries(groupedScreens).map(([category, screens]) => {
+          const isExpanded = expandedCategories.has(category);
+          const enabledCount = screens.filter(s => defaultScreenIds.includes(s._id)).length;
+
+          return (
+            <Card key={category} variant="elevated" padding="none" style={styles.categoryCard}>
+              <TouchableOpacity
+                style={styles.categoryHeader}
+                onPress={() => toggleCategory(category)}>
+                <View style={styles.categoryHeaderLeft}>
+                  <Typography variant="body" weight="semibold">
+                    {category}
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    {enabledCount}/{screens.length} enabled
+                  </Typography>
+                </View>
+                {isExpanded ? (
+                  <ChevronUpIcon size={20} color={theme.colors.gray[600]} />
+                ) : (
+                  <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
+                )}
+              </TouchableOpacity>
+
+              {isExpanded && (
+                <View style={styles.screensList}>
+                  {screens.map(screen => {
+                    const isChecked = defaultScreenIds.includes(screen._id);
+                    return (
+                      <TouchableOpacity
+                        key={screen._id}
+                        style={styles.screenItem}
+                        onPress={() => handleToggleDefaultScreen(screen._id)}>
+                        <View style={styles.screenItemLeft}>
+                          <Checkbox
+                            checked={isChecked}
+                            onToggle={() => handleToggleDefaultScreen(screen._id)}
+                          />
+                          <View style={styles.screenInfo}>
+                            <Typography variant="body" weight="medium">
+                              {screen.displayName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color={theme.colors.gray[500]}
+                              style={styles.screenPath}>
+                              {screen.path}
+                            </Typography>
+                          </View>
+                        </View>
+                        {isChecked && (
+                          <CheckIcon size={16} color={theme.colors.success[600]} />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </Card>
+          );
+        })}
+      </ScrollView>
+    );
+  };
+
+  const renderUsersTab = () => {
+    const groupedScreens = selectedUser ? groupScreensByCategory(allScreens) : {};
+
+    return (
+      <View style={styles.usersTabContainer}>
+        {/* Users List */}
+        <ScrollView
+          style={styles.usersList}
+          contentContainerStyle={styles.usersListContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary[600]}
+            />
+          }>
+          <Typography
+            variant="body"
+            weight="semibold"
+            style={styles.usersListTitle}>
+            Employees
+          </Typography>
+          {users.map(user => {
+            const isSelected = selectedUser?._id === user._id;
+            return (
+              <TouchableOpacity
+                key={user._id}
+                style={[styles.userCard, isSelected && styles.userCardSelected]}
+                onPress={() => handleSelectUser(user)}>
+                <View style={styles.userAvatar}>
+                  <Typography variant="body" weight="bold" color={theme.colors.white}>
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                  </Typography>
+                </View>
+                <View style={styles.userInfo}>
+                  <Typography variant="body" weight="semibold">
+                    {user.name}
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    {user.email}
+                  </Typography>
+                  <View style={styles.userStats}>
+                    <Typography variant="caption" color={theme.colors.gray[600]}>
+                      {user.totalScreensCount} screens
+                    </Typography>
+                    {user.additionalScreensCount > 0 && (
+                      <Typography variant="caption" color={theme.colors.success[600]}>
+                        +{user.additionalScreensCount} additional
+                      </Typography>
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Selected User Screens */}
+        {selectedUser ? (
+          <ScrollView
+            style={styles.userScreensContainer}
+            contentContainerStyle={styles.userScreensContent}>
+            <View style={styles.userScreensHeader}>
+              <Typography variant="body" weight="semibold">
+                Permissions for {selectedUser.name}
+              </Typography>
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                {userScreenIds.length} screens selected
+              </Typography>
+            </View>
+
+            <Button
+              variant="primary"
+              size="sm"
+              onPress={handleSaveUserPermissions}
+              disabled={saving}
+              style={styles.saveButton}>
+              Save Permissions
+            </Button>
+
+            {Object.entries(groupedScreens).map(([category, screens]) => {
+              const isExpanded = expandedCategories.has(category);
+              const selectedInCategory = screens.filter(s => userScreenIds.includes(s._id))
+                .length;
+
+              return (
+                <Card
+                  key={category}
+                  variant="elevated"
+                  padding="none"
+                  style={styles.categoryCard}>
+                  <TouchableOpacity
+                    style={styles.categoryHeader}
+                    onPress={() => toggleCategory(category)}>
+                    <View style={styles.categoryHeaderLeft}>
+                      <Typography variant="body" weight="semibold">
+                        {category}
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        {selectedInCategory}/{screens.length} selected
+                      </Typography>
+                    </View>
+                    {isExpanded ? (
+                      <ChevronUpIcon size={20} color={theme.colors.gray[600]} />
+                    ) : (
+                      <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
+                    )}
+                  </TouchableOpacity>
+
+                  {isExpanded && (
+                    <View style={styles.screensList}>
+                      {screens.map(screen => {
+                        const isDefault = defaultScreenIds.includes(screen._id);
+                        const isSelected = userScreenIds.includes(screen._id);
+
+                        return (
+                          <TouchableOpacity
+                            key={screen._id}
+                            style={styles.screenItem}
+                            onPress={() => handleToggleUserScreen(screen._id)}>
+                            <View style={styles.screenItemLeft}>
+                              <Checkbox
+                                checked={isSelected}
+                                onToggle={() => handleToggleUserScreen(screen._id)}
+                              />
+                              <View style={styles.screenInfo}>
+                                <View style={styles.screenTitleRow}>
+                                  <Typography variant="body" weight="medium">
+                                    {screen.displayName}
+                                  </Typography>
+                                  {isDefault && (
+                                    <View style={styles.defaultBadge}>
+                                      <Typography
+                                        variant="caption"
+                                        color={theme.colors.primary[700]}
+                                        weight="medium">
+                                        Default
+                                      </Typography>
+                                    </View>
+                                  )}
+                                </View>
+                                <Typography
+                                  variant="caption"
+                                  color={theme.colors.gray[500]}
+                                  style={styles.screenPath}>
+                                  {screen.path}
+                                </Typography>
+                              </View>
+                            </View>
+                            {isSelected && (
+                              <CheckIcon size={16} color={theme.colors.success[600]} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </Card>
+              );
+            })}
+          </ScrollView>
+        ) : (
+          <View style={styles.noUserSelected}>
+            <UserIcon size={48} color={theme.colors.gray[300]} />
+            <Typography
+              variant="body"
+              color={theme.colors.gray[500]}
+              style={styles.noUserText}>
+              Select an employee to manage their permissions
+            </Typography>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {/* Header */}
+        <View style={styles.topHeader}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.iconContainer, styles.headerIcon]}>
+              <ShieldIcon size={22} color={theme.colors.accent[600]} />
+            </View>
+            <View>
+              <Typography variant="h2" weight="bold">
+                Screen Permissions
+              </Typography>
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                Manage screen access
+              </Typography>
+            </View>
+          </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <XIcon size={24} color={theme.colors.gray[600]} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          <Button
+            variant="outline"
+            size="sm"
+            onPress={handleInitializeScreens}
+            style={styles.actionButton}>
+            <RefreshIcon size={16} color={theme.colors.gray[700]} />
+            <Typography variant="small" weight="medium" color={theme.colors.gray[700]}>
+              Initialize
+            </Typography>
+          </Button>
+        </View>
+
+        {/* Tabs */}
+        <View style={styles.tabs}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'default' && styles.tabActive]}
+            onPress={() => setActiveTab('default')}>
+            <Typography
+              variant="body"
+              weight="semibold"
+              color={
+                activeTab === 'default' ? theme.colors.primary[600] : theme.colors.gray[500]
+              }>
+              Default Screens
+            </Typography>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'users' && styles.tabActive]}
+            onPress={() => setActiveTab('users')}>
+            <Typography
+              variant="body"
+              weight="semibold"
+              color={
+                activeTab === 'users' ? theme.colors.primary[600] : theme.colors.gray[500]
+              }>
+              User Permissions
+            </Typography>
+          </TouchableOpacity>
+        </View>
+
+        {/* Content */}
+        {loading && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.colors.primary[600]} />
+            <Typography
+              variant="body"
+              color={theme.colors.gray[500]}
+              style={styles.loadingText}>
+              Loading...
+            </Typography>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Typography variant="body" color={theme.colors.error[600]}>
+              {error}
+            </Typography>
+            <Button variant="outline" size="sm" onPress={loadData} style={styles.retryButton}>
+              Retry
+            </Button>
+          </View>
+        ) : (
+          <>
+            {activeTab === 'default' && renderDefaultScreensTab()}
+            {activeTab === 'users' && renderUsersTab()}
+          </>
+        )}
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.gray[50],
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[200],
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    flex: 1,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerIcon: {
+    backgroundColor: theme.colors.accent[100],
+  },
+  closeButton: {
+    padding: theme.spacing.sm,
+  },
+  actions: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[200],
+  },
+  actionButton: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabs: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[200],
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: theme.spacing.md,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: theme.colors.primary[600],
+  },
+  tabContent: {
+    flex: 1,
+  },
+  tabContentInner: {
+    padding: theme.spacing.lg,
+  },
+  header: {
+    marginBottom: theme.spacing.md,
+  },
+  subtitle: {
+    marginTop: 4,
+  },
+  saveButton: {
+    marginBottom: theme.spacing.md,
+  },
+  categoryCard: {
+    marginBottom: theme.spacing.md,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.gray[50],
+  },
+  categoryHeaderLeft: {
+    flex: 1,
+  },
+  screensList: {
+    padding: theme.spacing.sm,
+  },
+  screenItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+  },
+  screenItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    flex: 1,
+  },
+  screenInfo: {
+    flex: 1,
+  },
+  screenTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  screenPath: {
+    marginTop: 2,
+    fontFamily: 'monospace',
+  },
+  defaultBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.primary[100],
+  },
+  usersTabContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  usersList: {
+    width: '40%',
+    backgroundColor: theme.colors.white,
+    borderRightWidth: 1,
+    borderRightColor: theme.colors.gray[200],
+  },
+  usersListContent: {
+    padding: theme.spacing.md,
+  },
+  usersListTitle: {
+    marginBottom: theme.spacing.md,
+  },
+  userCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderRadius: 10,
+    marginBottom: theme.spacing.sm,
+    backgroundColor: theme.colors.gray[50],
+  },
+  userCardSelected: {
+    backgroundColor: theme.colors.primary[50],
+    borderWidth: 1,
+    borderColor: theme.colors.primary[200],
+  },
+  userAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.primary[600],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userStats: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: 2,
+  },
+  userScreensContainer: {
+    flex: 1,
+  },
+  userScreensContent: {
+    padding: theme.spacing.lg,
+  },
+  userScreensHeader: {
+    marginBottom: theme.spacing.md,
+  },
+  noUserSelected: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+  },
+  noUserText: {
+    marginTop: theme.spacing.md,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: theme.spacing.md,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+  },
+  retryButton: {
+    marginTop: theme.spacing.md,
+  },
+});

@@ -4,8 +4,9 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useUserScreens} from '../hooks/useUserScreens';
 import {theme} from '../theme';
-import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon, TruckIcon, TimelineIcon} from '../components/icons';
+import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon, TruckIcon, TimelineIcon, ShieldIcon, GridIcon, BarChartIcon} from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
 import {OrdersScreen} from './OrdersScreen';
 import {ModelCategoryMappingScreen} from './ModelCategoryMappingScreen';
@@ -17,9 +18,13 @@ import {DiscrepancyManagementScreen} from './DiscrepancyManagementScreen';
 import {ManualPOItemsScreen} from './ManualPOItemsScreen';
 import {VendorManagementScreen} from './VendorManagementScreen';
 import {ActivityLogScreen} from './ActivityLogScreen';
+import {ScreenPermissionsManagementScreen} from './ScreenPermissionsManagementScreen';
+import {ScreenManagementScreen} from './ScreenManagementScreen';
+import {ItemsInvoiceUsageScreen} from './ItemsInvoiceUsageScreen';
 
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
+  const {hasAccessToScreen} = useUserScreens();
   const [salesReportVisible, setSalesReportVisible] = useState(false);
   const [ordersVisible, setOrdersVisible] = useState(false);
   const [modelMappingVisible, setModelMappingVisible] = useState(false);
@@ -31,6 +36,9 @@ export const AccountScreen = () => {
   const [manualPOItemsVisible, setManualPOItemsVisible] = useState(false);
   const [vendorManagementVisible, setVendorManagementVisible] = useState(false);
   const [activityLogVisible, setActivityLogVisible] = useState(false);
+  const [screenPermissionsVisible, setScreenPermissionsVisible] = useState(false);
+  const [screenManagementVisible, setScreenManagementVisible] = useState(false);
+  const [itemsInvoiceUsageVisible, setItemsInvoiceUsageVisible] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -92,45 +100,99 @@ export const AccountScreen = () => {
               </Typography>
             </View>
             <Card variant="elevated" padding="none" style={styles.menuCard}>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => setUserManagementVisible(true)}
-                activeOpacity={0.7}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.menuIconContainer, styles.adminIconBg]}>
-                    <SettingsIcon size={18} color={theme.colors.accent[600]} />
+              {hasAccessToScreen('/users') && (
+                <>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => setUserManagementVisible(true)}
+                    activeOpacity={0.7}>
+                    <View style={styles.menuItemLeft}>
+                      <View style={[styles.menuIconContainer, styles.adminIconBg]}>
+                        <SettingsIcon size={18} color={theme.colors.accent[600]} />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Typography variant="body" weight="semibold">
+                          User Management
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Manage users and permissions
+                        </Typography>
+                      </View>
+                    </View>
+                    <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+                  </TouchableOpacity>
+                  <View style={styles.menuSeparator} />
+                </>
+              )}
+              {hasAccessToScreen('/activities') && (
+                <>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => setActivityLogVisible(true)}
+                    activeOpacity={0.7}>
+                    <View style={styles.menuItemLeft}>
+                      <View style={[styles.menuIconContainer, styles.adminIconBg]}>
+                        <TimelineIcon size={18} color={theme.colors.accent[600]} />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Typography variant="body" weight="semibold">
+                          Activity Logs
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          View all system activities
+                        </Typography>
+                      </View>
+                    </View>
+                    <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+                  </TouchableOpacity>
+                  <View style={styles.menuSeparator} />
+                </>
+              )}
+              {hasAccessToScreen('/admin/screen-permissions') && (
+                <>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => setScreenPermissionsVisible(true)}
+                    activeOpacity={0.7}>
+                    <View style={styles.menuItemLeft}>
+                      <View style={[styles.menuIconContainer, styles.adminIconBg]}>
+                        <ShieldIcon size={18} color={theme.colors.accent[600]} />
+                      </View>
+                      <View style={styles.menuTextContainer}>
+                        <Typography variant="body" weight="semibold">
+                          Screen Permissions
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Manage user screen access
+                        </Typography>
+                      </View>
+                    </View>
+                    <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+                  </TouchableOpacity>
+                  <View style={styles.menuSeparator} />
+                </>
+              )}
+              {hasAccessToScreen('/admin/screens') && (
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => setScreenManagementVisible(true)}
+                  activeOpacity={0.7}>
+                  <View style={styles.menuItemLeft}>
+                    <View style={[styles.menuIconContainer, styles.adminIconBg]}>
+                      <GridIcon size={18} color={theme.colors.accent[600]} />
+                    </View>
+                    <View style={styles.menuTextContainer}>
+                      <Typography variant="body" weight="semibold">
+                        Screen Management
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Manage app screens
+                      </Typography>
+                    </View>
                   </View>
-                  <View style={styles.menuTextContainer}>
-                    <Typography variant="body" weight="semibold">
-                      User Management
-                    </Typography>
-                    <Typography variant="caption" color={theme.colors.gray[500]}>
-                      Manage users and permissions
-                    </Typography>
-                  </View>
-                </View>
-                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-              </TouchableOpacity>
-              <View style={styles.menuSeparator} />
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => setActivityLogVisible(true)}
-                activeOpacity={0.7}>
-                <View style={styles.menuItemLeft}>
-                  <View style={[styles.menuIconContainer, styles.adminIconBg]}>
-                    <TimelineIcon size={18} color={theme.colors.accent[600]} />
-                  </View>
-                  <View style={styles.menuTextContainer}>
-                    <Typography variant="body" weight="semibold">
-                      Activity Logs
-                    </Typography>
-                    <Typography variant="caption" color={theme.colors.gray[500]}>
-                      View all system activities
-                    </Typography>
-                  </View>
-                </View>
-                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-              </TouchableOpacity>
+                  <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+                </TouchableOpacity>
+              )}
             </Card>
           </>
         )}
@@ -142,65 +204,79 @@ export const AccountScreen = () => {
           </Typography>
         </View>
         <Card variant="elevated" padding="none" style={styles.menuCard}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setModelMappingVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
-                <LinkIcon size={18} color={theme.colors.info[600]} />
+          {hasAccessToScreen('/routestar/model-mapping') && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setModelMappingVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
+                    <LinkIcon size={18} color={theme.colors.info[600]} />
+                  </View>
+                  <Typography variant="body" weight="medium">
+                    Model Mapping
+                  </Typography>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+            </>
+          )}
+          {hasAccessToScreen('/routestar/item-alias-mapping') && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setItemAliasVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
+                    <TagIcon size={18} color={theme.colors.info[600]} />
+                  </View>
+                  <Typography variant="body" weight="medium">
+                    Item Alias Mapping
+                  </Typography>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+            </>
+          )}
+          {hasAccessToScreen('/routestar/items') && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setRouteStarItemsVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
+                    <BoxIcon size={18} color={theme.colors.info[600]} />
+                  </View>
+                  <Typography variant="body" weight="medium">
+                    RouteStar Items
+                  </Typography>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+            </>
+          )}
+          {hasAccessToScreen('/manual-po-items') && (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setManualPOItemsVisible(true)}
+              activeOpacity={0.7}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
+                  <ClipboardIcon size={18} color={theme.colors.info[600]} />
+                </View>
+                <Typography variant="body" weight="medium">
+                  Manual PO Items
+                </Typography>
               </View>
-              <Typography variant="body" weight="medium">
-                Model Mapping
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <View style={styles.menuSeparator} />
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setItemAliasVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
-                <TagIcon size={18} color={theme.colors.info[600]} />
-              </View>
-              <Typography variant="body" weight="medium">
-                Item Alias Mapping
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <View style={styles.menuSeparator} />
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setRouteStarItemsVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
-                <BoxIcon size={18} color={theme.colors.info[600]} />
-              </View>
-              <Typography variant="body" weight="medium">
-                RouteStar Items
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <View style={styles.menuSeparator} />
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setManualPOItemsVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.inventoryIconBg]}>
-                <ClipboardIcon size={18} color={theme.colors.info[600]} />
-              </View>
-              <Typography variant="body" weight="medium">
-                Manual PO Items
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
+              <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+            </TouchableOpacity>
+          )}
         </Card>
 
         {/* Orders & Vendors Section */}
@@ -210,65 +286,79 @@ export const AccountScreen = () => {
           </Typography>
         </View>
         <Card variant="elevated" padding="none" style={styles.menuCard}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setOrdersVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
-                <ClipboardIcon size={18} color={theme.colors.success[600]} />
+          {hasAccessToScreen('/orders') && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setOrdersVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
+                    <ClipboardIcon size={18} color={theme.colors.success[600]} />
+                  </View>
+                  <Typography variant="body" weight="medium">
+                    Purchase Orders
+                  </Typography>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+            </>
+          )}
+          {hasAccessToScreen('/vendors') && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setVendorManagementVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
+                    <TruckIcon size={18} color={theme.colors.success[600]} />
+                  </View>
+                  <Typography variant="body" weight="medium">
+                    Vendors
+                  </Typography>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+            </>
+          )}
+          {hasAccessToScreen('/system/fetch-history') && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setFetchHistoryVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
+                    <ClockIcon size={18} color={theme.colors.success[600]} />
+                  </View>
+                  <Typography variant="body" weight="medium">
+                    Fetch History
+                  </Typography>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+            </>
+          )}
+          {hasAccessToScreen('/discrepancies') && (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setDiscrepancyManagementVisible(true)}
+              activeOpacity={0.7}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
+                  <AlertCircleIcon size={18} color={theme.colors.success[600]} />
+                </View>
+                <Typography variant="body" weight="medium">
+                  Discrepancy Management
+                </Typography>
               </View>
-              <Typography variant="body" weight="medium">
-                Purchase Orders
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <View style={styles.menuSeparator} />
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setVendorManagementVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
-                <TruckIcon size={18} color={theme.colors.success[600]} />
-              </View>
-              <Typography variant="body" weight="medium">
-                Vendors
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <View style={styles.menuSeparator} />
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setFetchHistoryVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
-                <ClockIcon size={18} color={theme.colors.success[600]} />
-              </View>
-              <Typography variant="body" weight="medium">
-                Fetch History
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
-          <View style={styles.menuSeparator} />
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setDiscrepancyManagementVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.ordersIconBg]}>
-                <AlertCircleIcon size={18} color={theme.colors.success[600]} />
-              </View>
-              <Typography variant="body" weight="medium">
-                Discrepancy Management
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
+              <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+            </TouchableOpacity>
+          )}
         </Card>
 
         {/* Reports Section */}
@@ -278,20 +368,41 @@ export const AccountScreen = () => {
           </Typography>
         </View>
         <Card variant="elevated" padding="none" style={styles.menuCard}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setSalesReportVisible(true)}
-            activeOpacity={0.7}>
-            <View style={styles.menuItemLeft}>
-              <View style={[styles.menuIconContainer, styles.reportsIconBg]}>
-                <FileTextIcon size={18} color={theme.colors.warning[600]} />
+          {hasAccessToScreen('/routestar/sales-report') && (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setSalesReportVisible(true)}
+                activeOpacity={0.7}>
+                <View style={styles.menuItemLeft}>
+                  <View style={[styles.menuIconContainer, styles.reportsIconBg]}>
+                    <FileTextIcon size={18} color={theme.colors.warning[600]} />
+                  </View>
+                  <Typography variant="body" weight="medium">
+                    Sales Report
+                  </Typography>
+                </View>
+                <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+              </TouchableOpacity>
+              <View style={styles.menuSeparator} />
+            </>
+          )}
+          {hasAccessToScreen('/routestar/items-invoice-usage') && (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setItemsInvoiceUsageVisible(true)}
+              activeOpacity={0.7}>
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.menuIconContainer, styles.reportsIconBg]}>
+                  <BarChartIcon size={18} color={theme.colors.warning[600]} />
+                </View>
+                <Typography variant="body" weight="medium">
+                  Items Invoice Usage
+                </Typography>
               </View>
-              <Typography variant="body" weight="medium">
-                Sales Report
-              </Typography>
-            </View>
-            <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-          </TouchableOpacity>
+              <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+            </TouchableOpacity>
+          )}
         </Card>
 
         {/* Logout Button */}
@@ -371,6 +482,25 @@ export const AccountScreen = () => {
           onClose={() => setActivityLogVisible(false)}
         />
       )}
+      {/* Screen Permissions Management Modal */}
+      {user?.role === 'admin' && (
+        <ScreenPermissionsManagementScreen
+          visible={screenPermissionsVisible}
+          onClose={() => setScreenPermissionsVisible(false)}
+        />
+      )}
+      {/* Screen Management Modal */}
+      {user?.role === 'admin' && (
+        <ScreenManagementScreen
+          visible={screenManagementVisible}
+          onClose={() => setScreenManagementVisible(false)}
+        />
+      )}
+      {/* Items Invoice Usage Modal */}
+      <ItemsInvoiceUsageScreen
+        visible={itemsInvoiceUsageVisible}
+        onClose={() => setItemsInvoiceUsageVisible(false)}
+      />
     </SafeAreaView>
   );
 };
