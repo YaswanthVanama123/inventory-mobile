@@ -298,16 +298,24 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
 
                     {/* Item Meta */}
                     <View style={styles.itemMeta}>
-                      {item.mappedCategoryItemName && (
-                        <View style={styles.metaRow}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Mapped Category
-                          </Typography>
-                          <Typography variant="small" weight="medium">
-                            {item.mappedCategoryItemName}
-                          </Typography>
-                        </View>
-                      )}
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Mapped Category
+                        </Typography>
+                        {item.mappedCategoryItemName ? (
+                          <View style={styles.mappedBadge}>
+                            <Typography variant="small" weight="medium" color={theme.colors.success[700]}>
+                              {item.mappedCategoryItemName}
+                            </Typography>
+                          </View>
+                        ) : (
+                          <View style={styles.unmappedBadge}>
+                            <Typography variant="small" weight="medium" color={theme.colors.gray[500]}>
+                              Not Mapped
+                            </Typography>
+                          </View>
+                        )}
+                      </View>
                       {item.description && (
                         <View style={styles.metaRow}>
                           <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -493,6 +501,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  mappedBadge: {
+    backgroundColor: theme.colors.success[50],
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  unmappedBadge: {
+    backgroundColor: theme.colors.gray[100],
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   expandedContent: {
     borderTopWidth: 1,

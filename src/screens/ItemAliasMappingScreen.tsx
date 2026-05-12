@@ -28,6 +28,8 @@ import {
   WarningIcon,
   TagIcon,
   LinkIcon,
+  EditIcon,
+  CloseIcon,
 } from '../components/icons';
 
 interface ItemAliasMappingScreenProps {
@@ -61,6 +63,14 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
   const [quickCanonicalName, setQuickCanonicalName] = useState('');
   const [quickMapSelectedItems, setQuickMapSelectedItems] = useState<Set<string>>(new Set());
   const [quickMapSearchQuery, setQuickMapSearchQuery] = useState('');
+
+  // Edit Mapping state
+  const [editMappingVisible, setEditMappingVisible] = useState(false);
+  const [editingMapping, setEditingMapping] = useState<any>(null);
+  const [editCanonicalName, setEditCanonicalName] = useState('');
+  const [editSelectedAliases, setEditSelectedAliases] = useState<Set<string>>(new Set());
+  const [editSearchQuery, setEditSearchQuery] = useState('');
+  const [showMappingsSection, setShowMappingsSection] = useState(false);
   useEffect(() => {
     if (visible && token) {
       loadData();
@@ -133,7 +143,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
     );
     if (currentMapping) {
       setQuickCanonicalName(currentMapping.canonicalName);
-      const aliasNames = new Set(currentMapping.aliases.map((a: any) => a.name));
+      const aliasNames = new Set<string>(currentMapping.aliases.map((a: any) => a.name));
       setQuickMapSelectedItems(aliasNames);
     } else {
       setQuickMapSelectedItems(new Set([item.itemName]));
@@ -203,6 +213,79 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
       loadData();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to create mapping');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Edit Mapping functions
+  const openEditMapping = (mapping: any) => {
+    setEditingMapping(mapping);
+    setEditCanonicalName(mapping.canonicalName);
+    const aliasNames = new Set<string>(mapping.aliases.map((a: any) => a.name));
+    setEditSelectedAliases(aliasNames);
+    setEditSearchQuery('');
+    setEditMappingVisible(true);
+  };
+
+  const toggleEditAlias = (itemName: string) => {
+    const newSelected = new Set(editSelectedAliases);
+    if (newSelected.has(itemName)) {
+      if (newSelected.size === 1) {
+        Alert.alert('Warning', 'You must have at least one alias');
+        return;
+      }
+      newSelected.delete(itemName);
+    } else {
+      newSelected.add(itemName);
+    }
+    setEditSelectedAliases(newSelected);
+  };
+
+  const getFilteredItemsForEdit = () => {
+    return uniqueItems.filter(item => {
+      // Show unmapped items or items already in this mapping
+      const isAvailable = !item.isMapped ||
+        (editingMapping && item.canonicalName === editingMapping.canonicalName);
+      if (!isAvailable) return false;
+      if (editSearchQuery) {
+        const searchLower = editSearchQuery.toLowerCase();
+        return (
+          item.itemName.toLowerCase().includes(searchLower) ||
+          (item.itemParent && item.itemParent.toLowerCase().includes(searchLower))
+        );
+      }
+      return true;
+    });
+  };
+
+  const editMappingSubmit = async () => {
+    if (!editCanonicalName.trim()) {
+      Alert.alert('Error', 'Please enter a canonical name');
+      return;
+    }
+    if (editSelectedAliases.size === 0) {
+      Alert.alert('Error', 'Please select at least one alias');
+      return;
+    }
+    try {
+      setSaving(true);
+      await itemAliasService.deleteMapping(token!, editingMapping._id);
+      await itemAliasService.saveMapping(token!, {
+        canonicalName: editCanonicalName.trim(),
+        aliases: Array.from(editSelectedAliases),
+        description: 'Updated mapping',
+        autoMerge: true,
+      });
+      Alert.alert('Success', `Updated mapping for "${editCanonicalName}"`);
+      setEditMappingVisible(false);
+      setEditingMapping(null);
+      setEditCanonicalName('');
+      setEditSelectedAliases(new Set());
+      setEditSearchQuery('');
+      loadData();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to update mapping');
     } finally {
       setSaving(false);
     }
@@ -307,6 +390,54 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                 </View>
               </View>
             </View>
+            {/* Existing Mappings Section */}
+            <Card variant="elevated" padding="md" style={styles.mappingsSection}>
+              <TouchableOpacity
+                style={styles.mappingsSectionHeader}
+                onPress={() => setShowMappingsSection(!showMappingsSection)}>
+                <Typography variant="body" weight="bold">
+                  Existing Mappings ({mappings.length})
+                </Typography>
+                {showMappingsSection ? (
+                  <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
+                ) : (
+                  <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
+                )}
+              </TouchableOpacity>
+              {showMappingsSection && (
+                <View style={styles.mappingsList}>
+                  {mappings.map((mapping: any, idx: number) => (
+                    <TouchableOpacity
+                      key={mapping._id || idx}
+                      style={[styles.mappingItem, idx > 0 && styles.mappingItemBorder]}
+                      onPress={() => openEditMapping(mapping)}>
+                      <View style={styles.mappingItemContent}>
+                        <Typography variant="body" weight="semibold" numberOfLines={1}>
+                          {mapping.canonicalName}
+                        </Typography>
+                        <View style={styles.aliasChipsRow}>
+                          {mapping.aliases.slice(0, 3).map((alias: any, aIdx: number) => (
+                            <View key={aIdx} style={styles.aliasChip}>
+                              <Typography variant="caption" color={theme.colors.primary[700]}>
+                                {alias.name}
+                              </Typography>
+                            </View>
+                          ))}
+                          {mapping.aliases.length > 3 && (
+                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                              +{mapping.aliases.length - 3} more
+                            </Typography>
+                          )}
+                        </View>
+                      </View>
+                      <View style={styles.editBadge}>
+                        <EditIcon size={16} color={theme.colors.primary[600]} />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </Card>
             {/* Filter Tabs */}
             <View style={styles.tabsContainer}>
               <TouchableOpacity
@@ -597,7 +728,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                         </View>
                       </View>
                       <View style={styles.selectableItemContent}>
-                        <Typography variant="small" weight={isSelected ? 'semibold' : 'regular'} numberOfLines={1}>
+                        <Typography variant="small" weight={isSelected ? 'semibold' : 'normal'} numberOfLines={1}>
                           {item.itemName}
                           {item.itemName === quickMapItem?.itemName && (
                             <Typography variant="caption" color={theme.colors.primary[600]}> (Main)</Typography>
@@ -618,6 +749,117 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   variant="primary"
                   onPress={quickMapSubmit}
                   disabled={saving || !quickCanonicalName.trim()}
+                  fullWidth
+                />
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
+        {/* Edit Mapping Modal */}
+        <Modal
+          visible={editMappingVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setEditMappingVisible(false)}>
+          <SafeAreaView style={styles.modalContainer} edges={['top', 'left', 'right']}>
+            <View style={styles.quickMapHeader}>
+              <TouchableOpacity onPress={() => setEditMappingVisible(false)} style={styles.closeButton}>
+                <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
+                  Cancel
+                </Typography>
+              </TouchableOpacity>
+              <Typography variant="h3" weight="bold" style={styles.modalTitle}>
+                Edit Mapping
+              </Typography>
+              <View style={styles.closeButton} />
+            </View>
+            <ScrollView style={styles.quickMapScroll} contentContainerStyle={styles.quickMapContent}>
+              {/* Canonical Name Input */}
+              <View style={styles.inputSection}>
+                <Typography variant="small" weight="semibold" style={styles.inputLabel}>
+                  Canonical Name *
+                </Typography>
+                <RNTextInput
+                  style={styles.textInput}
+                  placeholder="Enter canonical name"
+                  value={editCanonicalName}
+                  onChangeText={setEditCanonicalName}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+              {/* Current Aliases */}
+              <Card variant="elevated" padding="md" style={styles.selectedItemsCard}>
+                <Typography variant="small" weight="semibold" color={theme.colors.success[700]}>
+                  Aliases ({editSelectedAliases.size})
+                </Typography>
+                <View style={styles.selectedItemsContainer}>
+                  {Array.from(editSelectedAliases).map((name, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.editAliasChip}
+                      onPress={() => toggleEditAlias(name)}>
+                      <Typography variant="caption" color={theme.colors.success[700]}>
+                        {name}
+                      </Typography>
+                      <CloseIcon size={12} color={theme.colors.success[700]} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 8}}>
+                  Tap an alias to remove it. Select items below to add new aliases.
+                </Typography>
+              </Card>
+              {/* Search Items to Add */}
+              <View style={styles.inputSection}>
+                <Typography variant="small" weight="semibold" style={styles.inputLabel}>
+                  Add Aliases from Items
+                </Typography>
+                <RNTextInput
+                  style={styles.textInput}
+                  placeholder="Search unmapped items..."
+                  value={editSearchQuery}
+                  onChangeText={setEditSearchQuery}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+              {/* Items List */}
+              <Card variant="elevated" padding="none" style={styles.itemsListCard}>
+                {getFilteredItemsForEdit().map((item, idx) => {
+                  const isSelected = editSelectedAliases.has(item.itemName);
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[
+                        styles.selectableItem,
+                        isSelected && styles.selectableItemSelected,
+                        idx > 0 && styles.selectableItemBorder,
+                      ]}
+                      onPress={() => toggleEditAlias(item.itemName)}>
+                      <View style={styles.checkboxContainer}>
+                        <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                          {isSelected && <CheckCircleIcon size={16} color={theme.colors.white} />}
+                        </View>
+                      </View>
+                      <View style={styles.selectableItemContent}>
+                        <Typography variant="small" weight={isSelected ? 'semibold' : 'normal'} numberOfLines={1}>
+                          {item.itemName}
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          {item.itemParent || 'No parent'} • Qty: {item.qtyOnHand?.toFixed(2) || '0'}
+                        </Typography>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </Card>
+              {/* Action Buttons */}
+              <View style={styles.actionButtons}>
+                <Button
+                  title={saving ? 'Saving...' : `Update Mapping (${editSelectedAliases.size} aliases)`}
+                  variant="primary"
+                  onPress={editMappingSubmit}
+                  disabled={saving || !editCanonicalName.trim() || editSelectedAliases.size === 0}
                   fullWidth
                 />
               </View>
@@ -899,5 +1141,58 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     marginTop: theme.spacing.md,
+  },
+  mappingsSection: {
+    marginBottom: theme.spacing.lg,
+  },
+  mappingsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  mappingsList: {
+    marginTop: theme.spacing.md,
+  },
+  mappingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+  },
+  mappingItemBorder: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray[200],
+  },
+  mappingItemContent: {
+    flex: 1,
+  },
+  aliasChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 4,
+  },
+  aliasChip: {
+    backgroundColor: theme.colors.primary[100],
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  editBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.primary[50],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  editAliasChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.success[100],
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
 });
