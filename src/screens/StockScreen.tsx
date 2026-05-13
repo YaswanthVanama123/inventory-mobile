@@ -620,7 +620,7 @@ export const StockScreen = () => {
                                           </Typography>
                                           <TouchableOpacity
                                             onPress={() => {
-                                              const stockRemaining = (sku.totalPurchased || 0) - (sku.totalSold || 0) - (sku.totalCheckedOut || 0);
+                                              const stockRemaining = (sku.totalPurchased || 0) - (sku.totalSold || 0) - (sku.totalCheckedOut || 0) + (sku.totalDiscrepancyDifference || 0);
                                               const itemNameUpper = sku.itemName.toUpperCase();
                                               const categoryKeywords = ['WHITE', 'BLACK', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'BROWN', 'GRAY', 'GREY', 'ORANGE', 'PINK', 'PURPLE'];
                                               let actualCategory = null;
@@ -1009,28 +1009,14 @@ export const StockScreen = () => {
                 <Typography variant="small" weight="semibold" style={{marginBottom: 8}}>
                   Discrepancy Type *
                 </Typography>
-                <View style={styles.pickerContainer}>
-                  {['Overage', 'Shortage', 'Damage', 'Missing'].map((type) => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[
-                        styles.pickerOption,
-                        discrepancyFormData.discrepancyType === type && styles.pickerOptionActive,
-                      ]}
-                      onPress={() =>
-                        setDiscrepancyFormData({...discrepancyFormData, discrepancyType: type})
-                      }>
-                      <Typography
-                        variant="small"
-                        color={
-                          discrepancyFormData.discrepancyType === type
-                            ? theme.colors.white
-                            : theme.colors.gray[700]
-                        }>
-                        {type}
-                      </Typography>
-                    </TouchableOpacity>
-                  ))}
+                <View style={[styles.input, styles.inputDisabled, {justifyContent: 'center'}]}>
+                  <Typography
+                    variant="body"
+                    color={discrepancyFormData.discrepancyType ? theme.colors.gray[900] : theme.colors.gray[400]}>
+                    {discrepancyFormData.discrepancyType
+                      ? `${discrepancyFormData.discrepancyType} (${discrepancyFormData.discrepancyType === 'Overage' ? 'More than expected' : 'Less than expected'})`
+                      : 'Auto-detected from difference'}
+                  </Typography>
                 </View>
               </View>
               <View style={styles.formGroup}>
