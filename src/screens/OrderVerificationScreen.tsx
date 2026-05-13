@@ -34,7 +34,9 @@ interface OrderItem {
   name: string;
   itemName?: string;
   qty: number;
-  receivedQuantity: number;
+  previouslyReceived: number;
+  receivingNow: number;
+  verificationHistory?: any[];
   notes?: string;
 }
 export const OrderVerificationScreen: React.FC<
@@ -55,9 +57,11 @@ export const OrderVerificationScreen: React.FC<
     }
   }, [orderId, token]);
   useEffect(() => {
-    const discrepancies = items.some(
-      item => parseFloat(item.receivedQuantity.toString()) !== item.qty,
-    );
+    const discrepancies = items.some(item => {
+      const receivingNow = parseFloat(item.receivingNow.toString()) || 0;
+      const totalAfterThis = item.previouslyReceived + receivingNow;
+      return totalAfterThis !== item.qty;
+    });
     setHasDiscrepancies(discrepancies);
   }, [items]);
   const fetchOrder = async () => {
@@ -70,7 +74,8 @@ export const OrderVerificationScreen: React.FC<
         setItems(
           response.items.map((item: any) => ({
             ...item,
-            receivedQuantity: item.qty,
+            previouslyReceived: item.receivedQuantity || 0,
+            receivingNow: Math.max(0, (item.qty || 0) - (item.receivedQuantity || 0)),
             itemName: item.name,
           })),
         );
@@ -88,7 +93,7 @@ export const OrderVerificationScreen: React.FC<
   };
   const handleQuantityChange = (index: number, value: string) => {
     const newItems = [...items];
-    newItems[index].receivedQuantity = parseFloat(value) || 0;
+    newItems[index].receivingNow = parseFloat(value) || 0;
     setItems(newItems);
   };
   const handleAllGood = async () => {
@@ -137,8 +142,8 @@ export const OrderVerificationScreen: React.FC<
   const handleSubmitWithDiscrepancies = async () => {
     if (!token || !orderId) return;
     Alert.alert(
-      'Submit Discrepancies',
-      'This will record the discrepancies for admin approval.',
+      'Submit Verification',
+      'This will record the received quantities. Any remaining items will be tracked for future receipts.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -150,7 +155,7 @@ export const OrderVerificationScreen: React.FC<
                 sku: item.sku,
                 itemName: item.itemName || item.name,
                 expectedQuantity: item.qty,
-                receivedQuantity: parseFloat(item.receivedQuantity.toString()) || 0,
+                receivedQuantity: parseFloat(item.receivingNow.toString()) || 0,
                 notes: item.notes || '',
               }));
               const response = await orderDiscrepancyService.verifyOrder(
@@ -162,10 +167,13 @@ export const OrderVerificationScreen: React.FC<
                   notes: notes.trim(),
                 },
               );
-              const discrepancyCount = response.discrepancies?.length || 0;
+              const {partiallyVerifiedItems = [], fullyReceived = false} = response;
+              const message = fullyReceived
+                ? 'Order fully received and verified'
+                : `Partial receipt recorded - ${partiallyVerifiedItems.length} item(s) still pending`;
               Alert.alert(
                 'Success',
-                `Order verified with ${discrepancyCount} discrepancy(ies) recorded`,
+                message,
                 [
                   {
                     text: 'OK',
@@ -179,7 +187,7 @@ export const OrderVerificationScreen: React.FC<
               if (!wasHandled) {
                 Alert.alert(
                   'Error',
-                  error.message || 'Failed to submit discrepancies',
+                  error.message || 'Failed to submit verification',
                 );
               }
             } finally {
@@ -215,7 +223,7 @@ export const OrderVerificationScreen: React.FC<
       </SafeAreaView>
     );
   }
-  if (order.status === 'received' || order.status === 'completed') {
+  if (order.verified) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
@@ -281,14 +289,16 @@ export const OrderVerificationScreen: React.FC<
             Instructions
           </Typography>
           <Typography variant="body2" style={styles.instructionText}>
-            • Enter the actual quantity received for each item
+            • Enter the quantity being received now for each item
           </Typography>
           <Typography variant="body2" style={styles.instructionText}>
-            • If all items match exactly, click "All Good"
+            • Previously received quantities are shown
           </Typography>
           <Typography variant="body2" style={styles.instructionText}>
-            • If there are differences, they will be recorded as discrepancies
-            for admin approval
+            • If all remaining items are received, click "All Good"
+          </Typography>
+          <Typography variant="body2" style={styles.instructionText}>
+            • Otherwise, adjust quantities and submit
           </Typography>
         </Card>
         {/* Items List */}
@@ -297,22 +307,31 @@ export const OrderVerificationScreen: React.FC<
             Order Items ({items.length})
           </Typography>
           {items.map((item, index) => {
-            const received = parseFloat(item.receivedQuantity.toString()) || 0;
+            const receivingNow = parseFloat(item.receivingNow.toString()) || 0;
+            const previouslyReceived = item.previouslyReceived || 0;
             const expected = item.qty;
-            const difference = received - expected;
-            const hasDiscrepancy = difference !== 0;
+            const totalAfterThis = previouslyReceived + receivingNow;
+            const remaining = Math.max(0, expected - totalAfterThis);
+            const isFullyReceived = totalAfterThis >= expected;
+            const isPartial = previouslyReceived > 0 && !isFullyReceived;
             return (
               <View
                 key={index}
                 style={[
                   styles.itemRow,
-                  hasDiscrepancy && styles.itemRowDiscrepancy,
+                  isPartial && styles.itemRowPartial,
+                  !isFullyReceived && receivingNow < (expected - previouslyReceived) && styles.itemRowDiscrepancy,
                 ]}>
                 <View style={styles.itemInfo}>
                   <Typography variant="h4">{item.name}</Typography>
                   <Typography variant="body2" style={styles.itemSku}>
                     {item.sku}
                   </Typography>
+                  {item.verificationHistory && item.verificationHistory.length > 0 && (
+                    <Typography variant="body2" style={styles.previousReceiptText}>
+                      {item.verificationHistory.length} previous receipt(s)
+                    </Typography>
+                  )}
                 </View>
                 <View style={styles.quantityRow}>
                   <View style={styles.quantityItem}>
@@ -323,55 +342,53 @@ export const OrderVerificationScreen: React.FC<
                   </View>
                   <View style={styles.quantityItem}>
                     <Typography variant="body2" style={styles.quantityLabel}>
-                      Received
+                      Prev Received
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      style={previouslyReceived > 0 ? styles.previousReceivedValue : styles.zeroValue}>
+                      {previouslyReceived}
+                    </Typography>
+                  </View>
+                </View>
+                <View style={styles.quantityRow}>
+                  <View style={styles.quantityItem}>
+                    <Typography variant="body2" style={styles.quantityLabel}>
+                      Receiving Now
                     </Typography>
                     <RNTextInput
                       style={styles.quantityInput}
-                      value={item.receivedQuantity.toString()}
+                      value={item.receivingNow.toString()}
                       onChangeText={value => handleQuantityChange(index, value)}
                       keyboardType="numeric"
                     />
                   </View>
                   <View style={styles.quantityItem}>
                     <Typography variant="body2" style={styles.quantityLabel}>
-                      Difference
+                      Remaining
                     </Typography>
-                    {hasDiscrepancy ? (
-                      <Typography
-                        variant="h4"
-                        style={[
-                          styles.differenceText,
-                          difference > 0
-                            ? styles.differenceOver
-                            : styles.differenceShort,
-                        ]}>
-                        {difference > 0 ? '+' : ''}
-                        {difference}
-                      </Typography>
-                    ) : (
-                      <Typography
-                        variant="h4"
-                        style={styles.differenceMatched}>
-                        -
-                      </Typography>
-                    )}
+                    <Typography
+                      variant="h4"
+                      style={remaining === 0 ? styles.differenceMatched : styles.differenceShort}>
+                      {remaining}
+                    </Typography>
                   </View>
                 </View>
-                {hasDiscrepancy && (
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      difference > 0
-                        ? styles.statusOverage
-                        : styles.statusShortage,
-                    ]}>
-                    <Typography
-                      variant="body2"
-                      style={styles.statusBadgeText}>
-                      {difference > 0 ? 'Overage' : 'Shortage'}
-                    </Typography>
-                  </View>
-                )}
+                <View
+                  style={[
+                    styles.statusBadge,
+                    isFullyReceived
+                      ? styles.statusComplete
+                      : previouslyReceived > 0
+                      ? styles.statusPartial
+                      : styles.statusShortage,
+                  ]}>
+                  <Typography
+                    variant="body2"
+                    style={styles.statusBadgeText}>
+                    {isFullyReceived ? 'Complete' : previouslyReceived > 0 ? 'Partial' : 'Pending'}
+                  </Typography>
+                </View>
               </View>
             );
           })}
@@ -396,8 +413,8 @@ export const OrderVerificationScreen: React.FC<
           <Card style={[styles.card, styles.warningCard]}>
             <AlertCircleIcon size={20} color={theme.colors.warning} />
             <Typography variant="body2" style={styles.warningText}>
-              Some items have quantity differences. These will be recorded as
-              discrepancies and sent to admin for approval.
+              Some items will not be fully received after this verification.
+              The remaining quantities will be tracked for future receipts.
             </Typography>
           </Card>
         )}
@@ -423,7 +440,7 @@ export const OrderVerificationScreen: React.FC<
                 <>
                   <CheckCircleIcon size={20} color={theme.colors.white} />
                   <Typography style={styles.allGoodButtonText}>
-                    All Good - Everything Matches
+                    All Good - Everything Received
                   </Typography>
                 </>
               )}
@@ -442,7 +459,7 @@ export const OrderVerificationScreen: React.FC<
                 <>
                   <ClipboardIcon size={20} color={theme.colors.white} />
                   <Typography style={styles.submitButtonText}>
-                    Submit with Discrepancies
+                    Submit Partial Receipt
                   </Typography>
                 </>
               )}
@@ -560,12 +577,20 @@ const styles = StyleSheet.create({
   itemRowDiscrepancy: {
     backgroundColor: theme.colors.warning + '20',
   },
+  itemRowPartial: {
+    backgroundColor: theme.colors.info + '15',
+  },
   itemInfo: {
     marginBottom: theme.spacing.sm,
   },
   itemSku: {
     color: theme.colors.textSecondary,
     marginTop: theme.spacing.xs,
+  },
+  previousReceiptText: {
+    color: theme.colors.info,
+    marginTop: theme.spacing.xs,
+    fontSize: 12,
   },
   quantityRow: {
     flexDirection: 'row',
@@ -604,6 +629,13 @@ const styles = StyleSheet.create({
   differenceMatched: {
     color: theme.colors.success,
   },
+  previousReceivedValue: {
+    color: theme.colors.info,
+    fontWeight: 'bold',
+  },
+  zeroValue: {
+    color: theme.colors.textSecondary,
+  },
   statusBadge: {
     paddingVertical: theme.spacing.xs,
     paddingHorizontal: theme.spacing.sm,
@@ -615,6 +647,12 @@ const styles = StyleSheet.create({
   },
   statusShortage: {
     backgroundColor: theme.colors.warning,
+  },
+  statusComplete: {
+    backgroundColor: theme.colors.success,
+  },
+  statusPartial: {
+    backgroundColor: theme.colors.info,
   },
   statusBadgeText: {
     color: theme.colors.white,

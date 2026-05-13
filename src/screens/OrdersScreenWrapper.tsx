@@ -374,14 +374,15 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                   </View>
                 </TouchableOpacity>
                 {/* Verify Order Button */}
-                {(order.status === 'received' || order.status === 'Complete') &&
-                  !order.stockProcessed && (
+                {!order.verified && (
                     <TouchableOpacity
                       style={styles.verifyButton}
                       onPress={() => handleVerifyOrder(order)}>
                       <CheckCircleIcon size={16} color={theme.colors.white} />
                       <Typography style={styles.verifyButtonText}>
-                        Verify Order
+                        {order.items?.some((i: any) => (i.receivedQuantity || 0) > 0 && (i.receivedQuantity || 0) < i.qty)
+                          ? 'Verify Remaining'
+                          : 'Verify Order'}
                       </Typography>
                     </TouchableOpacity>
                   )}
