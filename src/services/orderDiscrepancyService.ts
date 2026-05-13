@@ -196,5 +196,30 @@ class OrderDiscrepancyService {
       throw error;
     }
   }
+  async deleteOrderDiscrepancy(token: string, id: string) {
+    try {
+      const url = `${API_BASE_URL}/order-discrepancies/${id}`;
+      console.log('[OrderDiscrepancy] Deleting:', id);
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      if (result.success) {
+        return result;
+      }
+      throw new Error(result.message || 'Failed to delete discrepancy');
+    } catch (error: any) {
+      console.error('[OrderDiscrepancy] Delete error:', error.message);
+      throw error;
+    }
+  }
 }
 export default new OrderDiscrepancyService();

@@ -77,68 +77,31 @@ export const OrderDiscrepancyListScreen: React.FC<
     await loadData();
     setRefreshing(false);
   };
-  const handleApprove = (discrepancy: any) => {
+  const handleDelete = (discrepancy: any) => {
     Alert.alert(
-      'Approve Discrepancy',
-      `This will approve the discrepancy and automatically adjust stock for ${discrepancy.itemName}.\n\nStock Movement: ${
-        discrepancy.discrepancyType === 'Shortage' ? 'OUT' : 'IN'
-      } ${Math.abs(discrepancy.discrepancyQuantity)} units`,
+      'Delete Discrepancy',
+      `Are you sure you want to delete this discrepancy for ${discrepancy.itemName}? This action cannot be undone.`,
       [
         {text: 'Cancel', style: 'cancel'},
         {
-          text: 'Approve',
-          onPress: async () => {
-            if (!token) return;
-            try {
-              await orderDiscrepancyService.approveOrderDiscrepancy(
-                token,
-                discrepancy._id,
-              );
-              Alert.alert(
-                'Success',
-                'Order discrepancy approved and stock adjusted',
-              );
-              loadData();
-            } catch (error: any) {
-              console.error('Approve error:', error);
-              const wasHandled = await handleApiError(error);
-              if (!wasHandled) {
-                Alert.alert(
-                  'Error',
-                  error.message || 'Failed to approve discrepancy',
-                );
-              }
-            }
-          },
-        },
-      ],
-    );
-  };
-  const handleReject = (discrepancy: any) => {
-    Alert.alert(
-      'Reject Discrepancy',
-      `This will reject the discrepancy for ${discrepancy.itemName}. No stock adjustments will be made.`,
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Reject',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             if (!token) return;
             try {
-              await orderDiscrepancyService.rejectOrderDiscrepancy(
+              await orderDiscrepancyService.deleteOrderDiscrepancy(
                 token,
                 discrepancy._id,
               );
-              Alert.alert('Success', 'Order discrepancy rejected');
+              Alert.alert('Success', 'Order discrepancy deleted');
               loadData();
             } catch (error: any) {
-              console.error('Reject error:', error);
+              console.error('Delete error:', error);
               const wasHandled = await handleApiError(error);
               if (!wasHandled) {
                 Alert.alert(
                   'Error',
-                  error.message || 'Failed to reject discrepancy',
+                  error.message || 'Failed to delete discrepancy',
                 );
               }
             }
@@ -531,27 +494,11 @@ export const OrderDiscrepancyListScreen: React.FC<
                           </Typography>
                         </View>
                       )}
-                    </View>
-                  )}
-                  {isAdmin && discrepancy.status === 'pending' && (
-                    <View style={styles.actionButtons}>
                       <TouchableOpacity
-                        style={styles.approveButton}
-                        onPress={() => handleApprove(discrepancy)}>
-                        <CheckCircleIcon
-                          size={16}
-                          color={theme.colors.white}
-                        />
-                        <Typography style={styles.approveButtonText}>
-                          Approve
-                        </Typography>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.rejectButton}
-                        onPress={() => handleReject(discrepancy)}>
-                        <XCircleIcon size={16} color={theme.colors.white} />
-                        <Typography style={styles.rejectButtonText}>
-                          Reject
+                        style={styles.deleteButton}
+                        onPress={() => handleDelete(discrepancy)}>
+                        <Typography style={styles.deleteButtonText}>
+                          Delete Discrepancy
                         </Typography>
                       </TouchableOpacity>
                     </View>
@@ -739,37 +686,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: theme.spacing.xs,
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
+  deleteButton: {
+    alignItems: 'center',
+    padding: theme.spacing.sm,
     marginTop: theme.spacing.sm,
-  },
-  approveButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing.sm,
-    backgroundColor: theme.colors.success,
     borderRadius: theme.borderRadius.md,
-    gap: theme.spacing.xs,
+    borderWidth: 1,
+    borderColor: theme.colors.error,
   },
-  approveButtonText: {
-    color: theme.colors.white,
-    fontWeight: 'bold',
-  },
-  rejectButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing.sm,
-    backgroundColor: theme.colors.error,
-    borderRadius: theme.borderRadius.md,
-    gap: theme.spacing.xs,
-  },
-  rejectButtonText: {
-    color: theme.colors.white,
+  deleteButtonText: {
+    color: theme.colors.error,
     fontWeight: 'bold',
   },
 });
