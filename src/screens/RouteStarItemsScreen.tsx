@@ -169,18 +169,11 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
     );
   };
   const getItemStatus = (item: any) => {
-    if (item.forUse && item.forSell) return 'both';
-    if (item.forUse) return 'forUse';
-    if (item.forSell) return 'forSell';
-    return 'unmarked';
+    return item.isMapped ? 'mapped' : 'unmapped';
   };
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'both':
-        return theme.colors.primary[600];
-      case 'forUse':
-        return theme.colors.primary[600];
-      case 'forSell':
+      case 'mapped':
         return theme.colors.success[600];
       default:
         return theme.colors.warning[600];
@@ -188,11 +181,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
   };
   const getStatusBgColor = (status: string) => {
     switch (status) {
-      case 'both':
-        return theme.colors.primary[100];
-      case 'forUse':
-        return theme.colors.primary[100];
-      case 'forSell':
+      case 'mapped':
         return theme.colors.success[100];
       default:
         return theme.colors.warning[100];
@@ -200,14 +189,10 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
   };
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'both':
-        return 'Both';
-      case 'forUse':
-        return 'For Use';
-      case 'forSell':
-        return 'For Sell';
+      case 'mapped':
+        return 'Mapped';
       default:
-        return 'Unmarked';
+        return 'Unmapped';
     }
   };
   return (
