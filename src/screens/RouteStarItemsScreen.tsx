@@ -48,6 +48,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterForUse, setFilterForUse] = useState(false);
   const [filterForSell, setFilterForSell] = useState(false);
+  const [filterMapped, setFilterMapped] = useState('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
@@ -61,7 +62,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
     if (visible && token) {
       loadData();
     }
-  }, [visible, token, filterForUse, filterForSell]);
+  }, [visible, token, filterForUse, filterForSell, filterMapped]);
   useEffect(() => {
     const timer = setTimeout(() => {
       if (visible && token) {
@@ -82,6 +83,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
       if (searchQuery) params.search = searchQuery;
       if (filterForUse) params.forUse = true;
       if (filterForSell) params.forSell = true;
+      if (filterMapped !== 'all') params.mapped = filterMapped;
       const data = await routeStarItemsService.getItemsWithStats(token, params);
       console.log('[RouteStarItemsScreen] Page data loaded:', {
         items: data.items?.length || 0,
@@ -327,6 +329,33 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                   trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
                   thumbColor={theme.colors.white}
                 />
+              </View>
+              <View style={styles.filterRow}>
+                <Typography variant="small" weight="medium">
+                  Status Filter
+                </Typography>
+                <View style={{flexDirection: 'row', gap: 6}}>
+                  {['all', 'mapped', 'unmapped'].map((option) => (
+                    <TouchableOpacity
+                      key={option}
+                      onPress={() => setFilterMapped(option)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 16,
+                        backgroundColor: filterMapped === option
+                          ? (option === 'mapped' ? theme.colors.success[600] : option === 'unmapped' ? theme.colors.warning[600] : theme.colors.primary[600])
+                          : theme.colors.gray[200],
+                      }}>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={filterMapped === option ? theme.colors.white : theme.colors.gray[700]}>
+                        {option === 'all' ? 'All' : option === 'mapped' ? 'Mapped' : 'Unmapped'}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             </Card>
             {/* Search Bar */}
