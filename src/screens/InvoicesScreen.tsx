@@ -227,7 +227,7 @@ export const InvoicesScreen = () => {
   };
   const getPaymentStatusColor = (paymentStatus: string) => {
     const colors: {[key: string]: string} = {
-      pending: theme.colors.warning[600],
+      pending: theme.colors.primary[600],
       paid: theme.colors.success[600],
       overdue: theme.colors.error[600],
     };
@@ -244,7 +244,7 @@ export const InvoicesScreen = () => {
   };
   const getPaymentStatusBgColor = (paymentStatus: string) => {
     const colors: {[key: string]: string} = {
-      pending: theme.colors.warning[100],
+      pending: theme.colors.primary[100],
       paid: theme.colors.success[100],
       overdue: theme.colors.error[100],
     };

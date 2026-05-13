@@ -178,7 +178,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
       case 'mapped':
         return theme.colors.success[600];
       default:
-        return theme.colors.warning[600];
+        return theme.colors.primary[600];
     }
   };
   const getStatusBgColor = (status: string) => {
@@ -186,7 +186,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
       case 'mapped':
         return theme.colors.success[100];
       default:
-        return theme.colors.warning[100];
+        return theme.colors.primary[100];
     }
   };
   const getStatusLabel = (status: string) => {
@@ -285,7 +285,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                 </View>
               </View>
               <View style={[styles.statCardWrapper, {width: '33.33%'}]}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.warning[600]}]}>
+                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <WarningIcon size={16} color={theme.colors.white} />
                   <Typography variant="caption" style={styles.statLabel}>
                     Unmarked
@@ -344,7 +344,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                         paddingVertical: 6,
                         borderRadius: 16,
                         backgroundColor: filterMapped === option
-                          ? (option === 'mapped' ? theme.colors.success[600] : option === 'unmapped' ? theme.colors.warning[600] : theme.colors.primary[600])
+                          ? (option === 'mapped' ? theme.colors.success[600] : option === 'unmapped' ? theme.colors.primary[600] : theme.colors.primary[600])
                           : theme.colors.gray[200],
                       }}>
                       <Typography

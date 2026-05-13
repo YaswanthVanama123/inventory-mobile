@@ -301,4 +301,55 @@ class TruckCheckoutService {
     }
   }
 }
+  /**
+   * Get a single checkout by ID
+   */
+  async getCheckout(token: string, checkoutId: string) {
+    try {
+      const url = `${API_BASE_URL}/truck-checkouts/${checkoutId}`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return null;
+    } catch (error: any) {
+      console.error('[TruckCheckout] Get checkout error:', error.message);
+      throw error;
+    }
+  }
+  /**
+   * Delete a checkout
+   */
+  async deleteCheckout(token: string, checkoutId: string) {
+    try {
+      const url = `${API_BASE_URL}/truck-checkouts/${checkoutId}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      return result;
+    } catch (error: any) {
+      console.error('[TruckCheckout] Delete checkout error:', error.message);
+      throw error;
+    }
+  }
+}
 export default new TruckCheckoutService();

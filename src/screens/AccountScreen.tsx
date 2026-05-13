@@ -376,7 +376,7 @@ export const AccountScreen = () => {
                 activeOpacity={0.7}>
                 <View style={styles.menuItemLeft}>
                   <View style={[styles.menuIconContainer, styles.reportsIconBg]}>
-                    <FileTextIcon size={18} color={theme.colors.warning[600]} />
+                    <FileTextIcon size={18} color={theme.colors.primary[600]} />
                   </View>
                   <Typography variant="body" weight="medium">
                     Sales Report
@@ -394,7 +394,7 @@ export const AccountScreen = () => {
               activeOpacity={0.7}>
               <View style={styles.menuItemLeft}>
                 <View style={[styles.menuIconContainer, styles.reportsIconBg]}>
-                  <BarChartIcon size={18} color={theme.colors.warning[600]} />
+                  <BarChartIcon size={18} color={theme.colors.primary[600]} />
                 </View>
                 <Typography variant="body" weight="medium">
                   Items Invoice Usage
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.success[100],
   },
   reportsIconBg: {
-    backgroundColor: theme.colors.warning[100],
+    backgroundColor: theme.colors.primary[100],
   },
   logoutButton: {
     flexDirection: 'row',

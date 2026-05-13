@@ -169,7 +169,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   const getStatusColor = (status: string) => {
     const statusMap: {[key: string]: string} = {
       Complete: theme.colors.success[600],
-      Processing: theme.colors.warning[600],
+      Processing: theme.colors.primary[600],
       Shipped: theme.colors.primary[600],
       Cancelled: theme.colors.error[600],
       Pending: theme.colors.gray[500],
@@ -180,7 +180,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   const getStatusBgColor = (status: string) => {
     const statusMap: {[key: string]: string} = {
       Complete: theme.colors.success[100],
-      Processing: theme.colors.warning[100],
+      Processing: theme.colors.primary[100],
       Shipped: theme.colors.primary[100],
       Cancelled: theme.colors.error[100],
       Pending: theme.colors.gray[100],
@@ -230,7 +230,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               <Typography
                 variant="h2"
                 weight="bold"
-                color={theme.colors.warning[600]}>
+                color={theme.colors.primary[600]}>
                 {stats.pending}
               </Typography>
             </Card>
@@ -368,7 +368,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                           color={theme.colors.success[600]}
                         />
                       ) : (
-                        <ClockIcon size={20} color={theme.colors.warning[600]} />
+                        <ClockIcon size={20} color={theme.colors.primary[600]} />
                       )}
                     </View>
                   </View>

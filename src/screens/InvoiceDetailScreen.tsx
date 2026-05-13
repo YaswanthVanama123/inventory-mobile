@@ -83,7 +83,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   const getStatusColor = (status: string) => {
     const colors: {[key: string]: string} = {
       draft: theme.colors.gray[500],
-      pending: theme.colors.warning[600],
+      pending: theme.colors.primary[600],
       issued: theme.colors.primary[600],
       paid: theme.colors.success[600],
       cancelled: theme.colors.error[600],
@@ -92,7 +92,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   };
   const getPaymentStatusColor = (paymentStatus: string) => {
     const colors: {[key: string]: string} = {
-      pending: theme.colors.warning[600],
+      pending: theme.colors.primary[600],
       paid: theme.colors.success[600],
       overdue: theme.colors.error[600],
     };
@@ -101,7 +101,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   const getStatusBgColor = (status: string) => {
     const colors: {[key: string]: string} = {
       draft: theme.colors.gray[100],
-      pending: theme.colors.warning[100],
+      pending: theme.colors.primary[100],
       issued: theme.colors.primary[100],
       paid: theme.colors.success[100],
       cancelled: theme.colors.error[100],
@@ -110,7 +110,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   };
   const getPaymentStatusBgColor = (paymentStatus: string) => {
     const colors: {[key: string]: string} = {
-      pending: theme.colors.warning[100],
+      pending: theme.colors.primary[100],
       paid: theme.colors.success[100],
       overdue: theme.colors.error[100],
     };
@@ -463,7 +463,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                           backgroundColor:
                             invoice.stockStatus === 'Processed'
                               ? theme.colors.success[100]
-                              : theme.colors.warning[100],
+                              : theme.colors.primary[100],
                         },
                       ]}>
                       <Typography
@@ -472,7 +472,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                         color={
                           invoice.stockStatus === 'Processed'
                             ? theme.colors.success[700]
-                            : theme.colors.warning[700]
+                            : theme.colors.primary[700]
                         }>
                         {invoice.stockStatus}
                       </Typography>

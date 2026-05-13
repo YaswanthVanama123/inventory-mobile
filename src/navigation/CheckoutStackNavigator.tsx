@@ -2,6 +2,7 @@ import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {TruckCheckoutListScreen} from '../screens/TruckCheckoutListScreen';
 import {TruckCheckoutScreen} from '../screens/TruckCheckoutScreen';
+import {TruckCheckoutDetailScreen} from '../screens/TruckCheckoutDetailScreen';
 import {TouchableOpacity} from 'react-native';
 import {Typography} from '../components/atoms/Typography';
 import {PlusIcon} from '../components/icons';
@@ -10,6 +11,7 @@ import {theme} from '../theme';
 export type CheckoutStackParamList = {
   CheckoutList: undefined;
   CheckoutForm: undefined;
+  CheckoutDetail: {checkoutId: string};
 };
 
 const Stack = createNativeStackNavigator<CheckoutStackParamList>();
@@ -56,6 +58,23 @@ export const CheckoutStackNavigator = () => {
         options={{
           headerShown: true,
           title: 'New Checkout',
+          headerStyle: {
+            backgroundColor: theme.colors.white,
+          },
+          headerTitleStyle: {
+            fontSize: 18,
+            fontWeight: '600',
+            color: theme.colors.gray[900],
+          },
+          headerBackTitle: 'Back',
+        }}
+      />
+      <Stack.Screen
+        name="CheckoutDetail"
+        component={TruckCheckoutDetailScreen}
+        options={{
+          headerShown: true,
+          title: 'Checkout Details',
           headerStyle: {
             backgroundColor: theme.colors.white,
           },

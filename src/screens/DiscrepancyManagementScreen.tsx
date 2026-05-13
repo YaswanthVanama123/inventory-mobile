@@ -199,7 +199,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
-        return {bg: theme.colors.warning[100], text: theme.colors.warning[700]};
+        return {bg: theme.colors.primary[100], text: theme.colors.primary[700]};
       case 'Approved':
         return {bg: theme.colors.success[100], text: theme.colors.success[700]};
       case 'Rejected':
@@ -212,7 +212,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'Pending':
-        return <ClockIcon size={14} color={theme.colors.warning[600]} />;
+        return <ClockIcon size={14} color={theme.colors.primary[600]} />;
       case 'Approved':
         return <CheckCircleIcon size={14} color={theme.colors.success[600]} />;
       case 'Rejected':
@@ -229,7 +229,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       case 'Shortage':
         return {bg: theme.colors.error[100], text: theme.colors.error[700]};
       case 'Damage':
-        return {bg: theme.colors.warning[100], text: theme.colors.warning[700]};
+        return {bg: theme.colors.primary[100], text: theme.colors.primary[700]};
       case 'Missing':
         return {bg: '#9333ea20', text: '#9333ea'};
       default:
@@ -307,8 +307,8 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         {summary && (
           <View style={styles.summaryContainer}>
             <View style={styles.summaryGrid}>
-              <View style={[styles.summaryCard, {backgroundColor: theme.colors.warning[100]}]}>
-                <ClockIcon size={20} color={theme.colors.warning[600]} />
+              <View style={[styles.summaryCard, {backgroundColor: theme.colors.primary[100]}]}>
+                <ClockIcon size={20} color={theme.colors.primary[600]} />
                 <Typography variant="h3" weight="bold" style={{marginTop: 4}}>
                   {summary.pending || 0}
                 </Typography>

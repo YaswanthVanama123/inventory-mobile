@@ -596,7 +596,7 @@ export const InventoryScreen = () => {
                                   <Typography
                                     variant="small"
                                     weight="bold"
-                                    color={theme.colors.warning[600]}>
+                                    color={theme.colors.primary[600]}>
                                     {remainingQty}
                                   </Typography>
                                 </View>
@@ -692,11 +692,11 @@ export const InventoryScreen = () => {
                                 </View>
                               ) : isPartiallyVerified ? (
                                 <View style={{alignItems: 'flex-end', gap: 2}}>
-                                  <View style={[styles.statusBadge, {backgroundColor: theme.colors.warning[100]}]}>
+                                  <View style={[styles.statusBadge, {backgroundColor: theme.colors.primary[100]}]}>
                                     <Typography
                                       variant="caption"
                                       weight="medium"
-                                      color={theme.colors.warning[700]}>
+                                      color={theme.colors.primary[700]}>
                                       Partial ({receivedQty}/{expectedQty})
                                     </Typography>
                                   </View>
@@ -877,7 +877,7 @@ export const InventoryScreen = () => {
                                 <Typography
                                   variant="caption"
                                   weight="medium"
-                                  color={invoice.stockProcessed ? theme.colors.success[700] : theme.colors.warning[700]}>
+                                  color={invoice.stockProcessed ? theme.colors.success[700] : theme.colors.primary[700]}>
                                   {invoice.stockProcessed ? 'Yes' : 'No'}
                                 </Typography>
                               </View>
@@ -1105,6 +1105,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: theme.colors.warning[100],
+    backgroundColor: theme.colors.primary[100],
   },
 });

@@ -362,7 +362,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                 </View>
               </View>
               <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.warning[600]}]}>
+                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <WarningIcon size={18} color={theme.colors.white} />
                   <Typography variant="caption" style={styles.statLabel}>
                     Unmapped

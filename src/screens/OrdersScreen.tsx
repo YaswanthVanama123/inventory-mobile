@@ -264,7 +264,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   const getStatusColor = (status: string) => {
     const statusMap: {[key: string]: string} = {
       Complete: theme.colors.success[600],
-      Processing: theme.colors.warning[600],
+      Processing: theme.colors.primary[600],
       Shipped: theme.colors.primary[600],
       Cancelled: theme.colors.error[600],
       Pending: theme.colors.gray[500],
@@ -274,7 +274,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   const getStatusBgColor = (status: string) => {
     const statusMap: {[key: string]: string} = {
       Complete: theme.colors.success[100],
-      Processing: theme.colors.warning[100],
+      Processing: theme.colors.primary[100],
       Shipped: theme.colors.primary[100],
       Cancelled: theme.colors.error[100],
       Pending: theme.colors.gray[100],
@@ -354,7 +354,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 </View>
               </View>
               <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.warning[600]}]}>
+                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <ClockIcon size={20} color={theme.colors.white} />
                   <Typography variant="caption" style={styles.statLabel}>
                     Pending
@@ -571,11 +571,11 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                             </Typography>
                           </View>
                         ) : (
-                          <View style={[styles.statusBadge, {backgroundColor: theme.colors.warning[100]}]}>
+                          <View style={[styles.statusBadge, {backgroundColor: theme.colors.primary[100]}]}>
                             <Typography
                               variant="caption"
                               weight="semibold"
-                              color={theme.colors.warning[600]}>
+                              color={theme.colors.primary[600]}>
                               Pending
                             </Typography>
                           </View>
@@ -656,11 +656,11 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                                   )}
                                 </View>
                               ) : (
-                                <View style={[styles.statusBadge, {backgroundColor: theme.colors.warning[100]}]}>
+                                <View style={[styles.statusBadge, {backgroundColor: theme.colors.primary[100]}]}>
                                   <Typography
                                     variant="caption"
                                     weight="semibold"
-                                    color={theme.colors.warning[600]}>
+                                    color={theme.colors.primary[600]}>
                                     Not Verified
                                   </Typography>
                                 </View>

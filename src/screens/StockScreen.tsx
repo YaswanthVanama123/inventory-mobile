@@ -293,7 +293,7 @@ export const StockScreen = () => {
               </View>
             </View>
             <View style={styles.statCard}>
-              <View style={[{backgroundColor: theme.colors.warning[600]}, styles.statCardContent]}>
+              <View style={[{backgroundColor: theme.colors.primary[600]}, styles.statCardContent]}>
                 <Typography variant="caption" style={styles.statLabel}>
                   Checked Out
                 </Typography>
@@ -606,7 +606,7 @@ export const StockScreen = () => {
                                         <Typography variant="caption" color={theme.colors.gray[500]}>
                                           Checked Out
                                         </Typography>
-                                        <Typography variant="body" weight="bold" color={theme.colors.warning[600]}>
+                                        <Typography variant="body" weight="bold" color={theme.colors.primary[600]}>
                                           {sku.totalCheckedOut || 0}
                                         </Typography>
                                       </View>
@@ -860,7 +860,7 @@ export const StockScreen = () => {
                                                 ? theme.colors.success[600]
                                                 : record.status === 'Rejected'
                                                 ? theme.colors.error[600]
-                                                : theme.colors.warning[600]
+                                                : theme.colors.primary[600]
                                             }>
                                             {record.status}
                                           </Typography>

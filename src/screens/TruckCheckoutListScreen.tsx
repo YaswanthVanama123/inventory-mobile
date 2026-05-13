@@ -9,6 +9,7 @@ import {
   TextInput as RNTextInput,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
@@ -20,6 +21,8 @@ import {
   ClockIcon,
   CheckCircleIcon,
   AlertCircleIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
 } from '../components/icons';
 import {formatDateTime} from '../utils/dateUtils';
 
@@ -28,6 +31,7 @@ type SubTabType = 'all' | 'employees';
 
 export const TruckCheckoutListScreen = () => {
   const {token} = useAuth();
+  const navigation = useNavigation<any>();
   const {handleApiError} = useApiErrorHandler();
   const [activeTab, setActiveTab] = useState<TabType>('checkouts');
   const [checkoutsSubTab, setCheckoutsSubTab] = useState<SubTabType>('all');
@@ -36,6 +40,7 @@ export const TruckCheckoutListScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
   const [checkouts, setCheckouts] = useState<any[]>([]);
+  const [expandedCheckout, setExpandedCheckout] = useState<string | null>(null);
   const [pagination, setPagination] = useState({total: 0, page: 1, limit: 50, pages: 0});
   const [employees, setEmployees] = useState<any[]>([]);
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
@@ -261,7 +266,7 @@ export const TruckCheckoutListScreen = () => {
   };
   const getStatusBadge = (status: string) => {
     const config: any = {
-      checked_out: {color: theme.colors.warning[600], label: 'Checked Out'},
+      checked_out: {color: theme.colors.primary[600], label: 'Checked Out'},
       completed: {color: theme.colors.success[600], label: 'Completed'},
       cancelled: {color: theme.colors.error[600], label: 'Cancelled'},
     };
@@ -277,7 +282,7 @@ export const TruckCheckoutListScreen = () => {
   const getStatusBadgeForTracking = (status: string) => {
     const config: any = {
       Good: {color: theme.colors.success[600], label: 'Good'},
-      Shortage: {color: theme.colors.warning[600], label: 'Shortage'},
+      Shortage: {color: theme.colors.primary[600], label: 'Shortage'},
       Overage: {color: theme.colors.error[600], label: 'Overage'},
     };
     const {color, label} = config[status] || config.Good;
@@ -506,83 +511,226 @@ export const TruckCheckoutListScreen = () => {
         </Card>
         {/* Checkouts Tab */}
         {activeTab === 'checkouts' && checkoutsSubTab === 'all' && (
-          <Card variant="elevated" padding="md" style={styles.contentCard}>
-            <Typography variant="body" weight="semibold" style={styles.contentTitle}>
-              Checkouts ({pagination.total} records)
-            </Typography>
+          <Card variant="elevated" padding="none" style={styles.contentCard}>
+            <View style={styles.contentCardHeader}>
+              <Typography variant="body" weight="semibold">
+                Checkouts ({pagination.total} records)
+              </Typography>
+            </View>
             {loading && checkouts.length === 0 ? (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={theme.colors.primary[600]} />
               </View>
             ) : checkouts.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Typography variant="body" color={theme.colors.gray[500]}>
+                <TruckIcon size={48} color={theme.colors.gray[300]} />
+                <Typography variant="body" color={theme.colors.gray[500]} style={{marginTop: 12}}>
                   No checkouts found
                 </Typography>
               </View>
             ) : (
-              checkouts.map((checkout: any) => (
-                <View key={checkout._id} style={styles.checkoutCard}>
-                  <View style={styles.checkoutHeader}>
-                    <Typography variant="body" weight="bold">
-                      {checkout.employeeName}
-                    </Typography>
-                    {getStatusBadge(checkout.status)}
-                  </View>
-                  <View style={styles.checkoutRow}>
-                    <Typography variant="small" color={theme.colors.gray[500]}>
-                      Truck:
-                    </Typography>
-                    <Typography variant="small">{checkout.truckNumber || '-'}</Typography>
-                  </View>
-                  <View style={styles.checkoutRow}>
-                    <Typography variant="small" color={theme.colors.gray[500]}>
-                      Item:
-                    </Typography>
-                    <View style={{flex: 1}}>
-                      {checkout.itemName ? (
-                        <>
-                          <Typography variant="small" weight="semibold">
-                            {checkout.itemName}
+              checkouts.map((checkout: any) => {
+                const isExpanded = expandedCheckout === checkout._id;
+                const itemDisplay = checkout.itemName
+                  ? {name: checkout.itemName, qty: checkout.quantityTaking || 0}
+                  : {
+                      name: `${checkout.itemsTaken?.length || 0} items`,
+                      qty: checkout.itemsTaken?.reduce(
+                        (sum: number, item: any) => sum + item.quantity,
+                        0,
+                      ) || 0,
+                    };
+                return (
+                  <View key={checkout._id} style={styles.checkoutRowContainer}>
+                    {/* Clickable Row Header */}
+                    <TouchableOpacity
+                      style={[
+                        styles.checkoutRowHeader,
+                        isExpanded && styles.checkoutRowHeaderExpanded,
+                      ]}
+                      onPress={() =>
+                        setExpandedCheckout(isExpanded ? null : checkout._id)
+                      }
+                      activeOpacity={0.7}>
+                      {/* Chevron */}
+                      <View style={styles.chevronContainer}>
+                        {isExpanded ? (
+                          <ChevronDownIcon size={18} color={theme.colors.primary[600]} />
+                        ) : (
+                          <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+                        )}
+                      </View>
+
+                      {/* Item Info */}
+                      <View style={styles.checkoutRowInfo}>
+                        <View style={styles.checkoutRowTitleRow}>
+                          <Typography variant="body" weight="semibold" numberOfLines={1} style={{flex: 1}}>
+                            {itemDisplay.name}
                           </Typography>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Qty: {checkout.quantityTaking || 0}
+                          <View style={styles.qtyBadge}>
+                            <Typography variant="caption" color={theme.colors.gray[600]} weight="semibold">
+                              Qty: {itemDisplay.qty}
+                            </Typography>
+                          </View>
+                        </View>
+                        <View style={styles.checkoutRowMeta}>
+                          <Typography variant="caption" color={theme.colors.primary[600]} weight="semibold">
+                            {checkout.employeeName}
                           </Typography>
-                        </>
-                      ) : (
-                        <>
-                          <Typography variant="small" weight="semibold">
-                            {checkout.itemsTaken?.length || 0} items
+                          <Typography variant="caption" color={theme.colors.gray[400]}>
+                            {' • Truck: '}{checkout.truckNumber || '-'}
                           </Typography>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Total qty:{' '}
-                            {checkout.itemsTaken?.reduce(
-                              (sum: number, item: any) => sum + item.quantity,
-                              0
-                            ) || 0}
+                          <Typography variant="caption" color={theme.colors.gray[400]}>
+                            {' • '}{formatDateTime(checkout.checkoutDate)}
                           </Typography>
-                        </>
-                      )}
-                    </View>
+                        </View>
+                      </View>
+
+                      {/* Status Badge */}
+                      <View style={{marginLeft: 8}}>
+                        {getStatusBadge(checkout.status)}
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Expanded Detail Panel */}
+                    {isExpanded && (
+                      <View style={styles.expandedPanel}>
+                        {/* Quantity Grid */}
+                        <View style={styles.expandedQuantityGrid}>
+                          <View style={styles.expandedQuantityBox}>
+                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                              Employee
+                            </Typography>
+                            <Typography variant="small" weight="bold" color={theme.colors.primary[700]}>
+                              {checkout.employeeName}
+                            </Typography>
+                          </View>
+                          <View style={styles.expandedQuantityBox}>
+                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                              Truck
+                            </Typography>
+                            <Typography variant="small" weight="bold">
+                              {checkout.truckNumber || 'N/A'}
+                            </Typography>
+                          </View>
+                          <View style={styles.expandedQuantityBox}>
+                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                              Qty
+                            </Typography>
+                            <Typography variant="small" weight="bold">
+                              {itemDisplay.qty}
+                            </Typography>
+                          </View>
+                        </View>
+
+                        {/* Details Section */}
+                        <View style={styles.expandedDetailSection}>
+                          {checkout.employeeId && (
+                            <View style={styles.expandedDetailRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                Employee ID
+                              </Typography>
+                              <Typography variant="small" weight="semibold">
+                                {checkout.employeeId}
+                              </Typography>
+                            </View>
+                          )}
+                          <View style={styles.expandedDetailRow}>
+                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                              Checkout Date
+                            </Typography>
+                            <Typography variant="small" weight="semibold">
+                              {formatDateTime(checkout.checkoutDate)}
+                            </Typography>
+                          </View>
+                          {checkout.completedDate && (
+                            <View style={styles.expandedDetailRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                Completed
+                              </Typography>
+                              <Typography variant="small" weight="semibold">
+                                {formatDateTime(checkout.completedDate)}
+                              </Typography>
+                            </View>
+                          )}
+                          <View style={styles.expandedDetailRow}>
+                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                              Status
+                            </Typography>
+                            {getStatusBadge(checkout.status)}
+                          </View>
+                          <View style={styles.expandedDetailRow}>
+                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                              Invoices
+                            </Typography>
+                            <Typography variant="small" weight="semibold">
+                              {checkout.invoiceNumbers && checkout.invoiceNumbers.length > 0
+                                ? `${checkout.invoiceNumbers.length} invoices`
+                                : 'None'}
+                            </Typography>
+                          </View>
+                        </View>
+
+                        {/* Items List if multi-item */}
+                        {checkout.itemsTaken && checkout.itemsTaken.length > 0 && (
+                          <View style={styles.expandedItemsSection}>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={{marginBottom: 8}}>
+                              Items ({checkout.itemsTaken.length})
+                            </Typography>
+                            {checkout.itemsTaken.slice(0, 5).map((item: any, idx: number) => (
+                              <View key={idx} style={styles.expandedItemRow}>
+                                <Typography variant="small" color={theme.colors.gray[700]} numberOfLines={1} style={{flex: 1}}>
+                                  {item.itemName || item.name}
+                                </Typography>
+                                <Typography variant="small" weight="bold">
+                                  x{item.quantity}
+                                </Typography>
+                              </View>
+                            ))}
+                            {checkout.itemsTaken.length > 5 && (
+                              <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                                +{checkout.itemsTaken.length - 5} more items
+                              </Typography>
+                            )}
+                          </View>
+                        )}
+
+                        {/* Invoice Numbers */}
+                        {checkout.invoiceNumbers && checkout.invoiceNumbers.length > 0 && (
+                          <View style={styles.expandedInvoicesSection}>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={{marginBottom: 8}}>
+                              Invoice Numbers
+                            </Typography>
+                            {checkout.invoiceNumbers.map((inv: string, idx: number) => (
+                              <View key={idx} style={styles.invoiceChip}>
+                                <Typography variant="caption" color={theme.colors.gray[700]}>
+                                  {inv}
+                                </Typography>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+
+                        {/* View Details Button */}
+                        <TouchableOpacity
+                          style={styles.viewDetailsButton}
+                          onPress={() =>
+                            navigation.navigate('CheckoutDetail', {
+                              checkoutId: checkout._id,
+                            })
+                          }>
+                          <Typography
+                            variant="small"
+                            weight="semibold"
+                            color={theme.colors.primary[600]}>
+                            View Full Details →
+                          </Typography>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
-                  <View style={styles.checkoutRow}>
-                    <Typography variant="small" color={theme.colors.gray[500]}>
-                      Date:
-                    </Typography>
-                    <Typography variant="small">{formatDateTime(checkout.checkoutDate)}</Typography>
-                  </View>
-                  {checkout.invoiceNumbers && checkout.invoiceNumbers.length > 0 && (
-                    <View style={styles.checkoutRow}>
-                      <Typography variant="small" color={theme.colors.gray[500]}>
-                        Invoices:
-                      </Typography>
-                      <Typography variant="small" weight="semibold">
-                        {checkout.invoiceNumbers.length} invoices
-                      </Typography>
-                    </View>
-                  )}
-                </View>
-              ))
+                );
+              })
             )}
           </Card>
         )}
@@ -677,12 +825,12 @@ export const TruckCheckoutListScreen = () => {
                 </View>
               </View>
               <View style={[styles.summaryCard, styles.summaryCardShortage]}>
-                <Typography variant="caption" weight="medium" color={theme.colors.warning[700]} style={styles.summaryLabel}>
+                <Typography variant="caption" weight="medium" color={theme.colors.primary[700]} style={styles.summaryLabel}>
                   Shortage
                 </Typography>
                 <View style={styles.summaryValueRow}>
-                  <ClockIcon size={28} color={theme.colors.warning[600]} />
-                  <Typography variant="h3" weight="bold" color={theme.colors.warning[700]} style={styles.summaryValue}>
+                  <ClockIcon size={28} color={theme.colors.primary[600]} />
+                  <Typography variant="h3" weight="bold" color={theme.colors.primary[700]} style={styles.summaryValue}>
                     {salesSummary.shortage || 0}
                   </Typography>
                 </View>
@@ -814,7 +962,7 @@ export const TruckCheckoutListScreen = () => {
                         <Typography variant="caption" color={theme.colors.success[600]} weight="semibold">
                           Good: {emp.goodCount}
                         </Typography>
-                        <Typography variant="caption" color={theme.colors.warning[600]} weight="semibold">
+                        <Typography variant="caption" color={theme.colors.primary[600]} weight="semibold">
                           Short: {emp.shortageCount}
                         </Typography>
                         <Typography variant="caption" color={theme.colors.error[600]} weight="semibold">
@@ -1018,6 +1166,119 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     gap: 8,
   },
+  contentCardHeader: {
+    padding: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[200],
+  },
+  checkoutRowContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[100],
+  },
+  checkoutRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+  },
+  checkoutRowHeaderExpanded: {
+    backgroundColor: '#eff6ff40',
+  },
+  chevronContainer: {
+    marginRight: 10,
+  },
+  checkoutRowInfo: {
+    flex: 1,
+  },
+  checkoutRowTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  qtyBadge: {
+    backgroundColor: theme.colors.gray[100],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  checkoutRowMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+    flexWrap: 'wrap',
+  },
+  expandedPanel: {
+    padding: 14,
+    paddingTop: 0,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray[100],
+    backgroundColor: '#fafbfc',
+  },
+  expandedQuantityGrid: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.white,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
+  expandedQuantityBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  expandedDetailSection: {
+    marginTop: 12,
+    backgroundColor: theme.colors.white,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
+  expandedDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  expandedItemsSection: {
+    marginTop: 10,
+    backgroundColor: theme.colors.white,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
+  expandedItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[50],
+  },
+  expandedInvoicesSection: {
+    marginTop: 10,
+    backgroundColor: theme.colors.white,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
+  invoiceChip: {
+    backgroundColor: theme.colors.gray[50],
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginBottom: 4,
+  },
+  viewDetailsButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 12,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary[50],
+  },
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -1072,9 +1333,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.success[200],
   },
   summaryCardShortage: {
-    backgroundColor: theme.colors.warning[50],
+    backgroundColor: theme.colors.primary[50],
     borderWidth: 1,
-    borderColor: theme.colors.warning[200],
+    borderColor: theme.colors.primary[200],
   },
   summaryCardOverage: {
     backgroundColor: theme.colors.error[50],

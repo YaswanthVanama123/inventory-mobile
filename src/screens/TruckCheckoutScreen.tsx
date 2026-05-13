@@ -485,7 +485,7 @@ export const TruckCheckoutScreen = () => {
                       Total Sold: {truckInventory.totalSold}
                     </Typography>
                     {truckInventory.discrepancyAdjustment !== 0 && (
-                      <Typography variant="small" color={theme.colors.warning[600]}>
+                      <Typography variant="small" color={theme.colors.primary[600]}>
                         Discrepancy Adjustments: {truckInventory.discrepancyAdjustment > 0 ? '+' : ''}{truckInventory.discrepancyAdjustment}
                       </Typography>
                     )}
@@ -524,10 +524,10 @@ export const TruckCheckoutScreen = () => {
           {/* Validation Error */}
           {validationError && (
             <View style={styles.errorBox}>
-              <AlertCircleIcon size={20} color={theme.colors.warning[600]} />
+              <AlertCircleIcon size={20} color={theme.colors.primary[600]} />
               <Typography
                 variant="small"
-                color={theme.colors.warning[700]}
+                color={theme.colors.primary[700]}
                 style={{flex: 1, marginLeft: 8}}>
                 {validationError}
               </Typography>
@@ -660,7 +660,7 @@ export const TruckCheckoutScreen = () => {
         <View style={styles.discrepancyModalOverlay}>
           <View style={styles.discrepancyModalContent}>
             <View style={styles.discrepancyHeader}>
-              <AlertCircleIcon size={32} color={theme.colors.warning[600]} />
+              <AlertCircleIcon size={32} color={theme.colors.primary[600]} />
               <Typography variant="h3" weight="bold" style={{marginTop: 12}}>
                 Stock Count Difference
               </Typography>
@@ -727,7 +727,7 @@ export const TruckCheckoutScreen = () => {
                   </Typography>
                 </View>
                 <View style={styles.warningBox}>
-                  <Typography variant="small" color={theme.colors.warning[700]}>
+                  <Typography variant="small" color={theme.colors.primary[700]}>
                     Accepting this will automatically create an approved discrepancy and adjust
                     stock accordingly.
                   </Typography>
@@ -769,7 +769,7 @@ export const TruckCheckoutScreen = () => {
         <View style={styles.discrepancyModalOverlay}>
           <View style={styles.discrepancyModalContent}>
             <View style={styles.discrepancyHeader}>
-              <AlertCircleIcon size={32} color={theme.colors.warning[600]} />
+              <AlertCircleIcon size={32} color={theme.colors.primary[600]} />
               <Typography variant="h3" weight="bold" style={{marginTop: 12}}>
                 Truck Inventory Discrepancy
               </Typography>
@@ -821,7 +821,7 @@ export const TruckCheckoutScreen = () => {
                   <Typography variant="small" color={theme.colors.gray[500]}>
                     You Entered:
                   </Typography>
-                  <Typography variant="small" weight="bold" color={theme.colors.warning[600]}>
+                  <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>
                     {truckDiscrepancyInfo.actualTruckInventory}
                   </Typography>
                 </View>
@@ -844,7 +844,7 @@ export const TruckCheckoutScreen = () => {
                 </View>
 
                 <View style={styles.warningBox}>
-                  <Typography variant="small" color={theme.colors.warning[700]}>
+                  <Typography variant="small" color={theme.colors.primary[700]}>
                     Accepting this will create an approved truck discrepancy record. This is different from stock discrepancy and tracks your truck inventory separately.
                   </Typography>
                 </View>
@@ -966,7 +966,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: theme.spacing.md,
-    backgroundColor: theme.colors.warning[50],
+    backgroundColor: theme.colors.primary[50],
     borderRadius: 8,
     marginBottom: theme.spacing.md,
   },
@@ -1055,7 +1055,7 @@ const styles = StyleSheet.create({
   discrepancyHeader: {
     alignItems: 'center',
     padding: theme.spacing.xl,
-    backgroundColor: theme.colors.warning[50],
+    backgroundColor: theme.colors.primary[50],
   },
   discrepancyBody: {
     padding: theme.spacing.xl,
@@ -1073,7 +1073,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.gray[200],
   },
   warningBox: {
-    backgroundColor: theme.colors.warning[50],
+    backgroundColor: theme.colors.primary[50],
     padding: theme.spacing.md,
     borderRadius: 8,
     marginTop: 16,

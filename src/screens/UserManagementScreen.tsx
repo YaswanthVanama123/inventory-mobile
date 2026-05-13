@@ -515,8 +515,8 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                           <TouchableOpacity
                             style={styles.actionButton}
                             onPress={() => handleResetPassword(user)}>
-                            <KeyIcon size={16} color={theme.colors.warning[600]} />
-                            <Typography variant="small" color={theme.colors.warning[600]} weight="medium">
+                            <KeyIcon size={16} color={theme.colors.primary[600]} />
+                            <Typography variant="small" color={theme.colors.primary[600]} weight="medium">
                               Reset Password
                             </Typography>
                           </TouchableOpacity>

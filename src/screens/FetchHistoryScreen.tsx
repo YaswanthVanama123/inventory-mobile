@@ -176,7 +176,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
       case 'routestar_invoices':
         return theme.colors.success[600];
       case 'routestar_items':
-        return theme.colors.warning[600];
+        return theme.colors.primary[600];
       default:
         return theme.colors.gray[600];
     }
@@ -283,7 +283,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
             {/* Stats Cards */}
             <View style={styles.statsGrid}>
               <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.warning[600]}]}>
+                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
                   <ClockIcon size={18} color={theme.colors.white} />
                   <Typography variant="caption" style={styles.statLabel}>
                     Active Fetches
