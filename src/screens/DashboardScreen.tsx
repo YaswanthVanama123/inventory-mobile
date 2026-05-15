@@ -168,7 +168,7 @@ export const DashboardScreen = () => {
     },
     statusDistribution: [
       {name: 'Completed', population: 65, color: '#10B981', legendFontColor: '#64748B'},
-      {name: 'Pending', population: 20, color: '#F59E0B', legendFontColor: '#64748B'},
+      {name: 'Pending', population: 20, color: '#3B82F6', legendFontColor: '#64748B'},
       {name: 'Closed', population: 12, color: '#3B82F6', legendFontColor: '#64748B'},
       {name: 'Cancelled', population: 3, color: '#EF4444', legendFontColor: '#64748B'},
     ],

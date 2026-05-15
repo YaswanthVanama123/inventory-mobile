@@ -411,7 +411,7 @@ export const OrderVerificationScreen: React.FC<
         {/* Discrepancy Warning */}
         {hasDiscrepancies && (
           <Card style={[styles.card, styles.warningCard]}>
-            <AlertCircleIcon size={20} color={theme.colors.warning} />
+            <AlertCircleIcon size={20} color={theme.colors.primary} />
             <Typography variant="body2" style={styles.warningText}>
               Some items will not be fully received after this verification.
               The remaining quantities will be tracked for future receipts.
@@ -575,7 +575,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.sm,
   },
   itemRowDiscrepancy: {
-    backgroundColor: theme.colors.warning + '20',
+    backgroundColor: theme.colors.primary + '20',
   },
   itemRowPartial: {
     backgroundColor: theme.colors.info + '15',
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     color: theme.colors.info,
   },
   differenceShort: {
-    color: theme.colors.warning,
+    color: theme.colors.primary,
   },
   differenceMatched: {
     color: theme.colors.success,
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.info,
   },
   statusShortage: {
-    backgroundColor: theme.colors.warning,
+    backgroundColor: theme.colors.primary,
   },
   statusComplete: {
     backgroundColor: theme.colors.success,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   warningCard: {
-    backgroundColor: theme.colors.warning + '20',
+    backgroundColor: theme.colors.primary + '20',
     flexDirection: 'row',
     alignItems: 'center',
   },

@@ -145,8 +145,8 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           {/* Warning Notice */}
           <Card variant="outlined" padding="md" style={styles.warningCard}>
             <View style={styles.warningContent}>
-              <AlertCircleIcon size={20} color={theme.colors.warning[600]} />
-              <Typography variant="caption" color={theme.colors.warning[700]} style={{flex: 1}}>
+              <AlertCircleIcon size={20} color={theme.colors.primary[600]} />
+              <Typography variant="caption" color={theme.colors.primary[700]} style={{flex: 1}}>
                 The user will need to use this new password to login. Make sure to communicate this securely.
               </Typography>
             </View>
@@ -325,8 +325,8 @@ const styles = StyleSheet.create({
   },
   warningCard: {
     marginBottom: theme.spacing.md,
-    backgroundColor: theme.colors.warning[50],
-    borderColor: theme.colors.warning[300],
+    backgroundColor: theme.colors.primary[50],
+    borderColor: theme.colors.primary[300],
   },
   warningContent: {
     flexDirection: 'row',

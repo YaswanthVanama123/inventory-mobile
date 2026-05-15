@@ -47,8 +47,7 @@ export const TruckCheckoutScreen = () => {
   const [validationError, setValidationError] = useState('');
   const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false);
   const [discrepancyInfo, setDiscrepancyInfo] = useState<any>(null);
-  const [showTruckDiscrepancyModal, setShowTruckDiscrepancyModal] = useState(false); // NEW: Truck discrepancy modal
-  const [truckDiscrepancyInfo, setTruckDiscrepancyInfo] = useState<any>(null); // NEW: Truck discrepancy info
+  const [truckDiscrepancyInfo, setTruckDiscrepancyInfo] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -154,6 +153,7 @@ export const TruckCheckoutScreen = () => {
     setValidationError('');
   };
   const handleCheckout = async () => {
+    setPendingStockDiscrepancyAccepted(false);
     if (!user || !user.fullName?.trim()) {
       Alert.alert('Error', 'Employee name is required. Please update your profile.');
       return;
@@ -180,13 +180,14 @@ export const TruckCheckoutScreen = () => {
       return;
     }
 
-    // Validate warehouse stock
+    // Detect stock discrepancy
+    let stockDisc: any = null;
     if (!validateStockMath()) {
       const currentStock = selectedItem.currentStock || 0;
       const expectedRemaining = currentStock - taking;
       const difference = remaining - expectedRemaining;
 
-      setDiscrepancyInfo({
+      stockDisc = {
         itemName: selectedItem.itemName,
         currentStock,
         taking,
@@ -194,12 +195,11 @@ export const TruckCheckoutScreen = () => {
         userEnteredRemaining: remaining,
         difference,
         discrepancyType: difference > 0 ? 'Overage' : 'Shortage',
-      });
-      setShowDiscrepancyModal(true);
-      return;
+      };
     }
 
-    // NEW: Validate truck inventory if provided
+    // Detect truck inventory discrepancy
+    let truckDisc: any = null;
     if (actualTruckInventory && actualTruckInventory.trim() !== '') {
       const actualTruck = parseFloat(actualTruckInventory);
 
@@ -209,14 +209,11 @@ export const TruckCheckoutScreen = () => {
       }
 
       if (truckInventory) {
-        // Expected truck inventory AFTER this checkout = current + taking
         const expectedTruckAfterCheckout = truckInventory.currentTruckInventory + taking;
         const truckDifference = actualTruck - expectedTruckAfterCheckout;
-
-        // Use tolerance for floating-point comparison (allow 0.01 difference for rounding)
         const tolerance = 0.01;
         if (Math.abs(truckDifference) > tolerance) {
-          setTruckDiscrepancyInfo({
+          truckDisc = {
             itemName: selectedItem.itemName,
             currentTruckInventory: truckInventory.currentTruckInventory,
             quantityTaking: taking,
@@ -224,11 +221,17 @@ export const TruckCheckoutScreen = () => {
             actualTruckInventory: actualTruck,
             truckDiscrepancyDifference: truckDifference,
             truckDiscrepancyType: truckDifference > 0 ? 'Overage' : 'Shortage',
-          });
-          setShowTruckDiscrepancyModal(true);
-          return;
+          };
         }
       }
+    }
+
+    // Show combined modal if either discrepancy exists
+    if (stockDisc || truckDisc) {
+      setDiscrepancyInfo(stockDisc);
+      setTruckDiscrepancyInfo(truckDisc);
+      setShowDiscrepancyModal(true);
+      return;
     }
 
     await submitCheckout(false, false);
@@ -261,41 +264,38 @@ export const TruckCheckoutScreen = () => {
         checkoutData
       );
 
-      // Handle stock discrepancy confirmation
-      if (!result.success && result.requiresConfirmation) {
-        const validation = result.validation;
-        setDiscrepancyInfo({
-          itemName: selectedItem.itemName,
-          currentStock: validation.currentStock,
-          taking: validation.quantityTaking,
-          expectedRemaining: validation.systemCalculatedRemaining,
-          userEnteredRemaining: validation.userRemainingQuantity,
-          difference: validation.discrepancyDifference,
-          discrepancyType: validation.discrepancyType,
-        });
+      // Handle discrepancy confirmations (both together)
+      if (!result.success && (result.requiresConfirmation || result.requiresTruckConfirmation)) {
+        if (result.requiresConfirmation) {
+          const validation = result.validation;
+          setDiscrepancyInfo({
+            itemName: selectedItem.itemName,
+            currentStock: validation.currentStock,
+            taking: validation.quantityTaking,
+            expectedRemaining: validation.systemCalculatedRemaining,
+            userEnteredRemaining: validation.userRemainingQuantity,
+            difference: validation.discrepancyDifference,
+            discrepancyType: validation.discrepancyType,
+          });
+        }
+        if (result.requiresTruckConfirmation) {
+          const truckValidation = result.truckInventoryValidation;
+          setTruckDiscrepancyInfo({
+            itemName: selectedItem.itemName,
+            currentTruckInventory: truckValidation.currentTruckInventoryBeforeCheckout,
+            quantityTaking: parseFloat(quantityTaking),
+            expectedTruckInventory: truckValidation.expectedTruckInventory,
+            actualTruckInventory: truckValidation.actualTruckInventory,
+            truckDiscrepancyDifference: truckValidation.truckDiscrepancyDifference,
+            truckDiscrepancyType: truckValidation.truckDiscrepancyType,
+          });
+        }
         setShowDiscrepancyModal(true);
-        return;
-      }
-
-      // NEW: Handle truck inventory discrepancy confirmation
-      if (!result.success && result.requiresTruckConfirmation) {
-        const truckValidation = result.truckInventoryValidation;
-        setTruckDiscrepancyInfo({
-          itemName: selectedItem.itemName,
-          currentTruckInventory: truckValidation.currentTruckInventoryBeforeCheckout,
-          quantityTaking: parseFloat(quantityTaking),
-          expectedTruckInventory: truckValidation.expectedTruckInventory,
-          actualTruckInventory: truckValidation.actualTruckInventory,
-          truckDiscrepancyDifference: truckValidation.truckDiscrepancyDifference,
-          truckDiscrepancyType: truckValidation.truckDiscrepancyType,
-        });
-        setShowTruckDiscrepancyModal(true);
         return;
       }
 
       if (result.success) {
         setShowDiscrepancyModal(false);
-        setShowTruckDiscrepancyModal(false);
         Alert.alert(
           'Success',
           result.discrepancy || result.truckDiscrepancy
@@ -309,8 +309,8 @@ export const TruckCheckoutScreen = () => {
                 setSearchQuery('');
                 setQuantityTaking('');
                 setRemainingQuantity('');
-                setActualTruckInventory(''); // NEW: Reset truck inventory field
-                setTruckInventory(null); // NEW: Reset truck inventory
+                setActualTruckInventory('');
+                setTruckInventory(null);
                 setNotes('');
                 setValidationError('');
               },
@@ -651,7 +651,7 @@ export const TruckCheckoutScreen = () => {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-      {/* Discrepancy Confirmation Modal */}
+      {/* Combined Discrepancy Confirmation Modal */}
       <Modal
         visible={showDiscrepancyModal}
         animationType="fade"
@@ -662,82 +662,82 @@ export const TruckCheckoutScreen = () => {
             <View style={styles.discrepancyHeader}>
               <AlertCircleIcon size={32} color={theme.colors.primary[600]} />
               <Typography variant="h3" weight="bold" style={{marginTop: 12}}>
-                Stock Count Difference
+                Discrepancy Detected
               </Typography>
             </View>
-            {discrepancyInfo && (
-              <View style={styles.discrepancyBody}>
-                <Typography variant="body" color={theme.colors.gray[700]} style={{marginBottom: 16}}>
-                  There's a difference between expected and entered warehouse count.
+
+            <ScrollView style={{maxHeight: 400}}>
+              {discrepancyInfo && (
+                <View style={styles.discrepancyBody}>
+                  <Typography variant="body" weight="semibold" color={theme.colors.gray[800]} style={{marginBottom: 8}}>
+                    Stock Remaining Discrepancy
+                  </Typography>
+                  <View style={styles.discrepancyRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>Current Stock:</Typography>
+                    <Typography variant="small" weight="bold">{discrepancyInfo.currentStock}</Typography>
+                  </View>
+                  <View style={styles.discrepancyRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>Taking:</Typography>
+                    <Typography variant="small" weight="bold">{discrepancyInfo.taking}</Typography>
+                  </View>
+                  <View style={[styles.discrepancyRow, styles.divider]}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>Expected Remaining:</Typography>
+                    <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>{discrepancyInfo.expectedRemaining}</Typography>
+                  </View>
+                  <View style={styles.discrepancyRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>You Entered:</Typography>
+                    <Typography variant="small" weight="bold" color={theme.colors.error[600]}>{discrepancyInfo.userEnteredRemaining}</Typography>
+                  </View>
+                  <View style={[styles.discrepancyRow, {marginTop: 8}]}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>Difference:</Typography>
+                    <Typography variant="body" weight="bold" color={discrepancyInfo.difference > 0 ? theme.colors.success[600] : theme.colors.error[600]}>
+                      {discrepancyInfo.difference > 0 ? '+' : ''}{discrepancyInfo.difference} ({discrepancyInfo.discrepancyType})
+                    </Typography>
+                  </View>
+                </View>
+              )}
+
+              {truckDiscrepancyInfo && (
+                <View style={[styles.discrepancyBody, discrepancyInfo && {marginTop: 16, borderTopWidth: 1, borderTopColor: theme.colors.gray[200], paddingTop: 16}]}>
+                  <Typography variant="body" weight="semibold" color={theme.colors.gray[800]} style={{marginBottom: 8}}>
+                    Truck Inventory Discrepancy
+                  </Typography>
+                  <View style={styles.discrepancyRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>Current Truck Inventory:</Typography>
+                    <Typography variant="small" weight="bold">{truckDiscrepancyInfo.currentTruckInventory}</Typography>
+                  </View>
+                  <View style={styles.discrepancyRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>Adding to Truck:</Typography>
+                    <Typography variant="small" weight="bold">{truckDiscrepancyInfo.quantityTaking}</Typography>
+                  </View>
+                  <View style={[styles.discrepancyRow, styles.divider]}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>Expected Truck Inventory:</Typography>
+                    <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>{truckDiscrepancyInfo.expectedTruckInventory}</Typography>
+                  </View>
+                  <View style={styles.discrepancyRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>You Entered:</Typography>
+                    <Typography variant="small" weight="bold" color={theme.colors.error[600]}>{truckDiscrepancyInfo.actualTruckInventory}</Typography>
+                  </View>
+                  <View style={[styles.discrepancyRow, {marginTop: 8}]}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>Difference:</Typography>
+                    <Typography variant="body" weight="bold" color={truckDiscrepancyInfo.truckDiscrepancyDifference > 0 ? theme.colors.success[600] : theme.colors.error[600]}>
+                      {truckDiscrepancyInfo.truckDiscrepancyDifference > 0 ? '+' : ''}{truckDiscrepancyInfo.truckDiscrepancyDifference} ({truckDiscrepancyInfo.truckDiscrepancyType})
+                    </Typography>
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.warningBox}>
+                <Typography variant="small" color={theme.colors.primary[700]}>
+                  Accepting will create approved discrepancy record(s) and adjust accordingly.
                 </Typography>
-                <View style={styles.discrepancyRow}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Item:
-                  </Typography>
-                  <Typography variant="small" weight="bold">
-                    {discrepancyInfo.itemName}
-                  </Typography>
-                </View>
-                <View style={styles.discrepancyRow}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Current Stock:
-                  </Typography>
-                  <Typography variant="small" weight="bold">
-                    {discrepancyInfo.currentStock}
-                  </Typography>
-                </View>
-                <View style={styles.discrepancyRow}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Taking:
-                  </Typography>
-                  <Typography variant="small" weight="bold">
-                    {discrepancyInfo.taking}
-                  </Typography>
-                </View>
-                <View style={[styles.discrepancyRow, styles.divider]}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Expected Remaining:
-                  </Typography>
-                  <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>
-                    {discrepancyInfo.expectedRemaining}
-                  </Typography>
-                </View>
-                <View style={styles.discrepancyRow}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    You Entered:
-                  </Typography>
-                  <Typography variant="small" weight="bold" color={theme.colors.error[600]}>
-                    {discrepancyInfo.userEnteredRemaining}
-                  </Typography>
-                </View>
-                <View style={[styles.discrepancyRow, {marginTop: 16}]}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Difference:
-                  </Typography>
-                  <Typography
-                    variant="body"
-                    weight="bold"
-                    color={
-                      discrepancyInfo.difference > 0
-                        ? theme.colors.success[600]
-                        : theme.colors.error[600]
-                    }>
-                    {discrepancyInfo.difference > 0 ? '+' : ''}
-                    {discrepancyInfo.difference} ({discrepancyInfo.discrepancyType})
-                  </Typography>
-                </View>
-                <View style={styles.warningBox}>
-                  <Typography variant="small" color={theme.colors.primary[700]}>
-                    Accepting this will automatically create an approved discrepancy and adjust
-                    stock accordingly.
-                  </Typography>
-                </View>
               </View>
-            )}
+            </ScrollView>
+
             <View style={styles.discrepancyFooter}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setShowDiscrepancyModal(false)}
+                onPress={() => { setShowDiscrepancyModal(false); setDiscrepancyInfo(null); setTruckDiscrepancyInfo(null); }}
                 disabled={submitting}>
                 <Typography variant="body" color={theme.colors.gray[700]}>
                   Cancel
@@ -745,124 +745,7 @@ export const TruckCheckoutScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.acceptButton, submitting && styles.submitButtonDisabled]}
-                onPress={() => submitCheckout(true, false)}
-                disabled={submitting}>
-                {submitting ? (
-                  <ActivityIndicator color={theme.colors.white} />
-                ) : (
-                  <Typography variant="body" weight="bold" color={theme.colors.white}>
-                    Accept & Create Checkout
-                  </Typography>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* NEW: Truck Discrepancy Confirmation Modal */}
-      <Modal
-        visible={showTruckDiscrepancyModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => !submitting && setShowTruckDiscrepancyModal(false)}>
-        <View style={styles.discrepancyModalOverlay}>
-          <View style={styles.discrepancyModalContent}>
-            <View style={styles.discrepancyHeader}>
-              <AlertCircleIcon size={32} color={theme.colors.primary[600]} />
-              <Typography variant="h3" weight="bold" style={{marginTop: 12}}>
-                Truck Inventory Discrepancy
-              </Typography>
-            </View>
-
-            {truckDiscrepancyInfo && (
-              <View style={styles.discrepancyBody}>
-                <Typography variant="body" color={theme.colors.gray[700]} style={{marginBottom: 16}}>
-                  The truck inventory you entered doesn't match the system calculation.
-                </Typography>
-
-                <View style={styles.discrepancyRow}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Item:
-                  </Typography>
-                  <Typography variant="small" weight="bold">
-                    {truckDiscrepancyInfo.itemName}
-                  </Typography>
-                </View>
-
-                <View style={styles.discrepancyRow}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Current Truck Inventory:
-                  </Typography>
-                  <Typography variant="small" weight="bold">
-                    {truckDiscrepancyInfo.currentTruckInventory}
-                  </Typography>
-                </View>
-
-                <View style={styles.discrepancyRow}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Adding to Truck:
-                  </Typography>
-                  <Typography variant="small" weight="bold">
-                    {truckDiscrepancyInfo.quantityTaking}
-                  </Typography>
-                </View>
-
-                <View style={[styles.discrepancyRow, styles.divider]}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Expected Truck Inventory:
-                  </Typography>
-                  <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>
-                    {truckDiscrepancyInfo.expectedTruckInventory}
-                  </Typography>
-                </View>
-
-                <View style={styles.discrepancyRow}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    You Entered:
-                  </Typography>
-                  <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>
-                    {truckDiscrepancyInfo.actualTruckInventory}
-                  </Typography>
-                </View>
-
-                <View style={[styles.discrepancyRow, {marginTop: 16}]}>
-                  <Typography variant="small" color={theme.colors.gray[500]}>
-                    Difference:
-                  </Typography>
-                  <Typography
-                    variant="body"
-                    weight="bold"
-                    color={
-                      truckDiscrepancyInfo.truckDiscrepancyDifference > 0
-                        ? theme.colors.success[600]
-                        : theme.colors.error[600]
-                    }>
-                    {truckDiscrepancyInfo.truckDiscrepancyDifference > 0 ? '+' : ''}
-                    {truckDiscrepancyInfo.truckDiscrepancyDifference} ({truckDiscrepancyInfo.truckDiscrepancyType})
-                  </Typography>
-                </View>
-
-                <View style={styles.warningBox}>
-                  <Typography variant="small" color={theme.colors.primary[700]}>
-                    Accepting this will create an approved truck discrepancy record. This is different from stock discrepancy and tracks your truck inventory separately.
-                  </Typography>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.discrepancyFooter}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowTruckDiscrepancyModal(false)}
-                disabled={submitting}>
-                <Typography variant="body" color={theme.colors.gray[700]}>
-                  Cancel
-                </Typography>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.acceptButton, submitting && styles.submitButtonDisabled]}
-                onPress={() => submitCheckout(false, true)}
+                onPress={() => submitCheckout(!!discrepancyInfo, !!truckDiscrepancyInfo)}
                 disabled={submitting}>
                 {submitting ? (
                   <ActivityIndicator color={theme.colors.white} />

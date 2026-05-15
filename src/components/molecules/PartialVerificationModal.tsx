@@ -164,7 +164,7 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                     <Typography variant="caption" color={theme.colors.gray[500]}>
                       Still Needed
                     </Typography>
-                    <Typography variant="h2" weight="bold" color={theme.colors.warning[600]}>
+                    <Typography variant="h2" weight="bold" color={theme.colors.primary[600]}>
                       {remainingQty}
                     </Typography>
                   </View>

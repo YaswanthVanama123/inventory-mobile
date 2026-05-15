@@ -655,6 +655,20 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                                     </Typography>
                                   )}
                                 </View>
+                              ) : item.receivedQuantity > 0 ? (
+                                <View style={{alignItems: 'flex-end', gap: 2}}>
+                                  <View style={[styles.statusBadge, {backgroundColor: theme.colors.primary[100]}]}>
+                                    <Typography
+                                      variant="caption"
+                                      weight="semibold"
+                                      color={theme.colors.primary[600]}>
+                                      Partially Verified
+                                    </Typography>
+                                  </View>
+                                  <Typography variant="caption" color={theme.colors.gray[500]} style={{fontSize: 10}}>
+                                    {item.receivedQuantity} of {item.qty} received
+                                  </Typography>
+                                </View>
                               ) : (
                                 <View style={[styles.statusBadge, {backgroundColor: theme.colors.primary[100]}]}>
                                   <Typography

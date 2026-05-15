@@ -59,7 +59,7 @@ export const GradientStatCard: React.FC<GradientStatCardProps> = ({
     const colorMap: Record<GradientColor, string> = {
       blue: theme.colors.primary[600],
       purple: theme.colors.accent[600],
-      orange: theme.colors.warning[600],
+      orange: theme.colors.primary[600],
       green: theme.colors.success[600],
       teal: '#14b8a6',
       pink: '#ec4899',

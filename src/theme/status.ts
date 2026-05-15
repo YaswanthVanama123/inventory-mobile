@@ -27,8 +27,8 @@ export const status = {
   },
   payment: {
     pending: {
-      color: colors.warning[600],
-      bgColor: colors.warning[100],
+      color: colors.primary[600],
+      bgColor: colors.primary[100],
     },
     paid: {
       color: colors.success[600],
@@ -45,8 +45,8 @@ export const status = {
       bgColor: colors.success[100],
     },
     lowStock: {
-      color: colors.warning[600],
-      bgColor: colors.warning[100],
+      color: colors.primary[600],
+      bgColor: colors.primary[100],
     },
     outOfStock: {
       color: colors.error[600],
@@ -55,8 +55,8 @@ export const status = {
   },
   order: {
     pending: {
-      color: colors.warning[600],
-      bgColor: colors.warning[100],
+      color: colors.primary[600],
+      bgColor: colors.primary[100],
     },
     processing: {
       color: colors.primary[600],
@@ -73,8 +73,8 @@ export const status = {
   },
   fetch: {
     pending: {
-      color: colors.warning[600],
-      bgColor: colors.warning[100],
+      color: colors.primary[600],
+      bgColor: colors.primary[100],
     },
     inProgress: {
       color: colors.primary[600],
@@ -115,8 +115,8 @@ export const status = {
       bgColor: colors.success[100],
     },
     warning: {
-      color: colors.warning[600],
-      bgColor: colors.warning[100],
+      color: colors.primary[600],
+      bgColor: colors.primary[100],
     },
     error: {
       color: colors.error[600],

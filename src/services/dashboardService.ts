@@ -33,7 +33,7 @@ class DashboardService {
   transformDashboardData(data: any) {
     const { summary, recentActivity, topSellingItems, topSellingItemsDetailed, salesTrend, invoiceStatusStats } = data;
     const statusColors: {[key: string]: string} = {
-      'Pending': '#F59E0B',
+      'Pending': '#3B82F6',
       'Completed': '#10B981',
       'Closed': '#3B82F6',
       'Cancelled': '#EF4444',
