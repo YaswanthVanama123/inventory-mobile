@@ -153,7 +153,6 @@ export const TruckCheckoutScreen = () => {
     setValidationError('');
   };
   const handleCheckout = async () => {
-    setPendingStockDiscrepancyAccepted(false);
     if (!user || !user.fullName?.trim()) {
       Alert.alert('Error', 'Employee name is required. Please update your profile.');
       return;
