@@ -107,9 +107,7 @@ export const StockScreen = () => {
           const newLoadingCategories = new Set(loadingCategories);
           newLoadingCategories.add(categoryName);
           setLoadingCategories(newLoadingCategories);
-          const response = activeTab === 'use'
-            ? await stockService.getCategorySKUs(token!, categoryName)
-            : await stockService.getCategorySales(token!, categoryName);
+          const response = await stockService.getCategorySales(token!, categoryName);
           setCategorySkuData(prev => ({
             ...prev,
             [categoryName]: response || [],
@@ -264,8 +262,7 @@ export const StockScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
         {/* Stats Cards */}
-        {activeTab === 'sell' && (
-          <View style={styles.statsGrid}>
+        <View style={styles.statsGrid}>
             <View style={styles.statCard}>
               <View style={[{backgroundColor: theme.colors.primary[600]}, styles.statCardContent]}>
                 <Typography variant="caption" style={styles.statLabel}>
@@ -332,7 +329,6 @@ export const StockScreen = () => {
               </View>
             </View>
           </View>
-        )}
         {/* Error State */}
         {error && (
           <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -410,107 +406,71 @@ export const StockScreen = () => {
                           ({category.aliases.join(', ')})
                         </Typography>
                       )}
-                      {activeTab === 'sell' && (
-                        <Typography
-                          variant="caption"
-                          color={theme.colors.gray[500]}>
-                          {category.itemCount || 0} items • {category.invoiceCount || 0} invoices
-                        </Typography>
-                      )}
+                      <Typography
+                        variant="caption"
+                        color={theme.colors.gray[500]}>
+                        {category.itemCount || 0} items • {category.invoiceCount || 0} invoices
+                      </Typography>
                     </View>
                   </View>
                   {/* Second Row: Stats */}
                   <View style={styles.categoryStatsRow}>
-                    {activeTab === 'use' ? (
-                      <>
-                        <View style={styles.statItem}>
-                          <Typography
-                            variant="caption"
-                            color={theme.colors.gray[500]}
-                            style={styles.statItemLabel}>
-                            QTY
-                          </Typography>
-                          <Typography
-                            variant="body"
-                            weight="bold">
-                            {category.totalQuantity}
-                          </Typography>
-                        </View>
-                        <View style={styles.statItem}>
-                          <Typography
-                            variant="caption"
-                            color={theme.colors.gray[500]}
-                            style={styles.statItemLabel}>
-                            VALUE
-                          </Typography>
-                          <Typography
-                            variant="small"
-                            weight="semibold"
-                            color={theme.colors.success[600]}>
-                            {formatCurrency(category.totalValue)}
-                          </Typography>
-                        </View>
-                      </>
-                    ) : (
-                      <>
-                        <View style={styles.statItem}>
-                          <Typography
-                            variant="caption"
-                            color={theme.colors.primary[600]}
-                            style={styles.statItemLabel}>
-                            PURCHASED
-                          </Typography>
-                          <Typography
-                            variant="body"
-                            weight="bold"
-                            color={theme.colors.primary[600]}>
-                            {category.totalPurchased || 0}
-                          </Typography>
-                        </View>
-                        <View style={styles.statItem}>
-                          <Typography
-                            variant="caption"
-                            color={theme.colors.success[600]}
-                            style={styles.statItemLabel}>
-                            SOLD
-                          </Typography>
-                          <Typography
-                            variant="body"
-                            weight="bold"
-                            color={theme.colors.success[600]}>
-                            {category.totalSold || 0}
-                          </Typography>
-                        </View>
-                        <View style={styles.statItem}>
-                          <Typography
-                            variant="caption"
-                            color={theme.colors.error[600]}
-                            style={styles.statItemLabel}>
-                            DISCR.
-                          </Typography>
-                          <Typography
-                            variant="body"
-                            weight="bold"
-                            color={theme.colors.error[600]}>
-                            {category.totalDiscrepancyDifference !== undefined ? category.totalDiscrepancyDifference : category.totalDiscrepancies || 0}
-                          </Typography>
-                        </View>
-                        <View style={styles.statItem}>
-                          <Typography
-                            variant="caption"
-                            color={theme.colors.gray[500]}
-                            style={styles.statItemLabel}>
-                            REMAINING
-                          </Typography>
-                          <Typography
-                            variant="body"
-                            weight="bold"
-                            color={'#9333ea'}>
-                            {category.stockRemaining || 0}
-                          </Typography>
-                        </View>
-                      </>
-                    )}
+                    <View style={styles.statItem}>
+                      <Typography
+                        variant="caption"
+                        color={theme.colors.primary[600]}
+                        style={styles.statItemLabel}>
+                        PURCHASED
+                      </Typography>
+                      <Typography
+                        variant="body"
+                        weight="bold"
+                        color={theme.colors.primary[600]}>
+                        {category.totalPurchased || 0}
+                      </Typography>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Typography
+                        variant="caption"
+                        color={theme.colors.success[600]}
+                        style={styles.statItemLabel}>
+                        SOLD
+                      </Typography>
+                      <Typography
+                        variant="body"
+                        weight="bold"
+                        color={theme.colors.success[600]}>
+                        {category.totalSold || 0}
+                      </Typography>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Typography
+                        variant="caption"
+                        color={theme.colors.error[600]}
+                        style={styles.statItemLabel}>
+                        DISCR.
+                      </Typography>
+                      <Typography
+                        variant="body"
+                        weight="bold"
+                        color={theme.colors.error[600]}>
+                        {category.totalDiscrepancyDifference !== undefined ? category.totalDiscrepancyDifference : category.totalDiscrepancies || 0}
+                      </Typography>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Typography
+                        variant="caption"
+                        color={theme.colors.gray[500]}
+                        style={styles.statItemLabel}>
+                        REMAINING
+                      </Typography>
+                      <Typography
+                        variant="body"
+                        weight="bold"
+                        color={'#9333ea'}>
+                        {category.stockRemaining || 0}
+                      </Typography>
+                    </View>
                   </View>
                 </TouchableOpacity>
                 {/* Expanded SKUs */}
@@ -558,33 +518,26 @@ export const StockScreen = () => {
                                 </View>
                               </View>
                               <View style={styles.skuStats}>
-                                {activeTab === 'use' ? (
-                                  <Typography variant="body" weight="bold">
-                                    {sku.totalQuantity}
+                                <View style={{alignItems: 'flex-end'}}>
+                                  <Typography
+                                    variant="small"
+                                    color={theme.colors.success[600]}
+                                    weight="semibold">
+                                    Sold: {sku.totalSold || 0}
                                   </Typography>
-                                ) : (
-                                  <View style={{alignItems: 'flex-end'}}>
-                                    <Typography
-                                      variant="small"
-                                      color={theme.colors.success[600]}
-                                      weight="semibold">
-                                      Sold: {sku.totalSold || 0}
-                                    </Typography>
-                                    <Typography
-                                      variant="caption"
-                                      color={theme.colors.gray[500]}>
-                                      Purchased: {sku.totalPurchased || 0}
-                                    </Typography>
-                                  </View>
-                                )}
+                                  <Typography
+                                    variant="caption"
+                                    color={theme.colors.gray[500]}>
+                                    Purchased: {sku.totalPurchased || 0}
+                                  </Typography>
+                                </View>
                               </View>
                             </TouchableOpacity>
                             {/* SKU Details */}
                             {isSkuExpanded && (
                               <View style={styles.skuDetails}>
-                                {/* Summary for Sell Stock */}
-                                {activeTab === 'sell' && (
-                                  <View style={styles.skuSummary}>
+                                {/* Summary */}
+                                <View style={styles.skuSummary}>
                                     <View style={styles.summaryRow}>
                                       <View style={styles.summaryItem}>
                                         <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -659,7 +612,6 @@ export const StockScreen = () => {
                                       </View>
                                     </View>
                                   </View>
-                                )}
                                 {/* Purchase History */}
                                 {sku.purchaseHistory && sku.purchaseHistory.length > 0 && (
                                   <View style={styles.historySection}>
@@ -724,8 +676,8 @@ export const StockScreen = () => {
                                     ))}
                                   </View>
                                 )}
-                                {/* Sales History (for sell stock) */}
-                                {activeTab === 'sell' && sku.salesHistory && sku.salesHistory.length > 0 && (
+                                {/* Sales History */}
+                                {sku.salesHistory && sku.salesHistory.length > 0 && (
                                   <View style={[styles.historySection, {backgroundColor: theme.colors.success[50]}]}>
                                     <Typography
                                       variant="small"
@@ -788,8 +740,8 @@ export const StockScreen = () => {
                                     ))}
                                   </View>
                                 )}
-                                {/* Discrepancy History (for sell stock) */}
-                                {activeTab === 'sell' && sku.discrepancyHistory && sku.discrepancyHistory.length > 0 && (
+                                {/* Discrepancy History */}
+                                {sku.discrepancyHistory && sku.discrepancyHistory.length > 0 && (
                                   <View style={[styles.historySection, {backgroundColor: theme.colors.error[50]}]}>
                                     <Typography
                                       variant="small"
