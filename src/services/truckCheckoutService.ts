@@ -7,13 +7,11 @@ class TruckCheckoutService {
   async searchItems(
     token: string,
     query: string = '',
-    forSell: boolean = true,
     limit: number = 100
   ) {
     try {
       const queryParams = new URLSearchParams();
       if (query) queryParams.append('q', query);
-      queryParams.append('forSell', forSell.toString());
       queryParams.append('limit', limit.toString());
 
       const url = `${API_BASE_URL}/truck-checkouts/items/search?${queryParams.toString()}`;
@@ -300,7 +298,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-}
   /**
    * Get a single checkout by ID
    */

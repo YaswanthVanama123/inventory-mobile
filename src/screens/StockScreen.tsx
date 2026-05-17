@@ -754,14 +754,6 @@ export const StockScreen = () => {
                                       <View key={index} style={styles.historyItem}>
                                         <View style={styles.historyRow}>
                                           <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Invoice #
-                                          </Typography>
-                                          <Typography variant="small" weight="medium" color={theme.colors.error[600]}>
-                                            {record.invoiceNumber || 'N/A'}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
                                             Reported
                                           </Typography>
                                           <Typography variant="small" color={theme.colors.gray[700]}>

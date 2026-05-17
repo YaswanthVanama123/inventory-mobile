@@ -70,7 +70,6 @@ export const TruckCheckoutScreen = () => {
       const items = await truckCheckoutService.searchItems(
         token,
         searchQuery,
-        true,
         100
       );
       if (isMounted) {
@@ -629,9 +628,25 @@ export const TruckCheckoutScreen = () => {
                   <View style={styles.itemCardLeft}>
                     <BoxIcon size={24} color={theme.colors.primary[600]} />
                     <View style={styles.itemCardInfo}>
-                      <Typography variant="body" weight="semibold">
-                        {item.itemName}
-                      </Typography>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap'}}>
+                        <Typography variant="body" weight="semibold">
+                          {item.itemName}
+                        </Typography>
+                        <View style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 2,
+                          borderRadius: 10,
+                          backgroundColor: item.itemType === 'use' ? theme.colors.primary[100] : theme.colors.success[100],
+                        }}>
+                          <Typography
+                            variant="caption"
+                            weight="bold"
+                            color={item.itemType === 'use' ? theme.colors.primary[700] : theme.colors.success[700]}
+                            style={{fontSize: 10}}>
+                            {item.itemType === 'use' ? 'USE' : 'SELL'}
+                          </Typography>
+                        </View>
+                      </View>
                       <View style={{marginTop: 4, gap: 2}}>
                         <Typography variant="caption" color={theme.colors.gray[600]}>
                           Stock: {item.currentStock || 0} • Purchased: {item.totalPurchased || 0} • Sold: {item.totalSold || 0}
