@@ -91,6 +91,7 @@ export const InvoicesScreen = () => {
         const params: any = {
           limit: 50,
           status: invoiceType === 'pending' ? 'Pending' : 'Closed',
+          dateField: invoiceType === 'closed' ? 'dateCompleted' : 'invoiceDate',
         };
         if (searchQuery) params.search = searchQuery;
         if (statusFilter) params.status = statusFilter;
@@ -563,6 +564,16 @@ export const InvoicesScreen = () => {
                       </Typography>
                     </View>
                   </View>
+                  {invoice.dateCompleted && (
+                    <View style={styles.detailRow}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Completed
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[700]}>
+                        {formatDate(invoice.dateCompleted)}
+                      </Typography>
+                    </View>
+                  )}
                   <View style={styles.detailRow}>
                     <Typography variant="caption" color={theme.colors.gray[500]}>
                       Payment

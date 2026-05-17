@@ -8,6 +8,7 @@ interface InvoiceParams {
   paymentStatus?: string;
   dateFrom?: string;
   dateTo?: string;
+  dateField?: string;
 }
 
 class InvoiceService {
@@ -21,6 +22,7 @@ class InvoiceService {
       if (params.paymentStatus) queryParams.append('paymentStatus', params.paymentStatus);
       if (params.dateFrom) queryParams.append('startDate', params.dateFrom);
       if (params.dateTo) queryParams.append('endDate', params.dateTo);
+      if (params.dateField) queryParams.append('dateField', params.dateField);
       const url = `${API_BASE_URL}/routestar/invoices${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await fetch(url, {
         headers: {
