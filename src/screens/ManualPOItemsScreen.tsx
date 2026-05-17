@@ -25,7 +25,7 @@ import {
   ClipboardIcon,
   PlusIcon,
   EditIcon,
-  TrashIcon,
+  XCircleIcon,
   CheckCircleIcon,
 } from '../components/icons';
 
@@ -120,22 +120,26 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
     Alert.alert('Edit Item', `Editing ${item.name} will be available in the next update`);
   };
 
-  const handleDelete = (item: ManualPOItem) => {
+  const handleToggleActive = (item: ManualPOItem) => {
+    const newStatus = !item.isActive;
+    const action = newStatus ? 'activate' : 'deactivate';
     Alert.alert(
-      'Delete Item',
-      `Are you sure you want to delete "${item.name}"?`,
+      newStatus ? 'Activate Item' : 'Deactivate Item',
+      newStatus
+        ? `Are you sure you want to activate "${item.name}"?`
+        : `Are you sure you want to deactivate "${item.name}"?\n\nInactive items cannot be added to new orders, but existing orders remain unchanged.`,
       [
         {text: 'Cancel', style: 'cancel'},
         {
-          text: 'Delete',
-          style: 'destructive',
+          text: newStatus ? 'Activate' : 'Deactivate',
+          style: newStatus ? 'default' : 'destructive',
           onPress: async () => {
             try {
-              await manualPOItemService.deleteManualPOItem(token!, item.sku);
-              Alert.alert('Success', 'Item deleted successfully');
+              await manualPOItemService.updateManualPOItem(token!, item.sku, {isActive: newStatus});
+              Alert.alert('Success', `Item ${action}d successfully`);
               loadData();
             } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to delete item');
+              Alert.alert('Error', error.message || `Failed to ${action} item`);
             }
           },
         },
@@ -345,15 +349,22 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                             </Typography>
                           </TouchableOpacity>
                           <TouchableOpacity
-                            style={[styles.actionButton, styles.deleteButton]}
-                            onPress={() => handleDelete(item)}>
-                            <TrashIcon size={16} color={theme.colors.error[600]} />
+                            style={[
+                              styles.actionButton,
+                              item.isActive ? styles.deactivateButton : styles.activateButton,
+                            ]}
+                            onPress={() => handleToggleActive(item)}>
+                            {item.isActive ? (
+                              <XCircleIcon size={16} color={theme.colors.error[600]} />
+                            ) : (
+                              <CheckCircleIcon size={16} color={theme.colors.success[600]} />
+                            )}
                             <Typography
                               variant="small"
                               weight="semibold"
-                              color={theme.colors.error[600]}
+                              color={item.isActive ? theme.colors.error[600] : theme.colors.success[600]}
                               style={{marginLeft: 8}}>
-                              Delete
+                              {item.isActive ? 'Deactivate' : 'Activate'}
                             </Typography>
                           </TouchableOpacity>
                         </View>
@@ -537,8 +548,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary[50],
     borderColor: theme.colors.primary[200],
   },
-  deleteButton: {
+  deactivateButton: {
     backgroundColor: theme.colors.error[50],
     borderColor: theme.colors.error[200],
+  },
+  activateButton: {
+    backgroundColor: theme.colors.success[50],
+    borderColor: theme.colors.success[200],
   },
 });
