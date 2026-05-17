@@ -19,9 +19,9 @@ class InvoiceService {
       if (params.search) queryParams.append('search', params.search);
       if (params.status) queryParams.append('status', params.status);
       if (params.paymentStatus) queryParams.append('paymentStatus', params.paymentStatus);
-      if (params.dateFrom) queryParams.append('dateFrom', params.dateFrom);
-      if (params.dateTo) queryParams.append('dateTo', params.dateTo);
-      const url = `${API_BASE_URL}/invoices${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      if (params.dateFrom) queryParams.append('startDate', params.dateFrom);
+      if (params.dateTo) queryParams.append('endDate', params.dateTo);
+      const url = `${API_BASE_URL}/routestar/invoices${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -34,9 +34,9 @@ class InvoiceService {
       const result = await response.json();
       return {
         invoices: result.data?.invoices || result.invoices || [],
-        totalPages: result.data?.totalPages || result.totalPages || 1,
-        total: result.data?.total || result.total || 0,
-        currentPage: result.data?.currentPage || result.currentPage || 1,
+        totalPages: result.data?.pagination?.pages || result.data?.totalPages || result.totalPages || 1,
+        total: result.data?.pagination?.total || result.data?.total || result.total || 0,
+        currentPage: result.data?.pagination?.page || result.data?.currentPage || result.currentPage || 1,
       };
     } catch (error) {
       console.error('Invoice Service Error:', error);

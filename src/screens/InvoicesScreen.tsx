@@ -90,6 +90,7 @@ export const InvoicesScreen = () => {
       if (token && isMounted) {
         const params: any = {
           limit: 50,
+          status: invoiceType === 'pending' ? 'Pending' : 'Closed',
         };
         if (searchQuery) params.search = searchQuery;
         if (statusFilter) params.status = statusFilter;
