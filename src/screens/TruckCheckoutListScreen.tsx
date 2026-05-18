@@ -27,10 +27,10 @@ import {
 import {formatDateTime} from '../utils/dateUtils';
 
 type TabType = 'checkouts' | 'sales';
-type SubTabType = 'all' | 'employees';
+type SubTabType = 'all' | 'mine' | 'employees';
 
 export const TruckCheckoutListScreen = () => {
-  const {token} = useAuth();
+  const {token, user} = useAuth();
   const navigation = useNavigation<any>();
   const {handleApiError} = useApiErrorHandler();
   const [activeTab, setActiveTab] = useState<TabType>('checkouts');
@@ -40,6 +40,7 @@ export const TruckCheckoutListScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
   const [checkouts, setCheckouts] = useState<any[]>([]);
+  const [myCheckoutsByItem, setMyCheckoutsByItem] = useState<any[]>([]);
   const [expandedCheckout, setExpandedCheckout] = useState<string | null>(null);
   const [pagination, setPagination] = useState({total: 0, page: 1, limit: 50, pages: 0});
   const [employees, setEmployees] = useState<any[]>([]);
@@ -63,6 +64,8 @@ export const TruckCheckoutListScreen = () => {
     if (activeTab === 'checkouts') {
       if (checkoutsSubTab === 'all') {
         loadCheckouts();
+      } else if (checkoutsSubTab === 'mine') {
+        loadMyCheckoutsByItem();
       } else {
         loadEmployees();
       }
@@ -99,6 +102,105 @@ export const TruckCheckoutListScreen = () => {
       if (isMounted) {
         setLoading(false);
       }
+    }
+  };
+  const loadMyCheckoutsByItem = async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      const myName = user?.fullName || user?.username || '';
+      if (!myName) {
+        if (isMounted) setMyCheckoutsByItem([]);
+        return;
+      }
+      const filters: any = {
+        page: 1,
+        limit: 500,
+        employeeName: myName,
+      };
+      if (statusFilter !== 'all') filters.status = statusFilter;
+
+      const [checkoutsResult, truckInv] = await Promise.all([
+        truckCheckoutService.getCheckouts(token, filters),
+        truckCheckoutService.getMyTruckInventory(token),
+      ]);
+      const mine = checkoutsResult.checkouts || [];
+      const truckInvItems = truckInv?.items || [];
+      console.log('[MyCheckouts] truck-inventory items received:', truckInvItems.length);
+
+      const truckInvLookup = new Map<string, any>();
+      for (const ti of truckInvItems) {
+        if (ti.itemName) {
+          truckInvLookup.set(ti.itemName.toLowerCase().trim(), ti);
+        }
+      }
+
+      const byItem = new Map<string, any>();
+      for (const co of mine) {
+        if (co.itemName) {
+          const key = co.itemName.trim();
+          if (!byItem.has(key)) {
+            byItem.set(key, {
+              itemName: key,
+              totalQuantity: 0,
+              checkoutCount: 0,
+              lastCheckoutDate: null as Date | null,
+              truckNumbers: new Set<string>(),
+            });
+          }
+          const agg = byItem.get(key);
+          agg.totalQuantity += Number(co.quantityTaking || 0);
+          agg.checkoutCount += 1;
+          const date = co.checkoutDate ? new Date(co.checkoutDate) : null;
+          if (date && (!agg.lastCheckoutDate || date > agg.lastCheckoutDate)) {
+            agg.lastCheckoutDate = date;
+          }
+          if (co.truckNumber) agg.truckNumbers.add(co.truckNumber);
+        }
+        if (Array.isArray(co.itemsTaken)) {
+          for (const it of co.itemsTaken) {
+            const key = (it.name || '').trim();
+            if (!key) continue;
+            if (!byItem.has(key)) {
+              byItem.set(key, {
+                itemName: key,
+                totalQuantity: 0,
+                checkoutCount: 0,
+                lastCheckoutDate: null as Date | null,
+                truckNumbers: new Set<string>(),
+              });
+            }
+            const agg = byItem.get(key);
+            agg.totalQuantity += Number(it.quantity || 0);
+            agg.checkoutCount += 1;
+            const date = co.checkoutDate ? new Date(co.checkoutDate) : null;
+            if (date && (!agg.lastCheckoutDate || date > agg.lastCheckoutDate)) {
+              agg.lastCheckoutDate = date;
+            }
+            if (co.truckNumber) agg.truckNumbers.add(co.truckNumber);
+          }
+        }
+      }
+
+      const aggregated = Array.from(byItem.values())
+        .map(r => {
+          const inv = truckInvLookup.get(r.itemName.toLowerCase().trim());
+          return {
+            ...r,
+            truckNumbers: Array.from(r.truckNumbers),
+            remainingInTruck: inv ? inv.remainingInTruck : null,
+            totalSold: inv ? inv.totalSold : null,
+          };
+        })
+        .sort((a, b) => b.totalQuantity - a.totalQuantity);
+
+      if (isMounted) setMyCheckoutsByItem(aggregated);
+    } catch (error: any) {
+      console.error('Load my checkouts error:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled && isMounted) setMyCheckoutsByItem([]);
+    } finally {
+      if (isMounted) setLoading(false);
     }
   };
   const loadSalesTracking = async () => {
@@ -368,6 +470,23 @@ export const TruckCheckoutListScreen = () => {
                     : theme.colors.gray[600]
                 }>
                 All Checkouts
+              </Typography>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.subTab, checkoutsSubTab === 'mine' && styles.subTabActive]}
+              onPress={() => {
+                setCheckoutsSubTab('mine');
+                setCheckouts([]);
+              }}>
+              <Typography
+                variant="small"
+                weight={checkoutsSubTab === 'mine' ? 'semibold' : 'medium'}
+                color={
+                  checkoutsSubTab === 'mine'
+                    ? theme.colors.primary[600]
+                    : theme.colors.gray[600]
+                }>
+                My Checkouts
               </Typography>
             </TouchableOpacity>
             <TouchableOpacity
@@ -731,6 +850,104 @@ export const TruckCheckoutListScreen = () => {
                   </View>
                 );
               })
+            )}
+          </Card>
+        )}
+        {/* My Checkouts (by item, deduped) */}
+        {activeTab === 'checkouts' && checkoutsSubTab === 'mine' && (
+          <Card variant="elevated" padding="md" style={styles.contentCard}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
+              <View style={{flex: 1}}>
+                <Typography variant="body" weight="semibold">
+                  My Checkouts by Item
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  {user?.fullName || user?.username || 'You'} — {myCheckoutsByItem.length} unique item{myCheckoutsByItem.length === 1 ? '' : 's'}
+                </Typography>
+              </View>
+              <View style={{alignItems: 'flex-end'}}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>Remaining in Truck</Typography>
+                <Typography variant="h3" weight="bold" color={theme.colors.success[600]}>
+                  {myCheckoutsByItem.reduce((sum, r) => sum + (r.remainingInTruck ?? 0), 0)}
+                </Typography>
+              </View>
+            </View>
+            {loading ? (
+              <View style={{padding: 24, alignItems: 'center'}}>
+                <ActivityIndicator color={theme.colors.primary[600]} />
+              </View>
+            ) : myCheckoutsByItem.length === 0 ? (
+              <View style={{padding: 24, alignItems: 'center'}}>
+                <Typography variant="body" color={theme.colors.gray[500]}>
+                  No checkouts yet
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[400]} style={{marginTop: 4}}>
+                  Items you check out will appear here grouped by name.
+                </Typography>
+              </View>
+            ) : (
+              <View>
+                {myCheckoutsByItem.map((row) => (
+                  <View
+                    key={row.itemName}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.colors.gray[100],
+                    }}>
+                    <View style={{flex: 1, paddingRight: 12}}>
+                      <Typography variant="body" weight="semibold">
+                        {row.itemName}
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 2}}>
+                        {row.checkoutCount} checkout{row.checkoutCount === 1 ? '' : 's'}
+                        {row.truckNumbers.length > 0 && ` • Truck: ${row.truckNumbers.join(', ')}`}
+                      </Typography>
+                      {row.lastCheckoutDate && (
+                        <Typography variant="caption" color={theme.colors.gray[400]} style={{marginTop: 2}}>
+                          Last: {formatDateTime(row.lastCheckoutDate)}
+                        </Typography>
+                      )}
+                    </View>
+                    <View style={{flexDirection: 'row', gap: 12}}>
+                      <View style={{alignItems: 'flex-end'}}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>OUT</Typography>
+                        <Typography variant="body" weight="bold" color={theme.colors.primary[600]}>
+                          {row.totalQuantity}
+                        </Typography>
+                      </View>
+                      <View style={{alignItems: 'flex-end'}}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>SOLD</Typography>
+                        <Typography variant="body" weight="medium" color={theme.colors.gray[700]}>
+                          {row.totalSold !== null ? row.totalSold : '—'}
+                        </Typography>
+                      </View>
+                      <View style={{alignItems: 'flex-end', minWidth: 50}}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>LEFT</Typography>
+                        {row.remainingInTruck !== null ? (
+                          <Typography
+                            variant="h3"
+                            weight="bold"
+                            color={
+                              row.remainingInTruck > 0
+                                ? theme.colors.success[600]
+                                : row.remainingInTruck === 0
+                                ? theme.colors.gray[500]
+                                : theme.colors.error[600]
+                            }>
+                            {row.remainingInTruck}
+                          </Typography>
+                        ) : (
+                          <Typography variant="body" color={theme.colors.gray[400]}>—</Typography>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
             )}
           </Card>
         )}

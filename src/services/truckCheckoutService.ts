@@ -119,6 +119,27 @@ class TruckCheckoutService {
     }
   }
 
+  async getMyTruckInventory(token: string) {
+    try {
+      const url = `${API_BASE_URL}/truck-checkouts/my-truck-inventory`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      return result.data || { items: [], totals: {} };
+    } catch (error: any) {
+      console.error('[TruckCheckout] Get my truck inventory error:', error.message);
+      return { items: [], totals: {} };
+    }
+  }
+
   /**
    * Create new checkout with validation and auto-discrepancy
    */

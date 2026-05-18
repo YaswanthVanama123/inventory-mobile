@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TextInput as RNTextInput,
   Switch,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -24,7 +25,7 @@ type StatusFilter = '' | 'draft' | 'issued' | 'paid' | 'cancelled';
 type PaymentStatusFilter = '' | 'pending' | 'paid' | 'overdue';
 
 export const InvoicesScreen = () => {
-  const {token} = useAuth();
+  const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -214,6 +215,29 @@ export const InvoicesScreen = () => {
   const handleCloseDetail = () => {
     setDetailModalVisible(false);
     setSelectedInvoiceId(null);
+  };
+  const handleDeleteManualInvoice = (invoiceNumber: string) => {
+    Alert.alert(
+      'Delete Invoice',
+      `Delete manual invoice ${invoiceNumber}? This cannot be undone.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token) return;
+            try {
+              await invoiceService.deleteManualInvoice(token, invoiceNumber);
+              Alert.alert('Deleted', `Invoice ${invoiceNumber} deleted`);
+              fetchInvoices();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to delete invoice');
+            }
+          },
+        },
+      ],
+    );
   };
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
@@ -518,12 +542,30 @@ export const InvoicesScreen = () => {
                       <FileTextIcon size={20} color={theme.colors.primary[600]} />
                     </View>
                     <View style={styles.invoiceHeaderInfo}>
-                      <Typography
-                        variant="body"
-                        weight="bold"
-                        style={styles.invoiceNumber}>
-                        {invoice.invoiceNumber}
-                      </Typography>
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap'}}>
+                        <Typography
+                          variant="body"
+                          weight="bold"
+                          style={styles.invoiceNumber}>
+                          {invoice.invoiceNumber}
+                        </Typography>
+                        {invoice.source === 'manual' && (
+                          <View style={{
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: 8,
+                            backgroundColor: '#f3e8ff',
+                          }}>
+                            <Typography
+                              variant="caption"
+                              weight="bold"
+                              color={'#7e22ce'}
+                              style={{fontSize: 9}}>
+                              MANUAL
+                            </Typography>
+                          </View>
+                        )}
+                      </View>
                       <Typography
                         variant="caption"
                         color={theme.colors.gray[500]}>
@@ -543,6 +585,19 @@ export const InvoicesScreen = () => {
                       color={theme.colors.gray[500]}>
                       {formatDate(invoice.date || invoice.createdAt)}
                     </Typography>
+                    {user?.role === 'admin' && invoice.source === 'manual' && (
+                      <TouchableOpacity
+                        onPress={(e: any) => {
+                          e?.stopPropagation?.();
+                          handleDeleteManualInvoice(invoice.invoiceNumber);
+                        }}
+                        style={{marginTop: 4, padding: 4}}
+                        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.error[600]}>
+                          Delete
+                        </Typography>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
                 {/* Invoice Details */}
