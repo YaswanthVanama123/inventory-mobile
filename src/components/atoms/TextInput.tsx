@@ -80,13 +80,13 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.gray[300],
-    ...theme.shadows.sm,
+    borderColor: theme.colors.gray[200],
   },
   inputWrapperError: {
     borderColor: theme.colors.error[500],
+    backgroundColor: theme.colors.error[50],
   },
   leftIconWrapper: {
     marginLeft: theme.spacing.md,

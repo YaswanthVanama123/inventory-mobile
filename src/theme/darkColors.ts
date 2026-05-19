@@ -27,12 +27,14 @@ export const darkColors = {
     800: '#e9d5ff',
     900: '#f3e8ff',
   },
-  // Inverted gray: gray[50] dark bg ↔ gray[900] light text
+  // Inverted gray: gray[50] dark bg ↔ gray[900] light text.
+  // Tuned for clear layer separation: app bg is darkest, card surface lifts noticeably,
+  // borders sit between for crisp 1px hairlines.
   gray: {
-    50: '#0f172a',
-    100: '#1e293b',
-    200: '#334155',
-    300: '#475569',
+    50: '#0b1220',
+    100: '#1a2236',
+    200: '#2a3348',
+    300: '#3f4a63',
     400: '#64748b',
     500: '#94a3b8',
     600: '#cbd5e1',
@@ -99,8 +101,9 @@ export const darkColors = {
     cyan: ['#164e63', '#0e7490'],
   },
   // White becomes a dark card surface so existing `backgroundColor: theme.colors.white`
-  // styling still produces a card-on-bg effect.
-  white: '#1e293b',
+  // styling still produces a card-on-bg effect. Lifted slightly above gray[50] for
+  // visible layer separation without harsh contrast.
+  white: '#1a2236',
   black: '#ffffff',
   transparent: 'transparent',
   text: {
@@ -111,8 +114,8 @@ export const darkColors = {
     inverse: '#0f172a',
   },
   background: {
-    primary: '#1e293b',
-    secondary: '#0f172a',
-    tertiary: '#334155',
+    primary: '#1a2236',
+    secondary: '#0b1220',
+    tertiary: '#2a3348',
   },
 };

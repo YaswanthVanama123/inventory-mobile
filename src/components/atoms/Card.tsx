@@ -32,16 +32,18 @@ export const Card: React.FC<CardProps> = ({
 };
 const makeStyles = (theme: Theme) => StyleSheet.create({
   card: {
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.lg,
     overflow: 'hidden',
   },
   card_elevated: {
     backgroundColor: theme.colors.white,
+    borderWidth: theme.mode === 'dark' ? 1 : StyleSheet.hairlineWidth,
+    borderColor: theme.mode === 'dark' ? theme.colors.gray[200] : theme.colors.gray[200],
     ...theme.shadows.sm,
   },
   card_outlined: {
     backgroundColor: theme.colors.white,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: theme.colors.gray[200],
   },
   card_filled: {

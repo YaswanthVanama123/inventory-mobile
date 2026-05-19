@@ -57,7 +57,7 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
       style={buttonStyles}
       disabled={disabled || loading}
-      activeOpacity={0.7}>
+      activeOpacity={0.85}>
       {loading ? (
         <ActivityIndicator
           color={variant === 'primary' || variant === 'danger' ? '#fff' : theme.colors.primary[600]}
@@ -77,12 +77,12 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.md,
     gap: theme.spacing.sm,
   },
   button_primary: {
     backgroundColor: theme.colors.primary[600],
-    ...theme.shadows.md,
+    ...theme.shadows.sm,
   },
   button_secondary: {
     backgroundColor: theme.colors.accent[50],
@@ -91,7 +91,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   },
   button_outline: {
     backgroundColor: theme.colors.transparent,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: theme.colors.primary[600],
   },
   button_ghost: {
@@ -99,28 +99,29 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   },
   button_danger: {
     backgroundColor: theme.colors.error[600],
-    ...theme.shadows.md,
+    ...theme.shadows.sm,
   },
   button_sm: {
-    paddingVertical: 13,
-    paddingHorizontal: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
   },
   button_md: {
-    paddingVertical: theme.spacing.md,
+    paddingVertical: 13,
     paddingHorizontal: theme.spacing.lg,
   },
   button_lg: {
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: theme.spacing.xl,
   },
   fullWidth: {
     width: '100%',
   },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   text: {
     fontWeight: theme.typography.fontWeights.semibold,
+    letterSpacing: 0.1,
   },
   text_primary: {
     color: theme.colors.white,
