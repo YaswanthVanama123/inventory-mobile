@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -14,7 +14,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import discrepancyService from '../services/discrepancyService';
 import {
   AlertCircleIcon,
@@ -60,7 +61,7 @@ const getSourceLabel = (source: string): string => {
   }
 };
 
-const getSourceColors = (source: string) => {
+const getSourceColors = (source: string, theme: Theme) => {
   switch (source) {
     case 'truck-return':
       return {bg: '#eef2ff', text: '#4338ca'};
@@ -77,6 +78,8 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   visible,
   onClose,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const {user} = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -457,7 +460,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
               const statusColors = getStatusColor(discrepancy.status);
               const typeColors = getTypeColor(discrepancy.discrepancyType);
               const source = getDiscrepancySource(discrepancy);
-              const sourceColors = getSourceColors(source);
+              const sourceColors = getSourceColors(source, theme);
 
               return (
                 <Card
@@ -762,7 +765,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],

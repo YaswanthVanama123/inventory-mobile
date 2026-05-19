@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -14,7 +14,8 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import ordersService from '../services/ordersService';
 import {
   AlertCircleIcon,
@@ -35,6 +36,8 @@ interface OrdersScreenWrapperProps {
 export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   navigation,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const isAdmin = user?.role === 'admin';
@@ -189,7 +192,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     return statusMap[status] || theme.colors.gray[100];
   };
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -537,7 +540,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],

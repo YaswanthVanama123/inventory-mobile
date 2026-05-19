@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -15,7 +15,8 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import truckCheckoutService from '../services/truckCheckoutService';
 import {
   BoxIcon,
@@ -27,6 +28,8 @@ import {
 } from '../components/icons';
 
 export const TruckCheckoutScreen = () => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
@@ -776,7 +779,7 @@ export const TruckCheckoutScreen = () => {
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],

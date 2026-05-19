@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {TouchableOpacity, View, Text, StyleSheet, ViewStyle} from 'react-native';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 import {CheckIcon} from '../icons';
 
 export interface CheckboxProps {
@@ -18,6 +19,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   disabled = false,
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <TouchableOpacity
       style={[styles.container, style]}
@@ -31,7 +34,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
     </TouchableOpacity>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

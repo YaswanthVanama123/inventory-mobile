@@ -1,7 +1,8 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, StyleSheet, ViewStyle} from 'react-native';
 import {Typography} from '../atoms/Typography';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 
 export type GradientColor = 'blue' | 'purple' | 'orange' | 'green' | 'teal' | 'pink' | 'indigo' | 'cyan' | 'red';
 
@@ -55,6 +56,8 @@ export const GradientStatCard: React.FC<GradientStatCardProps> = ({
   style,
   trend,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const getGradientColor = () => {
     const colorMap: Record<GradientColor, string> = {
       blue: theme.colors.primary[600],
@@ -123,7 +126,7 @@ export const GradientStatCard: React.FC<GradientStatCardProps> = ({
     </View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     borderRadius: theme.borderRadius.xxl,
     overflow: 'hidden',

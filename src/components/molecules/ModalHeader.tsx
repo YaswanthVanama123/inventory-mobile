@@ -1,8 +1,9 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, StyleSheet, TouchableOpacity, ViewStyle} from 'react-native';
 import {Typography} from '../atoms/Typography';
 import {XIcon} from '../icons';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 
 export interface ModalHeaderProps {
   /**
@@ -47,6 +48,8 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   style,
   hideCloseButton = false,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={[styles.container, style]}>
       <View style={styles.content}>
@@ -76,7 +79,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
     </View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     backgroundColor: theme.colors.white,
   },

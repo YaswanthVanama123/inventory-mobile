@@ -1,7 +1,8 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, StyleSheet, ViewStyle, TextStyle} from 'react-native';
 import {Typography} from './Typography';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 import {
   getInvoiceStatusColors,
   getPaymentStatusColors,
@@ -52,6 +53,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   style,
   textStyle,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const getColors = () => {
     switch (type) {
       case 'invoice':
@@ -93,7 +96,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     </View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     alignSelf: 'flex-start',
     borderRadius: theme.borderRadius.md,

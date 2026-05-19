@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -16,7 +16,8 @@ import {Button} from '../components/atoms/Button';
 import {PickerModal} from '../components/molecules/PickerModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import fetchHistoryService from '../services/fetchHistoryService';
 import {
   AlertCircleIcon,
@@ -41,6 +42,8 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
 }) => {
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
@@ -646,7 +649,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({
     </Modal>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],

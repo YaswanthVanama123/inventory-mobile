@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -15,7 +15,8 @@ import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import itemsInvoiceUsageService, {ItemUsage} from '../services/itemsInvoiceUsageService';
 import {BarChartIcon, SearchIcon, XIcon, BoxIcon, ClockIcon} from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
@@ -31,6 +32,8 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
 }) => {
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<ItemUsage[]>([]);
@@ -287,7 +290,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],

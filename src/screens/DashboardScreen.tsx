@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -15,7 +15,8 @@ import {Card} from '../components/atoms/Card';
 import {GradientStatCard} from '../components/molecules/GradientStatCard';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import {
   BoxIcon,
   WarningIcon,
@@ -32,6 +33,8 @@ import {formatDateTime} from '../utils/dateUtils';
 const screenWidth = Dimensions.get('window').width;
 
 export const DashboardScreen = () => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
@@ -459,7 +462,7 @@ export const DashboardScreen = () => {
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background.secondary,

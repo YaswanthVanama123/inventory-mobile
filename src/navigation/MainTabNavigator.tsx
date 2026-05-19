@@ -10,7 +10,7 @@ import {CheckoutStackNavigator} from './CheckoutStackNavigator';
 import {OrderStackNavigator} from './OrderStackNavigator';
 import {AccountScreen} from '../screens/AccountScreen';
 import {HomeIcon, InventoryIcon, BoxIcon, FileTextIcon, TruckIcon, UserIcon, ClipboardIcon} from '../components/icons';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
 import {useAuth} from '../contexts/AuthContext';
 import {useUserScreens} from '../hooks/useUserScreens';
 
@@ -42,6 +42,7 @@ const TABS: TabDef[] = [
 
 export const MainTabNavigator = () => {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const {user} = useAuth();
   const {hasAccessToAnyScreen, loading} = useUserScreens();
   const isAdmin = user?.role === 'admin';

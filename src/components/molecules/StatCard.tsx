@@ -1,7 +1,8 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, StyleSheet, ViewStyle} from 'react-native';
 import {Typography} from '../atoms/Typography';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 
 export interface StatCardProps {
   /**
@@ -54,14 +55,17 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   subtitle,
   icon,
-  backgroundColor = theme.colors.primary[600],
+  backgroundColor,
   size = 'md',
   style,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const resolvedBackgroundColor = backgroundColor ?? theme.colors.primary[600];
   const containerStyle = [
     styles.container,
     styles[`container_${size}`],
-    {backgroundColor},
+    {backgroundColor: resolvedBackgroundColor},
     style,
   ];
   const valueFontSize =
@@ -92,7 +96,7 @@ export const StatCard: React.FC<StatCardProps> = ({
     </View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     borderRadius: theme.borderRadius.xl,
     justifyContent: 'space-between',

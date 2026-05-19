@@ -4,7 +4,7 @@ import {OrdersScreenWrapper} from '../screens/OrdersScreenWrapper';
 import {OrderVerificationScreen} from '../screens/OrderVerificationScreen';
 import {OrderDiscrepancyListScreen} from '../screens/OrderDiscrepancyListScreen';
 import {ManualOrderFormScreen} from '../screens/ManualOrderFormScreen';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
 
 export type OrderStackParamList = {
   OrdersList: undefined;
@@ -15,22 +15,20 @@ export type OrderStackParamList = {
 
 const Stack = createNativeStackNavigator<OrderStackParamList>();
 export const OrderStackNavigator = () => {
+  const theme = useTheme();
+  const headerStyle = {backgroundColor: theme.colors.white};
+  const headerTitleStyle = {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: theme.colors.gray[900],
+  };
   return (
     <Stack.Navigator>
       <Stack.Screen
         name="OrdersList"
         component={OrdersScreenWrapper}
         options={{
-          headerShown: true,
-          title: 'Purchase Orders',
-          headerStyle: {
-            backgroundColor: theme.colors.white,
-          },
-          headerTitleStyle: {
-            fontSize: 18,
-            fontWeight: '600',
-            color: theme.colors.gray[900],
-          },
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -39,14 +37,9 @@ export const OrderStackNavigator = () => {
         options={{
           headerShown: true,
           title: 'Verify Order',
-          headerStyle: {
-            backgroundColor: theme.colors.white,
-          },
-          headerTitleStyle: {
-            fontSize: 18,
-            fontWeight: '600',
-            color: theme.colors.gray[900],
-          },
+          headerStyle,
+          headerTitleStyle,
+          headerTintColor: theme.colors.gray[900],
           headerBackTitle: 'Back',
         }}
       />
@@ -56,14 +49,9 @@ export const OrderStackNavigator = () => {
         options={{
           headerShown: true,
           title: 'Order Discrepancies',
-          headerStyle: {
-            backgroundColor: theme.colors.white,
-          },
-          headerTitleStyle: {
-            fontSize: 18,
-            fontWeight: '600',
-            color: theme.colors.gray[900],
-          },
+          headerStyle,
+          headerTitleStyle,
+          headerTintColor: theme.colors.gray[900],
           headerBackTitle: 'Back',
         }}
       />
@@ -73,14 +61,9 @@ export const OrderStackNavigator = () => {
         options={{
           headerShown: true,
           title: 'Create Manual Order',
-          headerStyle: {
-            backgroundColor: theme.colors.white,
-          },
-          headerTitleStyle: {
-            fontSize: 18,
-            fontWeight: '600',
-            color: theme.colors.gray[900],
-          },
+          headerStyle,
+          headerTitleStyle,
+          headerTintColor: theme.colors.gray[900],
           headerBackTitle: 'Back',
         }}
       />

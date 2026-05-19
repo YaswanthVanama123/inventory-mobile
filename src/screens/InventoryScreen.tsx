@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -15,13 +15,16 @@ import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import inventoryService from '../services/inventoryService';
 import {BoxIcon, AlertCircleIcon, ChevronDownIcon, ChevronRightIcon, CheckCircleIcon} from '../components/icons';
 import {PartialVerificationModal} from '../components/molecules/PartialVerificationModal';
 import {formatDate} from '../utils/dateUtils';
 
 export const InventoryScreen = () => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
@@ -928,7 +931,7 @@ export const InventoryScreen = () => {
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],

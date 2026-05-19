@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -12,7 +12,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../atoms/Typography';
 import {Card} from '../atoms/Card';
 import {Button} from '../atoms/Button';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 import userService from '../../services/userService';
 import {EyeIcon, EyeOffIcon, AlertCircleIcon, CheckIcon} from '../icons';
 
@@ -31,6 +32,8 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   token,
   user,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -291,7 +294,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
     </Modal>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.white,

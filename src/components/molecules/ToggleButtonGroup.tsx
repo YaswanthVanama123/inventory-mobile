@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 
 export interface ToggleOption {
   value: string;
@@ -20,6 +21,8 @@ export const ToggleButtonGroup: React.FC<ToggleButtonGroupProps> = ({
   onChange,
   disabled = false,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={styles.container}>
       {options.map((option, index) => {
@@ -50,7 +53,7 @@ export const ToggleButtonGroup: React.FC<ToggleButtonGroupProps> = ({
     </View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: theme.colors.gray[200],

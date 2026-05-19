@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -14,7 +14,8 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import orderDiscrepancyService from '../services/orderDiscrepancyService';
 import {
   AlertCircleIcon,
@@ -29,6 +30,8 @@ interface OrderDiscrepancyListScreenProps {
 export const OrderDiscrepancyListScreen: React.FC<
   OrderDiscrepancyListScreenProps
 > = ({navigation}) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
@@ -518,7 +521,7 @@ export const OrderDiscrepancyListScreen: React.FC<
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',

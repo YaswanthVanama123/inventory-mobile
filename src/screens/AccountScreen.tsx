@@ -1,11 +1,12 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {View, StyleSheet, Alert, ScrollView, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useUserScreens} from '../hooks/useUserScreens';
-import {theme} from '../theme';
+import {useTheme, useThemeContext} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import {LogoutIcon, UserIcon, ChevronRightIcon, FileTextIcon, ClipboardIcon, LinkIcon, TagIcon, BoxIcon, SettingsIcon, ClockIcon, AlertCircleIcon, TruckIcon, TimelineIcon, ShieldIcon, GridIcon, BarChartIcon} from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
 import {OrdersScreen} from './OrdersScreen';
@@ -25,6 +26,9 @@ import {ItemsInvoiceUsageScreen} from './ItemsInvoiceUsageScreen';
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
   const {hasAccessToScreen} = useUserScreens();
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const {preference, setPreference, mode} = useThemeContext();
   const isAdmin = user?.role === 'admin';
   const canSee = (path: string) => isAdmin || hasAccessToScreen(path);
   const [salesReportVisible, setSalesReportVisible] = useState(false);
@@ -407,6 +411,49 @@ export const AccountScreen = () => {
           )}
         </Card>
 
+        {/* Appearance */}
+        <View style={styles.sectionHeader}>
+          <Typography variant="small" weight="bold" color={theme.colors.gray[500]}>
+            APPEARANCE
+          </Typography>
+        </View>
+        <Card variant="elevated" padding="none" style={styles.menuCard}>
+          <View style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <View style={[styles.menuIconContainer, styles.reportsIconBg]}>
+                <SettingsIcon size={18} color={theme.colors.primary[600]} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Typography variant="body" weight="semibold">
+                  Theme
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Currently: {mode === 'dark' ? 'Dark' : 'Light'}
+                  {preference === 'system' ? ' (System)' : ''}
+                </Typography>
+              </View>
+            </View>
+          </View>
+          <View style={styles.themeOptionsRow}>
+            {(['light', 'dark', 'system'] as const).map(opt => {
+              const active = preference === opt;
+              return (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.themeOption, active && styles.themeOptionActive]}
+                  onPress={() => setPreference(opt)}>
+                  <Typography
+                    variant="small"
+                    weight={active ? 'bold' : 'medium'}
+                    color={active ? theme.colors.white : theme.colors.gray[700]}>
+                    {opt === 'light' ? 'Light' : opt === 'dark' ? 'Dark' : 'System'}
+                  </Typography>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Card>
+
         {/* Logout Button */}
         <TouchableOpacity
           style={styles.logoutButton}
@@ -506,7 +553,7 @@ export const AccountScreen = () => {
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -590,6 +637,22 @@ const styles = StyleSheet.create({
   },
   reportsIconBg: {
     backgroundColor: theme.colors.primary[100],
+  },
+  themeOptionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  themeOption: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: theme.colors.gray[100],
+  },
+  themeOptionActive: {
+    backgroundColor: theme.colors.primary[600],
   },
   logoutButton: {
     flexDirection: 'row',

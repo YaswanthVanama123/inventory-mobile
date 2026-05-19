@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {
   View,
   Modal,
@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../atoms/Typography';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 import {CheckIcon, ChevronDownIcon} from '../icons';
 
 interface PickerModalProps {
@@ -33,6 +34,8 @@ export const PickerModal: React.FC<PickerModalProps> = ({
   getLabel = (item) => item.label || item.toString(),
   getValue = (item) => item.value || item._id || item,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState('');
   const filteredItems = items.filter(item =>
     getLabel(item).toLowerCase().includes(searchQuery.toLowerCase())
@@ -108,7 +111,7 @@ export const PickerModal: React.FC<PickerModalProps> = ({
     </Modal>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.white,

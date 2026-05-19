@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -16,7 +16,8 @@ import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import screenPermissionService, {Screen} from '../services/screenPermissionService';
 import {
   GridIcon,
@@ -42,6 +43,8 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
 }) => {
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [screens, setScreens] = useState<Screen[]>([]);
@@ -560,7 +563,7 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],

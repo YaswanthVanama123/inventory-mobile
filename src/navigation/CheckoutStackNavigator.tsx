@@ -6,7 +6,7 @@ import {TruckCheckoutDetailScreen} from '../screens/TruckCheckoutDetailScreen';
 import {TouchableOpacity} from 'react-native';
 import {Typography} from '../components/atoms/Typography';
 import {PlusIcon} from '../components/icons';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
 
 export type CheckoutStackParamList = {
   CheckoutList: undefined;
@@ -16,6 +16,13 @@ export type CheckoutStackParamList = {
 
 const Stack = createNativeStackNavigator<CheckoutStackParamList>();
 export const CheckoutStackNavigator = () => {
+  const theme = useTheme();
+  const headerStyle = {backgroundColor: theme.colors.white};
+  const headerTitleStyle = {
+    fontSize: 18,
+    fontWeight: '600' as const,
+    color: theme.colors.gray[900],
+  };
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -24,14 +31,9 @@ export const CheckoutStackNavigator = () => {
         options={({navigation}) => ({
           headerShown: true,
           title: 'Truck Checkouts',
-          headerStyle: {
-            backgroundColor: theme.colors.white,
-          },
-          headerTitleStyle: {
-            fontSize: 18,
-            fontWeight: '600',
-            color: theme.colors.gray[900],
-          },
+          headerStyle,
+          headerTitleStyle,
+          headerTintColor: theme.colors.gray[900],
           headerRight: () => (
             <TouchableOpacity
               onPress={() => navigation.navigate('CheckoutForm')}
@@ -58,14 +60,9 @@ export const CheckoutStackNavigator = () => {
         options={{
           headerShown: true,
           title: 'New Checkout',
-          headerStyle: {
-            backgroundColor: theme.colors.white,
-          },
-          headerTitleStyle: {
-            fontSize: 18,
-            fontWeight: '600',
-            color: theme.colors.gray[900],
-          },
+          headerStyle,
+          headerTitleStyle,
+          headerTintColor: theme.colors.gray[900],
           headerBackTitle: 'Back',
         }}
       />
@@ -75,14 +72,9 @@ export const CheckoutStackNavigator = () => {
         options={{
           headerShown: true,
           title: 'Checkout Details',
-          headerStyle: {
-            backgroundColor: theme.colors.white,
-          },
-          headerTitleStyle: {
-            fontSize: 18,
-            fontWeight: '600',
-            color: theme.colors.gray[900],
-          },
+          headerStyle,
+          headerTitleStyle,
+          headerTintColor: theme.colors.gray[900],
           headerBackTitle: 'Back',
         }}
       />

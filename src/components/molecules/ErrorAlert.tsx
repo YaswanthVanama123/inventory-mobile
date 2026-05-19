@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, Text, StyleSheet, ViewStyle} from 'react-native';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 import {AlertCircleIcon} from '../icons';
 
 export interface ErrorAlertProps {
@@ -9,6 +10,8 @@ export interface ErrorAlertProps {
 }
 
 export const ErrorAlert: React.FC<ErrorAlertProps> = ({message, style}) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   if (!message) {
     return null;
   }
@@ -19,7 +22,7 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({message, style}) => {
     </View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',

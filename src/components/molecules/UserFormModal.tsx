@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -14,7 +14,8 @@ import {Typography} from '../atoms/Typography';
 import {Card} from '../atoms/Card';
 import {Button} from '../atoms/Button';
 import {PickerModal} from './PickerModal';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 import userService from '../../services/userService';
 import {ChevronDownIcon, EyeIcon, EyeOffIcon, AlertCircleIcon, CheckIcon} from '../icons';
 
@@ -33,6 +34,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   token,
   user,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const isEditMode = Boolean(user);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -589,7 +592,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     </Modal>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.white,

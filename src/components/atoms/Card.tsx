@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {View, ViewProps, StyleSheet} from 'react-native';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 
 export interface CardProps extends ViewProps {
   variant?: 'elevated' | 'outlined' | 'filled';
@@ -14,6 +15,8 @@ export const Card: React.FC<CardProps> = ({
   children,
   ...props
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View
       {...props}
@@ -27,7 +30,7 @@ export const Card: React.FC<CardProps> = ({
     </View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   card: {
     borderRadius: theme.borderRadius.xl,
     overflow: 'hidden',

@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   Modal,
@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import {Typography} from '../atoms/Typography';
 import {Card} from '../atoms/Card';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 import {XIcon, CheckCircleIcon} from '../icons';
 import {formatDateTime} from '../../utils/dateUtils';
 
@@ -35,6 +36,8 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
   order,
   loading = false,
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const [receivedQty, setReceivedQty] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -315,7 +318,7 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {Text as RNText, TextProps as RNTextProps, StyleSheet} from 'react-native';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 
 export interface TypographyProps extends RNTextProps {
   variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'small' | 'caption';
@@ -11,19 +12,22 @@ export interface TypographyProps extends RNTextProps {
 
 export const Typography: React.FC<TypographyProps> = ({
   variant = 'body',
-  color = theme.colors.gray[900],
+  color,
   weight = 'normal',
   align = 'left',
   style,
   ...props
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const resolvedColor = color ?? theme.colors.gray[900];
   return (
     <RNText
       {...props}
       style={[
         styles[variant],
         {
-          color,
+          color: resolvedColor,
           fontWeight: theme.typography.fontWeights[weight],
           textAlign: align,
         },
@@ -32,37 +36,37 @@ export const Typography: React.FC<TypographyProps> = ({
     />
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   h1: {
-    fontSize: theme.typography.fontSizes.xxxxl, 
-    lineHeight: theme.typography.fontSizes.xxxxl * 1.2, 
+    fontSize: theme.typography.fontSizes.xxxxl,
+    lineHeight: theme.typography.fontSizes.xxxxl * 1.2,
     fontWeight: theme.typography.fontWeights.bold,
   },
   h2: {
-    fontSize: theme.typography.fontSizes.xxxl, 
+    fontSize: theme.typography.fontSizes.xxxl,
     lineHeight: theme.typography.fontSizes.xxxl * 1.25,
     fontWeight: theme.typography.fontWeights.bold,
   },
   h3: {
-    fontSize: theme.typography.fontSizes.xxl, 
+    fontSize: theme.typography.fontSizes.xxl,
     lineHeight: theme.typography.fontSizes.xxl * 1.3,
     fontWeight: theme.typography.fontWeights.semibold,
   },
   h4: {
-    fontSize: theme.typography.fontSizes.xl, 
+    fontSize: theme.typography.fontSizes.xl,
     lineHeight: theme.typography.fontSizes.xl * 1.35,
     fontWeight: theme.typography.fontWeights.semibold,
   },
   body: {
-    fontSize: theme.typography.fontSizes.md, 
+    fontSize: theme.typography.fontSizes.md,
     lineHeight: theme.typography.fontSizes.md * 1.4,
   },
   small: {
-    fontSize: theme.typography.fontSizes.sm, 
+    fontSize: theme.typography.fontSizes.sm,
     lineHeight: theme.typography.fontSizes.sm * 1.4,
   },
   caption: {
-    fontSize: theme.typography.fontSizes.xs, 
+    fontSize: theme.typography.fontSizes.xs,
     lineHeight: theme.typography.fontSizes.xs * 1.4,
   },
 });

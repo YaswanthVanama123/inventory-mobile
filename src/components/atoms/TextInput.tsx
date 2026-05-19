@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {
   TextInput as RNTextInput,
   View,
@@ -9,7 +9,8 @@ import {
   TextStyle,
   TouchableOpacity,
 } from 'react-native';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 
 export interface TextInputProps extends RNTextInputProps {
   label?: string;
@@ -31,6 +32,8 @@ export const TextInput: React.FC<TextInputProps> = ({
   onRightIconPress,
   ...props
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -63,7 +66,7 @@ export const TextInput: React.FC<TextInputProps> = ({
     </View>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   container: {
     marginBottom: theme.spacing.md,
   },

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -8,7 +8,8 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import {theme} from '../../theme';
+import {useTheme} from '../../contexts/ThemeContext';
+import {Theme} from '../../theme';
 
 export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   title: string;
@@ -35,6 +36,8 @@ export const Button: React.FC<ButtonProps> = ({
   textStyle,
   ...props
 }) => {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   const buttonStyles = [
     styles.button,
     styles[`button_${variant}`],
@@ -69,7 +72,7 @@ export const Button: React.FC<ButtonProps> = ({
     </TouchableOpacity>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
