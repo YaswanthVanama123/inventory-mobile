@@ -68,7 +68,13 @@ class StockService {
       const result = await response.json();
       console.log('[StockService] Category sales result:', result);
       const data = result.data || result;
-      return data.skus || data || [];
+      return {
+        skus: data.skus || [],
+        categoryDiscrepancies: data.categoryDiscrepancies || [],
+        categorySalesHistory: data.categorySalesHistory || [],
+        categoryCheckoutHistory: data.categoryCheckoutHistory || [],
+        summary: data.summary || {},
+      };
     } catch (error) {
       console.error('Category Sales Service Error:', error);
       throw error;

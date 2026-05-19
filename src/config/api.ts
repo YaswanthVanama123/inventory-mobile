@@ -11,7 +11,8 @@ const LOCAL_IP = 'localhost';
 const API_PORT = '5001';
 
 // API Base URL
-export const API_BASE_URL = `http://${LOCAL_IP}:${API_PORT}/api`;
+// export const API_BASE_URL = `http://${LOCAL_IP}:${API_PORT}/api`;
+export const API_BASE_URL = `https://backend.inventory.enviromasternva.com/api`;
 
 // Export individual parts if needed
 export const LOCAL_HOST = LOCAL_IP;

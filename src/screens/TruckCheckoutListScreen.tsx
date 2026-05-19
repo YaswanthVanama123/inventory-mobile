@@ -27,10 +27,10 @@ import {
 import {formatDateTime} from '../utils/dateUtils';
 
 type TabType = 'checkouts' | 'sales';
-type SubTabType = 'all' | 'employees';
+type SubTabType = 'all' | 'mine' | 'employees';
 
 export const TruckCheckoutListScreen = () => {
-  const {token} = useAuth();
+  const {token, user} = useAuth();
   const navigation = useNavigation<any>();
   const {handleApiError} = useApiErrorHandler();
   const [activeTab, setActiveTab] = useState<TabType>('checkouts');
@@ -50,6 +50,8 @@ export const TruckCheckoutListScreen = () => {
   const [salesEmployees, setSalesEmployees] = useState<any[]>([]);
   const [expandedSalesEmployee, setExpandedSalesEmployee] = useState<string | null>(null);
   const [employeeSalesTracking, setEmployeeSalesTracking] = useState<any[]>([]);
+  const [myItems, setMyItems] = useState<any[]>([]);
+  const [myTotals, setMyTotals] = useState<{checkedOut: number; remaining: number}>({checkedOut: 0, remaining: 0});
   const [statusFilter, setStatusFilter] = useState('all');
   const [employeeFilter, setEmployeeFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,6 +65,8 @@ export const TruckCheckoutListScreen = () => {
     if (activeTab === 'checkouts') {
       if (checkoutsSubTab === 'all') {
         loadCheckouts();
+      } else if (checkoutsSubTab === 'mine') {
+        loadMyCheckouts();
       } else {
         loadEmployees();
       }
@@ -99,6 +103,75 @@ export const TruckCheckoutListScreen = () => {
       if (isMounted) {
         setLoading(false);
       }
+    }
+  };
+  const loadMyCheckouts = async () => {
+    if (!token || !user) return;
+    try {
+      setLoading(true);
+      const myName = user.fullName || user.username;
+      const result = await truckCheckoutService.getCheckouts(token, {
+        employeeName: myName,
+        limit: 500,
+      });
+      const allCheckouts: any[] = result.checkouts || [];
+      const itemMap = new Map<string, any>();
+      allCheckouts.forEach((checkout: any) => {
+        const items: any[] = checkout.itemName
+          ? [{itemName: checkout.itemName, quantity: checkout.quantityTaking || 0}]
+          : (checkout.itemsTaken || []).map((it: any) => ({
+              itemName: it.itemName || it.name,
+              quantity: it.quantity || 0,
+            }));
+        items.forEach(it => {
+          if (!it.itemName) return;
+          const key = it.itemName;
+          if (!itemMap.has(key)) {
+            itemMap.set(key, {
+              itemName: it.itemName,
+              totalCheckedOut: 0,
+              totalSold: 0,
+              checkoutCount: 0,
+              trucks: new Set<string>(),
+              lastCheckout: null as Date | null,
+            });
+          }
+          const entry = itemMap.get(key);
+          entry.totalCheckedOut += Number(it.quantity) || 0;
+          entry.checkoutCount += 1;
+          if (checkout.truckNumber) entry.trucks.add(checkout.truckNumber);
+          const cdate = checkout.checkoutDate ? new Date(checkout.checkoutDate) : null;
+          if (cdate && (!entry.lastCheckout || cdate > entry.lastCheckout)) {
+            entry.lastCheckout = cdate;
+          }
+        });
+      });
+      const items = Array.from(itemMap.values()).map(e => ({
+        ...e,
+        trucks: Array.from(e.trucks).join(', '),
+        remaining: e.totalCheckedOut - e.totalSold,
+      }));
+      const totals = items.reduce(
+        (acc, it) => {
+          acc.checkedOut += it.totalCheckedOut;
+          acc.remaining += it.remaining;
+          return acc;
+        },
+        {checkedOut: 0, remaining: 0},
+      );
+      if (isMounted) {
+        setMyItems(items);
+        setMyTotals(totals);
+      }
+    } catch (error: any) {
+      console.error('Load my checkouts error:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled && isMounted) {
+        setMyItems([]);
+        setMyTotals({checkedOut: 0, remaining: 0});
+      }
+    } finally {
+      if (isMounted) setLoading(false);
     }
   };
   const loadSalesTracking = async () => {
@@ -253,6 +326,8 @@ export const TruckCheckoutListScreen = () => {
     if (activeTab === 'checkouts') {
       if (checkoutsSubTab === 'all') {
         loadCheckouts().finally(() => setRefreshing(false));
+      } else if (checkoutsSubTab === 'mine') {
+        loadMyCheckouts().finally(() => setRefreshing(false));
       } else {
         loadEmployees().finally(() => setRefreshing(false));
       }
@@ -371,6 +446,25 @@ export const TruckCheckoutListScreen = () => {
               </Typography>
             </TouchableOpacity>
             <TouchableOpacity
+              style={[styles.subTab, checkoutsSubTab === 'mine' && styles.subTabActive]}
+              onPress={() => {
+                setCheckoutsSubTab('mine');
+                setExpandedEmployee(null);
+                setEmployeeCheckouts([]);
+                setCheckouts([]);
+              }}>
+              <Typography
+                variant="small"
+                weight={checkoutsSubTab === 'mine' ? 'semibold' : 'medium'}
+                color={
+                  checkoutsSubTab === 'mine'
+                    ? theme.colors.primary[600]
+                    : theme.colors.gray[600]
+                }>
+                My Checkouts
+              </Typography>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={[styles.subTab, checkoutsSubTab === 'employees' && styles.subTabActive]}
               onPress={() => {
                 setCheckoutsSubTab('employees');
@@ -430,6 +524,7 @@ export const TruckCheckoutListScreen = () => {
           </View>
         )}
         {/* Filters */}
+        {!(activeTab === 'checkouts' && checkoutsSubTab === 'mine') && (
         <Card variant="elevated" padding="md" style={styles.filtersCard}>
           <Typography variant="body" weight="semibold" style={styles.filterTitle}>
             Filters
@@ -509,6 +604,7 @@ export const TruckCheckoutListScreen = () => {
             </Typography>
           </TouchableOpacity>
         </Card>
+        )}
         {/* Checkouts Tab */}
         {activeTab === 'checkouts' && checkoutsSubTab === 'all' && (
           <Card variant="elevated" padding="none" style={styles.contentCard}>
@@ -731,6 +827,98 @@ export const TruckCheckoutListScreen = () => {
                   </View>
                 );
               })
+            )}
+          </Card>
+        )}
+        {/* My Checkouts */}
+        {activeTab === 'checkouts' && checkoutsSubTab === 'mine' && (
+          <Card variant="elevated" padding="md" style={styles.contentCard}>
+            <View style={styles.myCheckoutHeader}>
+              <View style={{flex: 1}}>
+                <Typography variant="body" weight="semibold">
+                  My Checkouts by Item
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  {(user?.fullName || user?.username) ?? 'You'} — {myItems.length} unique items
+                </Typography>
+              </View>
+              <View style={styles.myCheckoutTotalsRow}>
+                <View style={{alignItems: 'center'}}>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    CHECKED OUT
+                  </Typography>
+                  <Typography variant="h3" weight="bold" color={theme.colors.primary[600]}>
+                    {myTotals.checkedOut}
+                  </Typography>
+                </View>
+                <View style={{alignItems: 'center'}}>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    LEFT
+                  </Typography>
+                  <Typography variant="h3" weight="bold" color={theme.colors.success[600]}>
+                    {myTotals.remaining}
+                  </Typography>
+                </View>
+              </View>
+            </View>
+            {loading && myItems.length === 0 ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary[600]} />
+              </View>
+            ) : myItems.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <TruckIcon size={48} color={theme.colors.gray[300]} />
+                <Typography variant="body" color={theme.colors.gray[500]} style={{marginTop: 12}}>
+                  No checkouts found for you
+                </Typography>
+              </View>
+            ) : (
+              myItems.map((it: any, idx: number) => (
+                <View key={`${it.itemName}-${idx}`} style={styles.myItemCard}>
+                  <Typography variant="body" weight="bold" numberOfLines={2}>
+                    {it.itemName}
+                  </Typography>
+                  <View style={styles.myItemMeta}>
+                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                      Trucks: {it.trucks || '-'}
+                    </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                      {' • '}{it.checkoutCount} checkouts
+                    </Typography>
+                    {it.lastCheckout && (
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        {' • Last: '}{formatDateTime(it.lastCheckout)}
+                      </Typography>
+                    )}
+                  </View>
+                  <View style={styles.myItemStatsRow}>
+                    <View style={styles.myItemStat}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        OUT
+                      </Typography>
+                      <Typography variant="body" weight="bold" color={theme.colors.primary[600]}>
+                        {it.totalCheckedOut}
+                      </Typography>
+                    </View>
+                    <View style={styles.myItemStat}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        SOLD
+                      </Typography>
+                      <Typography variant="body" weight="bold">
+                        {it.totalSold}
+                      </Typography>
+                    </View>
+                    <View style={styles.myItemStat}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        LEFT
+                      </Typography>
+                      <Typography variant="body" weight="bold" color={theme.colors.success[600]}>
+                        {it.remaining}
+                      </Typography>
+                    </View>
+                  </View>
+                </View>
+              ))
             )}
           </Card>
         )}
@@ -1375,5 +1563,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
+  },
+  myCheckoutHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: theme.spacing.md,
+  },
+  myCheckoutTotalsRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  myItemCard: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
+  myItemMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  myItemStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 8,
+    backgroundColor: theme.colors.gray[50],
+    borderRadius: 8,
+  },
+  myItemStat: {
+    alignItems: 'center',
   },
 });

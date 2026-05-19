@@ -37,7 +37,14 @@ export const StockScreen = () => {
   const [sellStockData, setSellStockData] = useState<any>({items: [], totals: {}});
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSKUs, setExpandedSKUs] = useState<Set<string>>(new Set());
+  const [expandedCategorySales, setExpandedCategorySales] = useState<Set<string>>(new Set());
+  const [expandedCategoryCheckouts, setExpandedCategoryCheckouts] = useState<Set<string>>(new Set());
+  const [expandedCategoryDiscrepancies, setExpandedCategoryDiscrepancies] = useState<Set<string>>(new Set());
+  const [expandedSkuPurchases, setExpandedSkuPurchases] = useState<Set<string>>(new Set());
   const [categorySkuData, setCategorySkuData] = useState<{[key: string]: any[]}>({});
+  const [categoryDiscrepancies, setCategoryDiscrepancies] = useState<{[key: string]: any[]}>({});
+  const [categorySalesHistory, setCategorySalesHistory] = useState<{[key: string]: any[]}>({});
+  const [categoryCheckoutHistory, setCategoryCheckoutHistory] = useState<{[key: string]: any[]}>({});
   const [loadingCategories, setLoadingCategories] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(true);
@@ -110,7 +117,19 @@ export const StockScreen = () => {
           const response = await stockService.getCategorySales(token!, categoryName);
           setCategorySkuData(prev => ({
             ...prev,
-            [categoryName]: response || [],
+            [categoryName]: response.skus || [],
+          }));
+          setCategorySalesHistory(prev => ({
+            ...prev,
+            [categoryName]: response.categorySalesHistory || [],
+          }));
+          setCategoryCheckoutHistory(prev => ({
+            ...prev,
+            [categoryName]: response.categoryCheckoutHistory || [],
+          }));
+          setCategoryDiscrepancies(prev => ({
+            ...prev,
+            [categoryName]: response.categoryDiscrepancies || [],
           }));
           newLoadingCategories.delete(categoryName);
           setLoadingCategories(newLoadingCategories);
@@ -133,6 +152,42 @@ export const StockScreen = () => {
       newExpanded.add(skuId);
     }
     setExpandedSKUs(newExpanded);
+  };
+  const toggleCategorySales = (categoryName: string) => {
+    const newExpanded = new Set(expandedCategorySales);
+    if (newExpanded.has(categoryName)) {
+      newExpanded.delete(categoryName);
+    } else {
+      newExpanded.add(categoryName);
+    }
+    setExpandedCategorySales(newExpanded);
+  };
+  const toggleCategoryCheckouts = (categoryName: string) => {
+    const newExpanded = new Set(expandedCategoryCheckouts);
+    if (newExpanded.has(categoryName)) {
+      newExpanded.delete(categoryName);
+    } else {
+      newExpanded.add(categoryName);
+    }
+    setExpandedCategoryCheckouts(newExpanded);
+  };
+  const toggleCategoryDiscrepancies = (categoryName: string) => {
+    const newExpanded = new Set(expandedCategoryDiscrepancies);
+    if (newExpanded.has(categoryName)) {
+      newExpanded.delete(categoryName);
+    } else {
+      newExpanded.add(categoryName);
+    }
+    setExpandedCategoryDiscrepancies(newExpanded);
+  };
+  const toggleSkuPurchases = (skuId: string) => {
+    const newExpanded = new Set(expandedSkuPurchases);
+    if (newExpanded.has(skuId)) {
+      newExpanded.delete(skuId);
+    } else {
+      newExpanded.add(skuId);
+    }
+    setExpandedSkuPurchases(newExpanded);
   };
   const currentData = activeTab === 'use' ? useStockData : sellStockData;
   const formatCurrency = (amount: number) => {
@@ -216,7 +271,14 @@ export const StockScreen = () => {
             setActiveTab('use');
             setExpandedCategories(new Set());
             setExpandedSKUs(new Set());
+            setExpandedCategorySales(new Set());
+            setExpandedCategoryCheckouts(new Set());
+            setExpandedCategoryDiscrepancies(new Set());
+            setExpandedSkuPurchases(new Set());
             setCategorySkuData({});
+            setCategorySalesHistory({});
+            setCategoryCheckoutHistory({});
+            setCategoryDiscrepancies({});
           }}>
           <Typography
             variant="body"
@@ -238,7 +300,14 @@ export const StockScreen = () => {
             setActiveTab('sell');
             setExpandedCategories(new Set());
             setExpandedSKUs(new Set());
+            setExpandedCategorySales(new Set());
+            setExpandedCategoryCheckouts(new Set());
+            setExpandedCategoryDiscrepancies(new Set());
+            setExpandedSkuPurchases(new Set());
             setCategorySkuData({});
+            setCategorySalesHistory({});
+            setCategoryCheckoutHistory({});
+            setCategoryDiscrepancies({});
           }}>
           <Typography
             variant="body"
@@ -486,7 +555,252 @@ export const StockScreen = () => {
                           Loading SKUs...
                         </Typography>
                       </View>
-                    ) : categorySkuData[category.categoryName]?.length > 0 ? (
+                    ) : (
+                      <>
+                        {/* Category-level Sales History Folder */}
+                        <View style={styles.categoryFolderItem}>
+                          <TouchableOpacity
+                            style={[styles.categoryFolderHeader, {backgroundColor: theme.colors.success[50]}]}
+                            onPress={() => toggleCategorySales(category.categoryName)}>
+                            <View style={styles.categoryFolderHeaderLeft}>
+                              {expandedCategorySales.has(category.categoryName) ? (
+                                <ChevronDownIcon size={16} color={theme.colors.gray[600]} />
+                              ) : (
+                                <ChevronRightIcon size={16} color={theme.colors.gray[600]} />
+                              )}
+                              <Typography
+                                variant="small"
+                                weight="semibold"
+                                color={theme.colors.success[700]}
+                                style={{marginLeft: 8}}>
+                                Sales History ({(categorySalesHistory[category.categoryName] || []).length} invoices)
+                              </Typography>
+                            </View>
+                          </TouchableOpacity>
+                          {expandedCategorySales.has(category.categoryName) && (
+                            <View style={styles.categoryFolderBody}>
+                              {(categorySalesHistory[category.categoryName] || []).length === 0 ? (
+                                <Typography variant="caption" color={theme.colors.gray[500]} align="center" style={{padding: 12}}>
+                                  No sales history
+                                </Typography>
+                              ) : (
+                                (categorySalesHistory[category.categoryName] || []).map((record: any, idx: number) => (
+                                  <View key={idx} style={styles.historyItem}>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Invoice #</Typography>
+                                      <Typography variant="small" weight="medium" color={theme.colors.success[600]}>
+                                        {record.invoiceNumber}
+                                      </Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Date</Typography>
+                                      <Typography variant="small" color={theme.colors.gray[700]}>
+                                        {record.invoiceDate ? formatDate(record.invoiceDate) : '-'}
+                                      </Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Customer</Typography>
+                                      <Typography variant="small" weight="medium">{record.customer || '-'}</Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Quantity</Typography>
+                                      <Typography variant="small" weight="bold">{record.quantity}</Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Rate</Typography>
+                                      <Typography variant="small">{formatCurrency(record.rate || 0)}</Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Amount</Typography>
+                                      <Typography variant="small" weight="bold" color={theme.colors.success[600]}>
+                                        {formatCurrency(record.amount || 0)}
+                                      </Typography>
+                                    </View>
+                                    {record.status && (
+                                      <View style={styles.historyRow}>
+                                        <Typography variant="caption" color={theme.colors.gray[500]}>Status</Typography>
+                                        <Typography variant="small" weight="medium">{record.status}</Typography>
+                                      </View>
+                                    )}
+                                  </View>
+                                ))
+                              )}
+                            </View>
+                          )}
+                        </View>
+                        {/* Category-level Checkout History Folder */}
+                        <View style={styles.categoryFolderItem}>
+                          <TouchableOpacity
+                            style={[styles.categoryFolderHeader, {backgroundColor: theme.colors.warning[50]}]}
+                            onPress={() => toggleCategoryCheckouts(category.categoryName)}>
+                            <View style={styles.categoryFolderHeaderLeft}>
+                              {expandedCategoryCheckouts.has(category.categoryName) ? (
+                                <ChevronDownIcon size={16} color={theme.colors.gray[600]} />
+                              ) : (
+                                <ChevronRightIcon size={16} color={theme.colors.gray[600]} />
+                              )}
+                              <Typography
+                                variant="small"
+                                weight="semibold"
+                                color={theme.colors.warning[700]}
+                                style={{marginLeft: 8}}>
+                                Checkout History ({(categoryCheckoutHistory[category.categoryName] || []).length} checkouts)
+                              </Typography>
+                            </View>
+                          </TouchableOpacity>
+                          {expandedCategoryCheckouts.has(category.categoryName) && (
+                            <View style={styles.categoryFolderBody}>
+                              {(categoryCheckoutHistory[category.categoryName] || []).length === 0 ? (
+                                <Typography variant="caption" color={theme.colors.gray[500]} align="center" style={{padding: 12}}>
+                                  No checkout history
+                                </Typography>
+                              ) : (
+                                (categoryCheckoutHistory[category.categoryName] || []).map((record: any, idx: number) => (
+                                  <View key={idx} style={styles.historyItem}>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Employee</Typography>
+                                      <Typography variant="small" weight="medium">{record.employeeName || '-'}</Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Truck</Typography>
+                                      <Typography variant="small">{record.truckNumber || '-'}</Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Date</Typography>
+                                      <Typography variant="small" color={theme.colors.gray[700]}>
+                                        {record.checkoutDate ? formatDate(record.checkoutDate) : '-'}
+                                      </Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Quantity</Typography>
+                                      <Typography variant="small" weight="bold">{record.quantity}</Typography>
+                                    </View>
+                                    {record.notes && (
+                                      <View style={styles.historyRow}>
+                                        <Typography variant="caption" color={theme.colors.gray[500]}>Notes</Typography>
+                                        <Typography variant="small" color={theme.colors.gray[700]}>{record.notes}</Typography>
+                                      </View>
+                                    )}
+                                  </View>
+                                ))
+                              )}
+                            </View>
+                          )}
+                        </View>
+                        {/* Category-level Discrepancy History Folder */}
+                        <View style={styles.categoryFolderItem}>
+                          <TouchableOpacity
+                            style={[styles.categoryFolderHeader, {backgroundColor: theme.colors.error[50]}]}
+                            onPress={() => toggleCategoryDiscrepancies(category.categoryName)}>
+                            <View style={styles.categoryFolderHeaderLeft}>
+                              {expandedCategoryDiscrepancies.has(category.categoryName) ? (
+                                <ChevronDownIcon size={16} color={theme.colors.gray[600]} />
+                              ) : (
+                                <ChevronRightIcon size={16} color={theme.colors.gray[600]} />
+                              )}
+                              <Typography
+                                variant="small"
+                                weight="semibold"
+                                color={theme.colors.error[700]}
+                                style={{marginLeft: 8}}>
+                                Discrepancy History ({(categoryDiscrepancies[category.categoryName] || []).length} discrepancies)
+                              </Typography>
+                            </View>
+                            <TouchableOpacity
+                              style={styles.addDiscrepancyCategoryButton}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                setPrefilledItem({
+                                  itemName: category.categoryName,
+                                  itemSku: '',
+                                  categoryName: category.categoryName,
+                                  systemQuantity: category.stockRemaining || 0,
+                                });
+                                setDiscrepancyFormData({
+                                  actualQuantity: 0,
+                                  discrepancyType: '',
+                                  reason: '',
+                                  notes: `Stock adjustment reported from Stock Management for ${category.categoryName}`,
+                                });
+                                setShowDiscrepancyModal(true);
+                              }}>
+                              <PlusIcon size={14} color={theme.colors.white} />
+                              <Typography
+                                variant="caption"
+                                weight="semibold"
+                                color={theme.colors.white}
+                                style={{marginLeft: 4}}>
+                                Add Discrepancy
+                              </Typography>
+                            </TouchableOpacity>
+                          </TouchableOpacity>
+                          {expandedCategoryDiscrepancies.has(category.categoryName) && (
+                            <View style={styles.categoryFolderBody}>
+                              {(categoryDiscrepancies[category.categoryName] || []).length === 0 ? (
+                                <Typography variant="caption" color={theme.colors.gray[500]} align="center" style={{padding: 12}}>
+                                  No discrepancy history
+                                </Typography>
+                              ) : (
+                                (categoryDiscrepancies[category.categoryName] || []).map((record: any, idx: number) => (
+                                  <View key={idx} style={styles.historyItem}>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Reported</Typography>
+                                      <Typography variant="small" color={theme.colors.gray[700]}>
+                                        {record.reportedAt ? formatDate(record.reportedAt) : '-'}
+                                      </Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>System Qty</Typography>
+                                      <Typography variant="small" weight="medium">{record.systemQuantity}</Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Actual Qty</Typography>
+                                      <Typography variant="small" weight="medium">{record.actualQuantity}</Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Difference</Typography>
+                                      <Typography
+                                        variant="small"
+                                        weight="bold"
+                                        color={record.difference > 0 ? theme.colors.success[600] : theme.colors.error[600]}>
+                                        {record.difference > 0 ? '+' : ''}{record.difference}
+                                      </Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Type</Typography>
+                                      <Typography variant="small" weight="medium">{record.discrepancyType}</Typography>
+                                    </View>
+                                    <View style={styles.historyRow}>
+                                      <Typography variant="caption" color={theme.colors.gray[500]}>Status</Typography>
+                                      <Typography
+                                        variant="small"
+                                        weight="bold"
+                                        color={
+                                          record.status === 'Approved'
+                                            ? theme.colors.success[600]
+                                            : record.status === 'Rejected'
+                                            ? theme.colors.error[600]
+                                            : theme.colors.primary[600]
+                                        }>
+                                        {record.status}
+                                      </Typography>
+                                    </View>
+                                    {record.reportedBy && (
+                                      <View style={styles.historyRow}>
+                                        <Typography variant="caption" color={theme.colors.gray[500]}>Reported By</Typography>
+                                        <Typography variant="small" color={theme.colors.gray[700]}>
+                                          {record.reportedBy.fullName || record.reportedBy.username}
+                                        </Typography>
+                                      </View>
+                                    )}
+                                  </View>
+                                ))
+                              )}
+                            </View>
+                          )}
+                        </View>
+                        {/* SKU List */}
+                        {categorySkuData[category.categoryName]?.length > 0 ? (
                       categorySkuData[category.categoryName].map((sku: any) => {
                         const isSkuExpanded = expandedSKUs.has(sku.sku);
                         return (
@@ -536,303 +850,89 @@ export const StockScreen = () => {
                             {/* SKU Details */}
                             {isSkuExpanded && (
                               <View style={styles.skuDetails}>
-                                {/* Summary */}
-                                <View style={styles.skuSummary}>
-                                    <View style={styles.summaryRow}>
-                                      <View style={styles.summaryItem}>
-                                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                                          Purchased
-                                        </Typography>
-                                        <Typography variant="body" weight="bold" color={theme.colors.primary[600]}>
-                                          {sku.totalPurchased || 0}
-                                        </Typography>
-                                      </View>
-                                      <View style={styles.summaryItem}>
-                                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                                          Sold
-                                        </Typography>
-                                        <Typography variant="body" weight="bold" color={theme.colors.success[600]}>
-                                          {sku.totalSold || 0}
-                                        </Typography>
-                                      </View>
-                                      <View style={styles.summaryItem}>
-                                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                                          Checked Out
-                                        </Typography>
-                                        <Typography variant="body" weight="bold" color={theme.colors.primary[600]}>
-                                          {sku.totalCheckedOut || 0}
-                                        </Typography>
-                                      </View>
-                                      <View style={styles.summaryItem}>
-                                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                                          Discrepancy
-                                        </Typography>
-                                        <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
-                                          <Typography variant="body" weight="bold" color={theme.colors.error[600]}>
-                                            {(sku.discrepancyHistory || []).reduce((sum: number, d: any) => sum + (d.difference || 0), 0)}
-                                          </Typography>
-                                          <TouchableOpacity
-                                            onPress={() => {
-                                              const stockRemaining = (sku.totalPurchased || 0) - (sku.totalSold || 0) - (sku.totalCheckedOut || 0) + (sku.totalDiscrepancyDifference || 0);
-                                              const itemNameUpper = sku.itemName.toUpperCase();
-                                              const categoryKeywords = ['WHITE', 'BLACK', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'BROWN', 'GRAY', 'GREY', 'ORANGE', 'PINK', 'PURPLE'];
-                                              let actualCategory = null;
-                                              for (const keyword of categoryKeywords) {
-                                                if (itemNameUpper.includes(keyword)) {
-                                                  actualCategory = keyword;
-                                                  break;
-                                                }
-                                              }
-                                              setPrefilledItem({
-                                                itemName: sku.itemName,
-                                                itemSku: sku.sku,
-                                                categoryName: actualCategory || '',
-                                                systemQuantity: stockRemaining,
-                                              });
-                                              setDiscrepancyFormData({
-                                                actualQuantity: 0,
-                                                discrepancyType: '',
-                                                reason: '',
-                                                notes: `Reported from Stock Management for ${actualCategory || sku.itemName}`,
-                                              });
-                                              setShowDiscrepancyModal(true);
-                                            }}
-                                            style={styles.addDiscrepancyButton}>
-                                            <PlusIcon size={16} color={theme.colors.primary[600]} />
-                                          </TouchableOpacity>
-                                        </View>
-                                      </View>
-                                      <View style={styles.summaryItem}>
-                                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                                          Remaining
-                                        </Typography>
-                                        <Typography variant="body" weight="bold" color={'#9333ea'}>
-                                          {sku.stockRemaining !== undefined ? sku.stockRemaining : ((sku.totalPurchased || 0) - (sku.totalSold || 0) - (sku.totalCheckedOut || 0))}
-                                        </Typography>
-                                      </View>
+                                {/* Purchase History Folder */}
+                                <View style={styles.skuPurchaseFolder}>
+                                  <TouchableOpacity
+                                    style={[styles.categoryFolderHeader, {backgroundColor: theme.colors.primary[50]}]}
+                                    onPress={() => toggleSkuPurchases(sku.sku)}>
+                                    <View style={styles.categoryFolderHeaderLeft}>
+                                      {expandedSkuPurchases.has(sku.sku) ? (
+                                        <ChevronDownIcon size={16} color={theme.colors.gray[600]} />
+                                      ) : (
+                                        <ChevronRightIcon size={16} color={theme.colors.gray[600]} />
+                                      )}
+                                      <Typography
+                                        variant="small"
+                                        weight="semibold"
+                                        color={theme.colors.primary[700]}
+                                        style={{marginLeft: 8}}>
+                                        Purchase History ({(sku.purchaseHistory || []).length} orders)
+                                      </Typography>
                                     </View>
-                                  </View>
-                                {/* Purchase History */}
-                                {sku.purchaseHistory && sku.purchaseHistory.length > 0 && (
-                                  <View style={styles.historySection}>
-                                    <Typography
-                                      variant="small"
-                                      weight="semibold"
-                                      color={theme.colors.primary[700]}
-                                      style={styles.historyTitle}>
-                                      Purchase History ({sku.purchaseHistory.length})
-                                    </Typography>
-                                    {sku.purchaseHistory.map((record: any, index: number) => (
-                                      <View key={index} style={styles.historyItem}>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Order #
-                                          </Typography>
-                                          <Typography variant="small" weight="medium">
-                                            {record.orderNumber}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Date
-                                          </Typography>
-                                          <Typography variant="small" color={theme.colors.gray[700]}>
-                                            {formatDate(record.orderDate)}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Quantity
-                                          </Typography>
-                                          <Typography variant="small" weight="bold">
-                                            {record.quantity}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Unit Price
-                                          </Typography>
-                                          <Typography variant="small">
-                                            {formatCurrency(record.unitPrice)}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Line Total
-                                          </Typography>
-                                          <Typography variant="small" weight="bold" color={theme.colors.success[600]}>
-                                            {formatCurrency(record.lineTotal)}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Vendor
-                                          </Typography>
-                                          <Typography variant="small" color={theme.colors.gray[700]}>
-                                            {record.vendor || 'N/A'}
-                                          </Typography>
-                                        </View>
-                                      </View>
-                                    ))}
-                                  </View>
-                                )}
-                                {/* Sales History */}
-                                {sku.salesHistory && sku.salesHistory.length > 0 && (
-                                  <View style={[styles.historySection, {backgroundColor: theme.colors.success[50]}]}>
-                                    <Typography
-                                      variant="small"
-                                      weight="semibold"
-                                      color={theme.colors.success[700]}
-                                      style={styles.historyTitle}>
-                                      Sales History ({sku.salesHistory.length})
-                                    </Typography>
-                                    {sku.salesHistory.map((record: any, index: number) => (
-                                      <View key={index} style={styles.historyItem}>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Invoice #
-                                          </Typography>
-                                          <Typography variant="small" weight="medium" color={theme.colors.success[600]}>
-                                            {record.invoiceNumber}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Date
-                                          </Typography>
-                                          <Typography variant="small" color={theme.colors.gray[700]}>
-                                            {formatDate(record.invoiceDate)}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Customer
-                                          </Typography>
-                                          <Typography variant="small" weight="medium">
-                                            {record.customer || 'N/A'}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Quantity
-                                          </Typography>
-                                          <Typography variant="small" weight="bold">
-                                            {record.quantity}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Rate
-                                          </Typography>
-                                          <Typography variant="small">
-                                            {formatCurrency(record.rate)}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Amount
-                                          </Typography>
-                                          <Typography variant="small" weight="bold" color={theme.colors.success[600]}>
-                                            {formatCurrency(record.amount)}
-                                          </Typography>
-                                        </View>
-                                      </View>
-                                    ))}
-                                  </View>
-                                )}
-                                {/* Discrepancy History */}
-                                {sku.discrepancyHistory && sku.discrepancyHistory.length > 0 && (
-                                  <View style={[styles.historySection, {backgroundColor: theme.colors.error[50]}]}>
-                                    <Typography
-                                      variant="small"
-                                      weight="semibold"
-                                      color={theme.colors.error[700]}
-                                      style={styles.historyTitle}>
-                                      Discrepancy History ({sku.discrepancyHistory.length})
-                                    </Typography>
-                                    {sku.discrepancyHistory.map((record: any, index: number) => (
-                                      <View key={index} style={styles.historyItem}>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Reported
-                                          </Typography>
-                                          <Typography variant="small" color={theme.colors.gray[700]}>
-                                            {formatDate(record.reportedAt)}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            System Qty
-                                          </Typography>
-                                          <Typography variant="small" weight="medium">
-                                            {record.systemQuantity}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Actual Qty
-                                          </Typography>
-                                          <Typography variant="small" weight="medium">
-                                            {record.actualQuantity}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Difference
-                                          </Typography>
-                                          <Typography variant="small" weight="bold" color={record.difference > 0 ? theme.colors.success[600] : theme.colors.error[600]}>
-                                            {record.difference > 0 ? '+' : ''}{record.difference}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Type
-                                          </Typography>
-                                          <Typography variant="small" weight="medium">
-                                            {record.discrepancyType}
-                                          </Typography>
-                                        </View>
-                                        <View style={styles.historyRow}>
-                                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                                            Status
-                                          </Typography>
-                                          <Typography
-                                            variant="small"
-                                            weight="bold"
-                                            color={
-                                              record.status === 'Approved'
-                                                ? theme.colors.success[600]
-                                                : record.status === 'Rejected'
-                                                ? theme.colors.error[600]
-                                                : theme.colors.primary[600]
-                                            }>
-                                            {record.status}
-                                          </Typography>
-                                        </View>
-                                        {record.reason && (
-                                          <View style={styles.historyRow}>
-                                            <Typography variant="caption" color={theme.colors.gray[500]}>
-                                              Reason
-                                            </Typography>
-                                            <Typography variant="small" color={theme.colors.gray[700]}>
-                                              {record.reason}
-                                            </Typography>
+                                  </TouchableOpacity>
+                                  {expandedSkuPurchases.has(sku.sku) && (
+                                    <View style={styles.categoryFolderBody}>
+                                      {(sku.purchaseHistory || []).length === 0 ? (
+                                        <Typography variant="caption" color={theme.colors.gray[500]} align="center" style={{padding: 12}}>
+                                          No purchase history
+                                        </Typography>
+                                      ) : (
+                                        sku.purchaseHistory.map((record: any, index: number) => (
+                                          <View key={index} style={styles.historyItem}>
+                                            <View style={styles.historyRow}>
+                                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                                Order #
+                                              </Typography>
+                                              <Typography variant="small" weight="medium">
+                                                {record.orderNumber}
+                                              </Typography>
+                                            </View>
+                                            <View style={styles.historyRow}>
+                                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                                Date
+                                              </Typography>
+                                              <Typography variant="small" color={theme.colors.gray[700]}>
+                                                {formatDate(record.orderDate)}
+                                              </Typography>
+                                            </View>
+                                            <View style={styles.historyRow}>
+                                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                                Quantity
+                                              </Typography>
+                                              <Typography variant="small" weight="bold">
+                                                {record.quantity}
+                                              </Typography>
+                                            </View>
+                                            <View style={styles.historyRow}>
+                                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                                Unit Price
+                                              </Typography>
+                                              <Typography variant="small">
+                                                {formatCurrency(record.unitPrice)}
+                                              </Typography>
+                                            </View>
+                                            <View style={styles.historyRow}>
+                                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                                Line Total
+                                              </Typography>
+                                              <Typography variant="small" weight="bold" color={theme.colors.success[600]}>
+                                                {formatCurrency(record.lineTotal)}
+                                              </Typography>
+                                            </View>
+                                            <View style={styles.historyRow}>
+                                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                                Vendor
+                                              </Typography>
+                                              <Typography variant="small" color={theme.colors.gray[700]}>
+                                                {record.vendor || 'N/A'}
+                                              </Typography>
+                                            </View>
                                           </View>
-                                        )}
-                                        {record.reportedBy && (
-                                          <View style={styles.historyRow}>
-                                            <Typography variant="caption" color={theme.colors.gray[500]}>
-                                              Reported By
-                                            </Typography>
-                                            <Typography variant="small" color={theme.colors.gray[700]}>
-                                              {record.reportedBy.fullName || record.reportedBy.username}
-                                            </Typography>
-                                          </View>
-                                        )}
-                                      </View>
-                                    ))}
-                                  </View>
-                                )}
+                                        ))
+                                      )}
+                                    </View>
+                                  )}
+                                </View>
                               </View>
                             )}
                           </View>
@@ -844,6 +944,8 @@ export const StockScreen = () => {
                           No SKUs mapped to this category
                         </Typography>
                       </View>
+                    )}
+                      </>
                     )}
                   </View>
                 )}
@@ -1243,6 +1345,36 @@ const styles = StyleSheet.create({
   historyTitle: {
     marginBottom: theme.spacing.sm,
   },
+  categoryFolderItem: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 8,
+    marginBottom: theme.spacing.sm,
+    overflow: 'hidden',
+  },
+  categoryFolderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing.sm,
+  },
+  categoryFolderHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  categoryFolderBody: {
+    padding: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray[200],
+  },
+  skuPurchaseFolder: {
+    margin: theme.spacing.sm,
+    backgroundColor: theme.colors.white,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
   historyItem: {
     backgroundColor: theme.colors.white,
     borderRadius: 8,
@@ -1259,6 +1391,14 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 4,
     backgroundColor: theme.colors.primary[50],
+  },
+  addDiscrepancyCategoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: theme.colors.error[600],
   },
   modalOverlay: {
     flex: 1,
