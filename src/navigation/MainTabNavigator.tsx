@@ -1,4 +1,5 @@
 import React from 'react';
+import {View, ActivityIndicator} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {DashboardScreen} from '../screens/DashboardScreen';
@@ -10,6 +11,8 @@ import {OrderStackNavigator} from './OrderStackNavigator';
 import {AccountScreen} from '../screens/AccountScreen';
 import {HomeIcon, InventoryIcon, BoxIcon, FileTextIcon, TruckIcon, UserIcon, ClipboardIcon} from '../components/icons';
 import {theme} from '../theme';
+import {useAuth} from '../contexts/AuthContext';
+import {useUserScreens} from '../hooks/useUserScreens';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -21,8 +24,38 @@ export type MainTabParamList = {
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+type TabDef = {
+  name: keyof MainTabParamList;
+  component: React.ComponentType<any>;
+  icon: React.ComponentType<{size: number; color: string}>;
+  paths: string[];
+};
+
+const TABS: TabDef[] = [
+  {name: 'Home', component: DashboardScreen, icon: HomeIcon, paths: ['/dashboard']},
+  {name: 'Inventory', component: InventoryScreen, icon: InventoryIcon, paths: ['/inventory']},
+  {name: 'Stock', component: StockScreen, icon: BoxIcon, paths: ['/stock']},
+  {name: 'Orders', component: OrderStackNavigator, icon: ClipboardIcon, paths: ['/orders']},
+  {name: 'Checkout', component: CheckoutStackNavigator, icon: TruckIcon, paths: ['/truck-checkouts']},
+];
+
 export const MainTabNavigator = () => {
   const insets = useSafeAreaInsets();
+  const {user} = useAuth();
+  const {hasAccessToAnyScreen, loading} = useUserScreens();
+  const isAdmin = user?.role === 'admin';
+
+  if (loading) {
+    return (
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.white}}>
+        <ActivityIndicator size="large" color={theme.colors.primary[600]} />
+      </View>
+    );
+  }
+
+  const visibleTabs = TABS.filter(t => isAdmin || hasAccessToAnyScreen(t.paths));
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -43,51 +76,19 @@ export const MainTabNavigator = () => {
           marginBottom: 4,
         },
       }}>
-      <Tab.Screen
-        name="Home"
-        component={DashboardScreen}
-        options={{
-          tabBarIcon: ({color, size}) => (
-            <HomeIcon size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Inventory"
-        component={InventoryScreen}
-        options={{
-          tabBarIcon: ({color, size}) => (
-            <InventoryIcon size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Stock"
-        component={StockScreen}
-        options={{
-          tabBarIcon: ({color, size}) => (
-            <BoxIcon size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Orders"
-        component={OrderStackNavigator}
-        options={{
-          tabBarIcon: ({color, size}) => (
-            <ClipboardIcon size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Checkout"
-        component={CheckoutStackNavigator}
-        options={{
-          tabBarIcon: ({color, size}) => (
-            <TruckIcon size={size} color={color} />
-          ),
-        }}
-      />
+      {visibleTabs.map(t => {
+        const Icon = t.icon;
+        return (
+          <Tab.Screen
+            key={t.name}
+            name={t.name}
+            component={t.component}
+            options={{
+              tabBarIcon: ({color, size}) => <Icon size={size} color={color} />,
+            }}
+          />
+        );
+      })}
       <Tab.Screen
         name="Account"
         component={AccountScreen}

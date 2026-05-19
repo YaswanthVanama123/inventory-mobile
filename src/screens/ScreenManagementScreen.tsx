@@ -45,6 +45,17 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [screens, setScreens] = useState<Screen[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addSaving, setAddSaving] = useState(false);
+  const [newScreen, setNewScreen] = useState({
+    name: '',
+    displayName: '',
+    path: '',
+    category: 'Other',
+    description: '',
+    isDefault: false,
+    isActive: true,
+  });
   const [filteredScreens, setFilteredScreens] = useState<Screen[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -117,6 +128,37 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const openAddModal = () => {
+    setNewScreen({
+      name: '',
+      displayName: '',
+      path: '',
+      category: 'Other',
+      description: '',
+      isDefault: false,
+      isActive: true,
+    });
+    setShowAddModal(true);
+  };
+
+  const handleSaveNewScreen = async () => {
+    if (!newScreen.name.trim() || !newScreen.displayName.trim() || !newScreen.path.trim()) {
+      Alert.alert('Validation', 'Name, Display Name and Path are required');
+      return;
+    }
+    try {
+      setAddSaving(true);
+      await screenPermissionService.createScreen(token!, newScreen);
+      setShowAddModal(false);
+      Alert.alert('Success', 'Screen created successfully');
+      loadData();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to create screen');
+    } finally {
+      setAddSaving(false);
+    }
   };
 
   const handleInitialize = () => {
@@ -258,15 +300,21 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
         {/* Actions */}
         <View style={styles.actions}>
           <Button
+            title="Initialize Screens"
             variant="outline"
             size="sm"
             onPress={handleInitialize}
-            style={styles.actionButton}>
-            <RefreshIcon size={16} color={theme.colors.gray[700]} />
-            <Typography variant="small" weight="medium" color={theme.colors.gray[700]}>
-              Initialize Screens
-            </Typography>
-          </Button>
+            leftIcon={<RefreshIcon size={16} color={theme.colors.gray[700]} />}
+            style={styles.actionButton}
+          />
+          <Button
+            title="Add Screen"
+            variant="primary"
+            size="sm"
+            onPress={openAddModal}
+            leftIcon={<PlusIcon size={16} color={theme.colors.white} />}
+            style={styles.actionButton}
+          />
         </View>
 
         {/* Search and Filter */}
@@ -347,9 +395,7 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
             <Typography variant="body" color={theme.colors.error[600]}>
               {error}
             </Typography>
-            <Button variant="outline" size="sm" onPress={loadData} style={styles.retryButton}>
-              Retry
-            </Button>
+            <Button title="Retry" variant="outline" size="sm" onPress={loadData} style={styles.retryButton} />
           </View>
         ) : (
           <ScrollView
@@ -387,6 +433,129 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
           </ScrollView>
         )}
       </SafeAreaView>
+
+      {/* Add Screen Modal */}
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowAddModal(false)}>
+        <View style={styles.addModalOverlay}>
+          <View style={styles.addModalCard}>
+            <View style={styles.addModalHeader}>
+              <Typography variant="h3" weight="bold">
+                Add New Screen
+              </Typography>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <XIcon size={22} color={theme.colors.gray[600]} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.addModalBody} keyboardShouldPersistTaps="handled">
+              <Typography variant="caption" color={theme.colors.gray[600]} style={styles.addLabel}>
+                Display Name *
+              </Typography>
+              <RNTextInput
+                style={styles.addInput}
+                value={newScreen.displayName}
+                onChangeText={t => setNewScreen({...newScreen, displayName: t})}
+                placeholder="e.g. Truck Checkouts"
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+              <Typography variant="caption" color={theme.colors.gray[600]} style={styles.addLabel}>
+                Internal Name *
+              </Typography>
+              <RNTextInput
+                style={styles.addInput}
+                value={newScreen.name}
+                onChangeText={t => setNewScreen({...newScreen, name: t})}
+                placeholder="e.g. truck-checkouts"
+                autoCapitalize="none"
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+              <Typography variant="caption" color={theme.colors.gray[600]} style={styles.addLabel}>
+                Path *
+              </Typography>
+              <RNTextInput
+                style={styles.addInput}
+                value={newScreen.path}
+                onChangeText={t => setNewScreen({...newScreen, path: t})}
+                placeholder="e.g. /truck-checkouts"
+                autoCapitalize="none"
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+              <Typography variant="caption" color={theme.colors.gray[600]} style={styles.addLabel}>
+                Category
+              </Typography>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{flexGrow: 0, flexShrink: 0}}
+                contentContainerStyle={{gap: 8, alignItems: 'center', paddingVertical: 4}}>
+                {categories.map(cat => {
+                  const active = newScreen.category === cat;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.categoryPill, active && styles.categoryPillActive]}
+                      onPress={() => setNewScreen({...newScreen, category: cat})}>
+                      <Typography
+                        variant="caption"
+                        weight="medium"
+                        color={active ? theme.colors.white : theme.colors.gray[700]}>
+                        {cat}
+                      </Typography>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <Typography variant="caption" color={theme.colors.gray[600]} style={styles.addLabel}>
+                Description
+              </Typography>
+              <RNTextInput
+                style={[styles.addInput, {minHeight: 60, textAlignVertical: 'top'}]}
+                value={newScreen.description}
+                onChangeText={t => setNewScreen({...newScreen, description: t})}
+                placeholder="Optional description"
+                multiline
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+              <View style={styles.addToggleRow}>
+                <Typography variant="body" weight="medium">Default screen</Typography>
+                <TouchableOpacity
+                  onPress={() => setNewScreen({...newScreen, isDefault: !newScreen.isDefault})}
+                  style={[styles.toggle, newScreen.isDefault && styles.toggleOn]}>
+                  <View style={[styles.toggleKnob, newScreen.isDefault && styles.toggleKnobOn]} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.addToggleRow}>
+                <Typography variant="body" weight="medium">Active</Typography>
+                <TouchableOpacity
+                  onPress={() => setNewScreen({...newScreen, isActive: !newScreen.isActive})}
+                  style={[styles.toggle, newScreen.isActive && styles.toggleOn]}>
+                  <View style={[styles.toggleKnob, newScreen.isActive && styles.toggleKnobOn]} />
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+            <View style={styles.addModalFooter}>
+              <Button
+                title="Cancel"
+                variant="outline"
+                size="sm"
+                onPress={() => setShowAddModal(false)}
+                style={{flex: 1}}
+              />
+              <Button
+                title={addSaving ? 'Saving...' : 'Save'}
+                variant="primary"
+                size="sm"
+                onPress={handleSaveNewScreen}
+                disabled={addSaving}
+                style={{flex: 1}}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 };
@@ -426,6 +595,8 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
   },
   actions: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     backgroundColor: theme.colors.white,
@@ -433,6 +604,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.gray[200],
   },
   actionButton: {
+    flex: 1,
     flexDirection: 'row',
     gap: theme.spacing.sm,
     alignItems: 'center',
@@ -462,17 +634,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray[200],
+    flexGrow: 0,
+    flexShrink: 0,
   },
   categoryContainer: {
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
     gap: theme.spacing.sm,
+    alignItems: 'center',
   },
   categoryPill: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.gray[100],
+    alignSelf: 'center',
   },
   categoryPillActive: {
     backgroundColor: theme.colors.primary[600],
@@ -563,5 +739,77 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: theme.spacing.md,
+  },
+  addModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+  },
+  addModalCard: {
+    width: '100%',
+    maxHeight: '85%',
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  addModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[200],
+  },
+  addModalBody: {
+    padding: theme.spacing.lg,
+  },
+  addModalFooter: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    padding: theme.spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray[200],
+  },
+  addLabel: {
+    marginTop: theme.spacing.md,
+    marginBottom: 6,
+  },
+  addInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.gray[300],
+    borderRadius: 8,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    fontSize: 14,
+    color: theme.colors.gray[900],
+    backgroundColor: theme.colors.white,
+  },
+  addToggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: theme.spacing.md,
+  },
+  toggle: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: theme.colors.gray[300],
+    padding: 3,
+    justifyContent: 'center',
+  },
+  toggleOn: {
+    backgroundColor: theme.colors.primary[600],
+  },
+  toggleKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: theme.colors.white,
+  },
+  toggleKnobOn: {
+    alignSelf: 'flex-end',
   },
 });

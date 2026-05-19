@@ -65,7 +65,14 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     if (visible && token) {
       loadData();
     }
-  }, [visible, token, filterStatus]);
+  }, [visible, token]);
+  const filteredUsers = users.filter((u: any) => {
+    if (filterStatus === 'active') return u.isActive;
+    if (filterStatus === 'inactive') return !u.isActive;
+    if (filterStatus === 'admin') return u.role === 'admin';
+    if (filterStatus === 'employee') return u.role === 'employee';
+    return true;
+  });
   useEffect(() => {
     const timer = setTimeout(() => {
       if (visible && token) {
@@ -84,10 +91,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
         limit: 100,
       };
       if (searchQuery) params.search = searchQuery;
-      if (filterStatus === 'active') params.isActive = true;
-      else if (filterStatus === 'inactive') params.isActive = false;
-      else if (filterStatus === 'admin') params.role = 'admin';
-      else if (filterStatus === 'employee') params.role = 'employee';
       const data = await userService.getAll(token, params);
       setUsers(data.users || []);
       setStats(data.stats || {total: 0, active: 0, inactive: 0, admins: 0, employees: 0});
@@ -395,7 +398,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
               </Card>
             )}
             {/* Empty State */}
-            {!error && users.length === 0 && (
+            {!error && filteredUsers.length === 0 && (
               <Card variant="outlined" padding="lg" style={styles.emptyCard}>
                 <UserIcon size={48} color={theme.colors.gray[400]} />
                 <Typography
@@ -409,15 +412,15 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   variant="body"
                   color={theme.colors.gray[500]}
                   align="center">
-                  {searchQuery
-                    ? 'Try adjusting your search'
+                  {searchQuery || filterStatus !== 'all'
+                    ? 'Try adjusting your search or filter'
                     : 'Add a user to get started'}
                 </Typography>
               </Card>
             )}
             {/* Users List */}
             <View style={styles.usersList}>
-              {users.map((user, index) => {
+              {filteredUsers.map((user, index) => {
                 const isExpanded = expandedUsers.has(user._id);
                 const isCurrentUser = user._id === currentUser?._id;
                 return (

@@ -28,6 +28,7 @@ import {
   XIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ArrowLeftIcon,
   RefreshIcon,
 } from '../components/icons';
 
@@ -64,6 +65,10 @@ export const ScreenPermissionsManagementScreen: React.FC<
   useEffect(() => {
     if (visible && token) {
       loadData();
+    }
+    if (!visible) {
+      setSelectedUser(null);
+      setUserScreenIds([]);
     }
   }, [visible, token]);
 
@@ -229,13 +234,13 @@ export const ScreenPermissionsManagementScreen: React.FC<
         </View>
 
         <Button
+          title="Save Changes"
           variant="primary"
           size="sm"
           onPress={handleSaveDefaultScreens}
           disabled={saving}
-          style={styles.saveButton}>
-          Save Changes
-        </Button>
+          style={styles.saveButton}
+        />
 
         {Object.entries(groupedScreens).map(([category, screens]) => {
           const isExpanded = expandedCategories.has(category);
@@ -303,14 +308,13 @@ export const ScreenPermissionsManagementScreen: React.FC<
   };
 
   const renderUsersTab = () => {
-    const groupedScreens = selectedUser ? groupScreensByCategory(allScreens) : {};
-
-    return (
-      <View style={styles.usersTabContainer}>
-        {/* Users List */}
+    // Detail view — full width permissions panel for the selected user
+    if (selectedUser) {
+      const groupedScreens = groupScreensByCategory(allScreens);
+      return (
         <ScrollView
-          style={styles.usersList}
-          contentContainerStyle={styles.usersListContent}
+          style={styles.tabContent}
+          contentContainerStyle={styles.tabContentInner}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -318,163 +322,170 @@ export const ScreenPermissionsManagementScreen: React.FC<
               tintColor={theme.colors.primary[600]}
             />
           }>
-          <Typography
-            variant="body"
-            weight="semibold"
-            style={styles.usersListTitle}>
-            Employees
-          </Typography>
-          {users.map(user => {
-            const isSelected = selectedUser?._id === user._id;
+          <TouchableOpacity
+            style={styles.backRow}
+            onPress={() => setSelectedUser(null)}>
+            <ArrowLeftIcon size={20} color={theme.colors.primary[600]} />
+            <Typography variant="body" weight="semibold" color={theme.colors.primary[600]}>
+              Back to employees
+            </Typography>
+          </TouchableOpacity>
+
+          <View style={styles.userScreensHeader}>
+            <Typography variant="body" weight="semibold">
+              Permissions for {selectedUser.name}
+            </Typography>
+            <Typography variant="caption" color={theme.colors.gray[500]}>
+              {userScreenIds.length} screens selected
+            </Typography>
+          </View>
+
+          <Button
+            title="Save Permissions"
+            variant="primary"
+            size="sm"
+            onPress={handleSaveUserPermissions}
+            disabled={saving}
+            style={styles.saveButton}
+          />
+
+          {Object.entries(groupedScreens).map(([category, screens]) => {
+            const isExpanded = expandedCategories.has(category);
+            const selectedInCategory = screens.filter(s => userScreenIds.includes(s._id))
+              .length;
+
             return (
-              <TouchableOpacity
-                key={user._id}
-                style={[styles.userCard, isSelected && styles.userCardSelected]}
-                onPress={() => handleSelectUser(user)}>
-                <View style={styles.userAvatar}>
-                  <Typography variant="body" weight="bold" color={theme.colors.white}>
-                    {user.name?.charAt(0).toUpperCase() || 'U'}
-                  </Typography>
-                </View>
-                <View style={styles.userInfo}>
-                  <Typography variant="body" weight="semibold">
-                    {user.name}
-                  </Typography>
-                  <Typography variant="caption" color={theme.colors.gray[500]}>
-                    {user.email}
-                  </Typography>
-                  <View style={styles.userStats}>
-                    <Typography variant="caption" color={theme.colors.gray[600]}>
-                      {user.totalScreensCount} screens
+              <Card
+                key={category}
+                variant="elevated"
+                padding="none"
+                style={styles.categoryCard}>
+                <TouchableOpacity
+                  style={styles.categoryHeader}
+                  onPress={() => toggleCategory(category)}>
+                  <View style={styles.categoryHeaderLeft}>
+                    <Typography variant="body" weight="semibold">
+                      {category}
                     </Typography>
-                    {user.additionalScreensCount > 0 && (
-                      <Typography variant="caption" color={theme.colors.success[600]}>
-                        +{user.additionalScreensCount} additional
-                      </Typography>
-                    )}
+                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                      {selectedInCategory}/{screens.length} selected
+                    </Typography>
                   </View>
-                </View>
-              </TouchableOpacity>
+                  {isExpanded ? (
+                    <ChevronUpIcon size={20} color={theme.colors.gray[600]} />
+                  ) : (
+                    <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
+                  )}
+                </TouchableOpacity>
+
+                {isExpanded && (
+                  <View style={styles.screensList}>
+                    {screens.map(screen => {
+                      const isDefault = defaultScreenIds.includes(screen._id);
+                      const isSelected = userScreenIds.includes(screen._id);
+
+                      return (
+                        <TouchableOpacity
+                          key={screen._id}
+                          style={styles.screenItem}
+                          onPress={() => handleToggleUserScreen(screen._id)}>
+                          <View style={styles.screenItemLeft}>
+                            <Checkbox
+                              checked={isSelected}
+                              onToggle={() => handleToggleUserScreen(screen._id)}
+                            />
+                            <View style={styles.screenInfo}>
+                              <View style={styles.screenTitleRow}>
+                                <Typography variant="body" weight="medium">
+                                  {screen.displayName}
+                                </Typography>
+                                {isDefault && (
+                                  <View style={styles.defaultBadge}>
+                                    <Typography
+                                      variant="caption"
+                                      color={theme.colors.primary[700]}
+                                      weight="medium">
+                                      Default
+                                    </Typography>
+                                  </View>
+                                )}
+                              </View>
+                              <Typography
+                                variant="caption"
+                                color={theme.colors.gray[500]}
+                                style={styles.screenPath}>
+                                {screen.path}
+                              </Typography>
+                            </View>
+                          </View>
+                          {isSelected && (
+                            <CheckIcon size={16} color={theme.colors.success[600]} />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </Card>
             );
           })}
         </ScrollView>
+      );
+    }
 
-        {/* Selected User Screens */}
-        {selectedUser ? (
-          <ScrollView
-            style={styles.userScreensContainer}
-            contentContainerStyle={styles.userScreensContent}>
-            <View style={styles.userScreensHeader}>
-              <Typography variant="body" weight="semibold">
-                Permissions for {selectedUser.name}
-              </Typography>
-              <Typography variant="caption" color={theme.colors.gray[500]}>
-                {userScreenIds.length} screens selected
+    // Master view — full width employees list
+    return (
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={styles.tabContentInner}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary[600]}
+          />
+        }>
+        <Typography
+          variant="body"
+          weight="semibold"
+          style={styles.usersListTitle}>
+          Employees ({users.length})
+        </Typography>
+        <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 12}}>
+          Tap an employee to manage their permissions
+        </Typography>
+        {users.map(user => (
+          <TouchableOpacity
+            key={user._id}
+            style={styles.userCard}
+            onPress={() => handleSelectUser(user)}>
+            <View style={styles.userAvatar}>
+              <Typography variant="body" weight="bold" color={theme.colors.white}>
+                {user.name?.charAt(0).toUpperCase() || 'U'}
               </Typography>
             </View>
-
-            <Button
-              variant="primary"
-              size="sm"
-              onPress={handleSaveUserPermissions}
-              disabled={saving}
-              style={styles.saveButton}>
-              Save Permissions
-            </Button>
-
-            {Object.entries(groupedScreens).map(([category, screens]) => {
-              const isExpanded = expandedCategories.has(category);
-              const selectedInCategory = screens.filter(s => userScreenIds.includes(s._id))
-                .length;
-
-              return (
-                <Card
-                  key={category}
-                  variant="elevated"
-                  padding="none"
-                  style={styles.categoryCard}>
-                  <TouchableOpacity
-                    style={styles.categoryHeader}
-                    onPress={() => toggleCategory(category)}>
-                    <View style={styles.categoryHeaderLeft}>
-                      <Typography variant="body" weight="semibold">
-                        {category}
-                      </Typography>
-                      <Typography variant="caption" color={theme.colors.gray[500]}>
-                        {selectedInCategory}/{screens.length} selected
-                      </Typography>
-                    </View>
-                    {isExpanded ? (
-                      <ChevronUpIcon size={20} color={theme.colors.gray[600]} />
-                    ) : (
-                      <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
-                    )}
-                  </TouchableOpacity>
-
-                  {isExpanded && (
-                    <View style={styles.screensList}>
-                      {screens.map(screen => {
-                        const isDefault = defaultScreenIds.includes(screen._id);
-                        const isSelected = userScreenIds.includes(screen._id);
-
-                        return (
-                          <TouchableOpacity
-                            key={screen._id}
-                            style={styles.screenItem}
-                            onPress={() => handleToggleUserScreen(screen._id)}>
-                            <View style={styles.screenItemLeft}>
-                              <Checkbox
-                                checked={isSelected}
-                                onToggle={() => handleToggleUserScreen(screen._id)}
-                              />
-                              <View style={styles.screenInfo}>
-                                <View style={styles.screenTitleRow}>
-                                  <Typography variant="body" weight="medium">
-                                    {screen.displayName}
-                                  </Typography>
-                                  {isDefault && (
-                                    <View style={styles.defaultBadge}>
-                                      <Typography
-                                        variant="caption"
-                                        color={theme.colors.primary[700]}
-                                        weight="medium">
-                                        Default
-                                      </Typography>
-                                    </View>
-                                  )}
-                                </View>
-                                <Typography
-                                  variant="caption"
-                                  color={theme.colors.gray[500]}
-                                  style={styles.screenPath}>
-                                  {screen.path}
-                                </Typography>
-                              </View>
-                            </View>
-                            {isSelected && (
-                              <CheckIcon size={16} color={theme.colors.success[600]} />
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  )}
-                </Card>
-              );
-            })}
-          </ScrollView>
-        ) : (
-          <View style={styles.noUserSelected}>
-            <UserIcon size={48} color={theme.colors.gray[300]} />
-            <Typography
-              variant="body"
-              color={theme.colors.gray[500]}
-              style={styles.noUserText}>
-              Select an employee to manage their permissions
-            </Typography>
-          </View>
-        )}
-      </View>
+            <View style={styles.userInfo}>
+              <Typography variant="body" weight="semibold">
+                {user.name}
+              </Typography>
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                {user.email}
+              </Typography>
+              <View style={styles.userStats}>
+                <Typography variant="caption" color={theme.colors.gray[600]}>
+                  {user.totalScreensCount} screens
+                </Typography>
+                {user.additionalScreensCount > 0 && (
+                  <Typography variant="caption" color={theme.colors.success[600]}>
+                    +{user.additionalScreensCount} additional
+                  </Typography>
+                )}
+              </View>
+            </View>
+            <ChevronDownIcon size={18} color={theme.colors.gray[400]} />
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     );
   };
 
@@ -508,15 +519,13 @@ export const ScreenPermissionsManagementScreen: React.FC<
         {/* Actions */}
         <View style={styles.actions}>
           <Button
+            title="Initialize"
             variant="outline"
             size="sm"
             onPress={handleInitializeScreens}
-            style={styles.actionButton}>
-            <RefreshIcon size={16} color={theme.colors.gray[700]} />
-            <Typography variant="small" weight="medium" color={theme.colors.gray[700]}>
-              Initialize
-            </Typography>
-          </Button>
+            leftIcon={<RefreshIcon size={16} color={theme.colors.gray[700]} />}
+            style={styles.actionButton}
+          />
         </View>
 
         {/* Tabs */}
@@ -563,9 +572,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
             <Typography variant="body" color={theme.colors.error[600]}>
               {error}
             </Typography>
-            <Button variant="outline" size="sm" onPress={loadData} style={styles.retryButton}>
-              Retry
-            </Button>
+            <Button title="Retry" variant="outline" size="sm" onPress={loadData} style={styles.retryButton} />
           </View>
         ) : (
           <>
@@ -718,6 +725,13 @@ const styles = StyleSheet.create({
   },
   usersListTitle: {
     marginBottom: theme.spacing.md,
+  },
+  backRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
   },
   userCard: {
     flexDirection: 'row',

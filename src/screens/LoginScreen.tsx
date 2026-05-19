@@ -189,6 +189,9 @@ export const LoginScreen = () => {
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!loading}
+                returnKeyType="next"
+                onSubmitEditing={handleSubmit}
+                blurOnSubmit={false}
               />
               {/* Password */}
               <TextInput
@@ -210,6 +213,8 @@ export const LoginScreen = () => {
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!loading}
+                returnKeyType="go"
+                onSubmitEditing={handleSubmit}
               />
               {/* Remember Me & Forgot Password */}
               <View style={styles.optionsRow}>

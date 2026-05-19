@@ -25,6 +25,8 @@ import {ItemsInvoiceUsageScreen} from './ItemsInvoiceUsageScreen';
 export const AccountScreen = () => {
   const {user, logout} = useAuth();
   const {hasAccessToScreen} = useUserScreens();
+  const isAdmin = user?.role === 'admin';
+  const canSee = (path: string) => isAdmin || hasAccessToScreen(path);
   const [salesReportVisible, setSalesReportVisible] = useState(false);
   const [ordersVisible, setOrdersVisible] = useState(false);
   const [modelMappingVisible, setModelMappingVisible] = useState(false);
@@ -100,7 +102,7 @@ export const AccountScreen = () => {
               </Typography>
             </View>
             <Card variant="elevated" padding="none" style={styles.menuCard}>
-              {hasAccessToScreen('/users') && (
+              {canSee('/users') && (
                 <>
                   <TouchableOpacity
                     style={styles.menuItem}
@@ -124,7 +126,7 @@ export const AccountScreen = () => {
                   <View style={styles.menuSeparator} />
                 </>
               )}
-              {hasAccessToScreen('/activities') && (
+              {canSee('/activities') && (
                 <>
                   <TouchableOpacity
                     style={styles.menuItem}
@@ -148,7 +150,7 @@ export const AccountScreen = () => {
                   <View style={styles.menuSeparator} />
                 </>
               )}
-              {hasAccessToScreen('/admin/screen-permissions') && (
+              {canSee('/admin/screen-permissions') && (
                 <>
                   <TouchableOpacity
                     style={styles.menuItem}
@@ -172,7 +174,7 @@ export const AccountScreen = () => {
                   <View style={styles.menuSeparator} />
                 </>
               )}
-              {hasAccessToScreen('/admin/screens') && (
+              {canSee('/admin/screens') && (
                 <TouchableOpacity
                   style={styles.menuItem}
                   onPress={() => setScreenManagementVisible(true)}
@@ -204,7 +206,7 @@ export const AccountScreen = () => {
           </Typography>
         </View>
         <Card variant="elevated" padding="none" style={styles.menuCard}>
-          {hasAccessToScreen('/routestar/model-mapping') && (
+          {canSee('/routestar/model-mapping') && (
             <>
               <TouchableOpacity
                 style={styles.menuItem}
@@ -223,7 +225,7 @@ export const AccountScreen = () => {
               <View style={styles.menuSeparator} />
             </>
           )}
-          {hasAccessToScreen('/routestar/item-alias-mapping') && (
+          {canSee('/routestar/item-alias-mapping') && (
             <>
               <TouchableOpacity
                 style={styles.menuItem}
@@ -242,7 +244,7 @@ export const AccountScreen = () => {
               <View style={styles.menuSeparator} />
             </>
           )}
-          {hasAccessToScreen('/routestar/items') && (
+          {canSee('/routestar/items') && (
             <>
               <TouchableOpacity
                 style={styles.menuItem}
@@ -261,7 +263,7 @@ export const AccountScreen = () => {
               <View style={styles.menuSeparator} />
             </>
           )}
-          {hasAccessToScreen('/manual-po-items') && (
+          {canSee('/manual-po-items') && (
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => setManualPOItemsVisible(true)}
@@ -286,7 +288,7 @@ export const AccountScreen = () => {
           </Typography>
         </View>
         <Card variant="elevated" padding="none" style={styles.menuCard}>
-          {hasAccessToScreen('/orders') && (
+          {canSee('/orders') && (
             <>
               <TouchableOpacity
                 style={styles.menuItem}
@@ -305,7 +307,7 @@ export const AccountScreen = () => {
               <View style={styles.menuSeparator} />
             </>
           )}
-          {hasAccessToScreen('/vendors') && (
+          {canSee('/vendors') && (
             <>
               <TouchableOpacity
                 style={styles.menuItem}
@@ -324,7 +326,7 @@ export const AccountScreen = () => {
               <View style={styles.menuSeparator} />
             </>
           )}
-          {hasAccessToScreen('/system/fetch-history') && (
+          {canSee('/system/fetch-history') && (
             <>
               <TouchableOpacity
                 style={styles.menuItem}
@@ -343,7 +345,7 @@ export const AccountScreen = () => {
               <View style={styles.menuSeparator} />
             </>
           )}
-          {hasAccessToScreen('/discrepancies') && (
+          {canSee('/discrepancies') && (
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => setDiscrepancyManagementVisible(true)}
@@ -368,7 +370,7 @@ export const AccountScreen = () => {
           </Typography>
         </View>
         <Card variant="elevated" padding="none" style={styles.menuCard}>
-          {hasAccessToScreen('/routestar/sales-report') && (
+          {canSee('/routestar/sales-report') && (
             <>
               <TouchableOpacity
                 style={styles.menuItem}
@@ -387,7 +389,7 @@ export const AccountScreen = () => {
               <View style={styles.menuSeparator} />
             </>
           )}
-          {hasAccessToScreen('/routestar/items-invoice-usage') && (
+          {canSee('/routestar/items-invoice-usage') && (
             <TouchableOpacity
               style={styles.menuItem}
               onPress={() => setItemsInvoiceUsageVisible(true)}
