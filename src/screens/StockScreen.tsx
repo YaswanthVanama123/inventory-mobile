@@ -25,8 +25,41 @@ import {
   ChevronRightIcon,
   AlertCircleIcon,
   PlusIcon,
+  TruckIcon,
+  DollarIcon,
+  CheckCircleIcon,
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
+
+interface StockStatCardProps {
+  theme: Theme;
+  label: string;
+  value: string | number;
+  subtitle?: string;
+  icon: React.ReactNode;
+}
+
+const StockStatCard: React.FC<StockStatCardProps> = ({theme, label, value, subtitle, icon}) => {
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  return (
+    <View style={styles.statCard}>
+      <Card variant="elevated" padding="md" style={styles.statCardContent}>
+        <View style={styles.statIconBadge}>{icon}</View>
+        <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statTileLabel}>
+          {label}
+        </Typography>
+        <Typography variant="h3" weight="bold" style={styles.statTileValue}>
+          {value}
+        </Typography>
+        {subtitle ? (
+          <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statTileSubtitle}>
+            {subtitle}
+          </Typography>
+        ) : null}
+      </Card>
+    </View>
+  );
+};
 
 export const StockScreen = () => {
   const theme = useTheme();
@@ -335,71 +368,45 @@ export const StockScreen = () => {
         }>
         {/* Stats Cards */}
         <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <View style={[{backgroundColor: theme.colors.primary[600]}, styles.statCardContent]}>
-                <Typography variant="caption" style={styles.statLabel}>
-                  Total Purchased
-                </Typography>
-                <Typography variant="h2" weight="bold" style={styles.statValue}>
-                  {currentData.totals.totalPurchased || 0}
-                </Typography>
-                <Typography variant="caption" style={styles.statSubtitle}>
-                  Units ordered
-                </Typography>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[{backgroundColor: theme.colors.success[600]}, styles.statCardContent]}>
-                <Typography variant="caption" style={styles.statLabel}>
-                  Total Sold
-                </Typography>
-                <Typography variant="h2" weight="bold" style={styles.statValue}>
-                  {currentData.totals.totalSold || 0}
-                </Typography>
-                <Typography variant="caption" style={styles.statSubtitle}>
-                  Units sold
-                </Typography>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[{backgroundColor: theme.colors.primary[600]}, styles.statCardContent]}>
-                <Typography variant="caption" style={styles.statLabel}>
-                  Checked Out
-                </Typography>
-                <Typography variant="h2" weight="bold" style={styles.statValue}>
-                  {currentData.totals.totalCheckedOut || 0}
-                </Typography>
-                <Typography variant="caption" style={styles.statSubtitle}>
-                  Units on trucks
-                </Typography>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[{backgroundColor: '#9333ea'}, styles.statCardContent]}>
-                <Typography variant="caption" style={styles.statLabel}>
-                  Stock Remaining
-                </Typography>
-                <Typography variant="h2" weight="bold" style={styles.statValue}>
-                  {currentData.totals.stockRemaining || 0}
-                </Typography>
-                <Typography variant="caption" style={styles.statSubtitle}>
-                  Available stock
-                </Typography>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[{backgroundColor: theme.colors.error[600]}, styles.statCardContent]}>
-                <Typography variant="caption" style={styles.statLabel}>
-                  Discrepancies
-                </Typography>
-                <Typography variant="h2" weight="bold" style={styles.statValue}>
-                  {currentData.totals.totalDiscrepancyDifference !== undefined ? currentData.totals.totalDiscrepancyDifference : currentData.totals.totalDiscrepancies || 0}
-                </Typography>
-                <Typography variant="caption" style={styles.statSubtitle}>
-                  Total difference
-                </Typography>
-              </View>
-            </View>
+            <StockStatCard
+              theme={theme}
+              label="Total Purchased"
+              value={currentData.totals.totalPurchased || 0}
+              subtitle="Units ordered"
+              icon={<BoxIcon size={18} color={theme.colors.gray[700]} />}
+            />
+            <StockStatCard
+              theme={theme}
+              label="Total Sold"
+              value={currentData.totals.totalSold || 0}
+              subtitle="Units sold"
+              icon={<DollarIcon size={18} color={theme.colors.gray[700]} />}
+            />
+            <StockStatCard
+              theme={theme}
+              label="Checked Out"
+              value={currentData.totals.totalCheckedOut || 0}
+              subtitle="Units on trucks"
+              icon={<TruckIcon size={18} color={theme.colors.gray[700]} />}
+            />
+            <StockStatCard
+              theme={theme}
+              label="Stock Remaining"
+              value={currentData.totals.stockRemaining || 0}
+              subtitle="Available stock"
+              icon={<CheckCircleIcon size={18} color={theme.colors.gray[700]} />}
+            />
+            <StockStatCard
+              theme={theme}
+              label="Discrepancies"
+              value={
+                currentData.totals.totalDiscrepancyDifference !== undefined
+                  ? currentData.totals.totalDiscrepancyDifference
+                  : currentData.totals.totalDiscrepancies || 0
+              }
+              subtitle="Total difference"
+              icon={<AlertCircleIcon size={18} color={theme.colors.gray[700]} />}
+            />
           </View>
         {/* Error State */}
         {error && (
@@ -1190,25 +1197,25 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     padding: 4,
   },
   statCardContent: {
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 100,
+    minHeight: 120,
   },
-  statLabel: {
-    color: '#ffffff',
-    fontSize: 11,
-    opacity: 0.9,
-    marginBottom: 4,
+  statIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.colors.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  statValue: {
-    color: '#ffffff',
-    fontSize: 24,
-    marginBottom: 4,
+  statTileLabel: {
+    marginBottom: 2,
   },
-  statSubtitle: {
-    color: '#ffffff',
-    fontSize: 11,
-    opacity: 0.85,
+  statTileValue: {
+    color: theme.colors.gray[900],
+  },
+  statTileSubtitle: {
+    marginTop: 2,
   },
   errorCard: {
     marginBottom: theme.spacing.lg,
