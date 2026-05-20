@@ -301,7 +301,7 @@ export const DashboardScreen = () => {
             <Typography variant="caption" color={theme.colors.gray[500]} style={styles.headerEyebrow}>
               {greeting()}
             </Typography>
-            <Typography variant="h3" weight="semibold" style={styles.headerTitle}>
+            <Typography variant="body" weight="semibold" style={styles.headerTitle}>
               {displayName}
             </Typography>
             <Typography variant="small" color={theme.colors.gray[500]} style={{marginTop: 2}}>
@@ -595,7 +595,6 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     marginBottom: 4,
   },
   headerTitle: {
-    fontSize: 28,
     color: theme.colors.gray[900],
   },
   headerAction: {

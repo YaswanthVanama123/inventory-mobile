@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -17,7 +17,8 @@ import {Checkbox} from '../components/atoms/Checkbox';
 import {ToggleButtonGroup} from '../components/molecules/ToggleButtonGroup';
 import {ErrorAlert} from '../components/molecules/ErrorAlert';
 import {useAuth} from '../contexts/AuthContext';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import storageService from '../services/storageService';
 import {
   BoxIcon,
@@ -31,6 +32,8 @@ import {
 
 export const LoginScreen = () => {
   const {login} = useAuth();
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
 
   const [loginType, setLoginType] = useState<'admin' | 'employee'>('admin');
   const [formData, setFormData] = useState({
@@ -272,7 +275,7 @@ export const LoginScreen = () => {
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme) => StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
