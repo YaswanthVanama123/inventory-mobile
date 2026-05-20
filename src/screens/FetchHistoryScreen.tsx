@@ -29,7 +29,7 @@ import {
   ClipboardIcon,
   RefreshIcon,
 } from '../components/icons';
-import {formatDateTime} from '../utils/dateUtils';
+import {formatDate, formatDateTime} from '../utils/dateUtils';
 
 interface FetchHistoryScreenProps {
   visible: boolean;

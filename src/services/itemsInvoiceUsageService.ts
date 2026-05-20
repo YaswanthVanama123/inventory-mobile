@@ -1,128 +1,87 @@
 import {API_BASE_URL} from '../config/api';
 
-export interface ItemUsage {
-  itemName: string;
-  itemCode: string;
-  category: string;
+export interface InvoiceRef {
+  invoiceNumber: string;
+  invoiceDate: string;
+  customer: string;
+  status: string;
+  total: number;
   totalQuantity: number;
-  totalInvoices: number;
-  lastUsedDate: string;
-  averageQuantityPerInvoice: number;
 }
 
-export interface InvoiceUsageStats {
+export interface ItemUsage {
+  itemName: string;
+  type: 'mapped' | 'unique';
+  aliases: string[];
+  invoiceCount: number;
+  totalQuantitySold: number;
+  invoices: InvoiceRef[];
+  lastUsedDate?: string;
+  averageQuantityPerInvoice?: number;
+}
+
+export interface InvoiceUsageTotals {
+  totalMappedItems: number;
+  totalUniqueItems: number;
   totalItems: number;
   totalInvoices: number;
-  dateRange: {
-    startDate: string;
-    endDate: string;
-  };
 }
 
 class ItemsInvoiceUsageService {
-  // Get items invoice usage report
+  // Backend route is /routestar/items/invoice-usage and takes no query params —
+  // it returns all items with their invoices. Filtering happens client-side.
   async getItemsUsage(
     token: string,
-    params: {
-      startDate?: string;
-      endDate?: string;
-      category?: string;
-      search?: string;
-      sortBy?: string;
-      sortOrder?: 'asc' | 'desc';
-      page?: number;
-      limit?: number;
-    } = {}
-  ): Promise<{items: ItemUsage[]; stats: InvoiceUsageStats; pagination: any}> {
-    try {
-      const queryParams = new URLSearchParams();
+  ): Promise<{items: ItemUsage[]; totals: InvoiceUsageTotals}> {
+    const url = `${API_BASE_URL}/routestar/items/invoice-usage`;
+    console.log('[ItemsInvoiceUsageService] Fetching items usage from:', url);
 
-      if (params.startDate) queryParams.append('startDate', params.startDate);
-      if (params.endDate) queryParams.append('endDate', params.endDate);
-      if (params.category) queryParams.append('category', params.category);
-      if (params.search) queryParams.append('search', params.search);
-      if (params.sortBy) queryParams.append('sortBy', params.sortBy);
-      if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
-      if (params.page) queryParams.append('page', params.page.toString());
-      if (params.limit) queryParams.append('limit', params.limit.toString());
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-      const url = `${API_BASE_URL}/routestar/items-invoice-usage?${queryParams.toString()}`;
-      console.log('[ItemsInvoiceUsageService] Fetching items usage from:', url);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[ItemsInvoiceUsageService] Error response:', errorText);
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
 
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+    const result = await response.json();
+    const rawItems: any[] = result.data?.items || [];
 
-      console.log('[ItemsInvoiceUsageService] Response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[ItemsInvoiceUsageService] Error response:', errorText);
-        throw new Error(`API Error ${response.status}: ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('[ItemsInvoiceUsageService] Items count:', result.data?.items?.length || 0);
-
+    const items: ItemUsage[] = rawItems.map(item => {
+      const invoices: InvoiceRef[] = Array.isArray(item.invoices) ? item.invoices : [];
+      const lastUsedDate = invoices.reduce<string | undefined>((latest, inv) => {
+        if (!inv.invoiceDate) return latest;
+        if (!latest) return inv.invoiceDate;
+        return new Date(inv.invoiceDate) > new Date(latest) ? inv.invoiceDate : latest;
+      }, undefined);
+      const averageQuantityPerInvoice =
+        item.invoiceCount > 0 ? item.totalQuantitySold / item.invoiceCount : 0;
       return {
-        items: result.data?.items || [],
-        stats: result.data?.stats || {
-          totalItems: 0,
-          totalInvoices: 0,
-          dateRange: {startDate: '', endDate: ''},
-        },
-        pagination: result.data?.pagination || {
-          total: 0,
-          page: 1,
-          limit: 50,
-          pages: 0,
-        },
+        itemName: item.itemName,
+        type: item.type,
+        aliases: item.aliases || [],
+        invoiceCount: item.invoiceCount || 0,
+        totalQuantitySold: item.totalQuantitySold || 0,
+        invoices,
+        lastUsedDate,
+        averageQuantityPerInvoice,
       };
-    } catch (error: any) {
-      console.error('[ItemsInvoiceUsageService] Service Error:', error.message);
-      throw error;
-    }
-  }
+    });
 
-  // Export items usage to CSV
-  async exportToCSV(
-    token: string,
-    params: {
-      startDate?: string;
-      endDate?: string;
-      category?: string;
-    } = {}
-  ): Promise<Blob> {
-    try {
-      const queryParams = new URLSearchParams();
+    const totals: InvoiceUsageTotals = result.data?.totals || {
+      totalMappedItems: 0,
+      totalUniqueItems: 0,
+      totalItems: items.length,
+      totalInvoices: items.reduce((sum, i) => sum + i.invoiceCount, 0),
+    };
 
-      if (params.startDate) queryParams.append('startDate', params.startDate);
-      if (params.endDate) queryParams.append('endDate', params.endDate);
-      if (params.category) queryParams.append('category', params.category);
-      queryParams.append('format', 'csv');
-
-      const url = `${API_BASE_URL}/routestar/items-invoice-usage/export?${queryParams.toString()}`;
-      console.log('[ItemsInvoiceUsageService] Exporting to CSV');
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error ${response.status}: ${errorText}`);
-      }
-
-      return await response.blob();
-    } catch (error: any) {
-      console.error('[ItemsInvoiceUsageService] Export error:', error.message);
-      throw error;
-    }
+    console.log('[ItemsInvoiceUsageService] Items count:', items.length);
+    return {items, totals};
   }
 }
 

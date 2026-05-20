@@ -234,13 +234,15 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }>
-            {/* Stats Cards - Scrollable */}
+            {/* Stats Cards - Neutral, professional */}
             <View style={styles.statsGrid}>
               <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.gray[600]}]}>
-                  <UserIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Total Users
+                <View style={styles.statCard}>
+                  <View style={styles.statIconBadge}>
+                    <UserIcon size={18} color={theme.colors.gray[700]} />
+                  </View>
+                  <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
+                    TOTAL USERS
                   </Typography>
                   <Typography variant="h2" weight="bold" style={styles.statValue}>
                     {stats.total}
@@ -248,10 +250,12 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </View>
               </View>
               <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
-                  <CheckCircleIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Active
+                <View style={styles.statCard}>
+                  <View style={styles.statIconBadge}>
+                    <CheckCircleIcon size={18} color={theme.colors.gray[700]} />
+                  </View>
+                  <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
+                    ACTIVE
                   </Typography>
                   <Typography variant="h2" weight="bold" style={styles.statValue}>
                     {stats.active}
@@ -259,10 +263,12 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </View>
               </View>
               <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.error[600]}]}>
-                  <WarningIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Inactive
+                <View style={styles.statCard}>
+                  <View style={styles.statIconBadge}>
+                    <WarningIcon size={18} color={theme.colors.gray[700]} />
+                  </View>
+                  <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
+                    INACTIVE
                   </Typography>
                   <Typography variant="h2" weight="bold" style={styles.statValue}>
                     {stats.inactive}
@@ -270,10 +276,12 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                 </View>
               </View>
               <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
-                  <UserIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Admins
+                <View style={styles.statCard}>
+                  <View style={styles.statIconBadge}>
+                    <UserIcon size={18} color={theme.colors.gray[700]} />
+                  </View>
+                  <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
+                    ADMINS
                   </Typography>
                   <Typography variant="h2" weight="bold" style={styles.statValue}>
                     {stats.admins}
@@ -628,23 +636,33 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   },
   statCardWrapper: {
     width: '50%',
-    padding: 4,
+    padding: 6,
   },
   statCard: {
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 100,
+    backgroundColor: theme.colors.white,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    minHeight: 110,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
+  statIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.colors.gray[100],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.spacing.sm,
   },
   statLabel: {
-    color: '#ffffff',
     fontSize: 11,
-    opacity: 0.9,
-    marginTop: 6,
+    letterSpacing: 0.6,
     marginBottom: 4,
   },
   statValue: {
-    color: '#ffffff',
-    fontSize: 22,
+    fontSize: 24,
+    color: theme.colors.gray[900],
   },
   tabsContainer: {
     flexDirection: 'row',

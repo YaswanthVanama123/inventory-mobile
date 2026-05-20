@@ -17,7 +17,10 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
-import itemsInvoiceUsageService, {ItemUsage} from '../services/itemsInvoiceUsageService';
+import itemsInvoiceUsageService, {
+  ItemUsage,
+  InvoiceUsageTotals,
+} from '../services/itemsInvoiceUsageService';
 import {BarChartIcon, SearchIcon, XIcon, BoxIcon, ClockIcon} from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 
@@ -39,10 +42,11 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   const [items, setItems] = useState<ItemUsage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({
+  const [totals, setTotals] = useState<InvoiceUsageTotals>({
+    totalMappedItems: 0,
+    totalUniqueItems: 0,
     totalItems: 0,
     totalInvoices: 0,
-    dateRange: {startDate: '', endDate: ''},
   });
 
   useEffect(() => {
@@ -51,29 +55,17 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
     }
   }, [visible, token]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (visible && token) {
-        loadData();
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
   const loadData = async () => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
 
-      const result = await itemsInvoiceUsageService.getItemsUsage(token, {
-        search: searchQuery,
-        limit: 100,
-      });
+      const result = await itemsInvoiceUsageService.getItemsUsage(token);
 
       console.log('[ItemsInvoiceUsageScreen] Data loaded:', result.items?.length || 0);
       setItems(result.items || []);
-      setStats(result.stats || stats);
+      setTotals(result.totals);
     } catch (error: any) {
       console.error('Failed to fetch items usage:', error);
       const wasHandled = await handleApiError(error);
@@ -90,6 +82,16 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
     loadData();
   };
 
+  const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      item =>
+        item.itemName.toLowerCase().includes(q) ||
+        item.aliases.some(alias => alias.toLowerCase().includes(q)),
+    );
+  }, [items, searchQuery]);
+
   const renderItemCard = (item: ItemUsage, index: number) => (
     <Card key={index} variant="elevated" padding="md" style={styles.itemCard}>
       <View style={styles.itemHeader}>
@@ -101,20 +103,29 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
             <Typography variant="body" weight="semibold">
               {item.itemName}
             </Typography>
-            {item.itemCode && (
+            {item.aliases.length > 0 && (
               <Typography variant="caption" color={theme.colors.gray[500]}>
-                Code: {item.itemCode}
+                {item.aliases.length} alias{item.aliases.length !== 1 ? 'es' : ''}
               </Typography>
             )}
           </View>
         </View>
-        {item.category && (
-          <View style={styles.categoryBadge}>
-            <Typography variant="caption" color={theme.colors.info[700]} weight="medium">
-              {item.category}
-            </Typography>
-          </View>
-        )}
+        <View
+          style={[
+            styles.categoryBadge,
+            item.type === 'mapped' && {backgroundColor: theme.colors.accent[100]},
+          ]}>
+          <Typography
+            variant="caption"
+            color={
+              item.type === 'mapped'
+                ? theme.colors.accent[700]
+                : theme.colors.info[700]
+            }
+            weight="medium">
+            {item.type === 'mapped' ? 'Mapped' : 'Unique'}
+          </Typography>
+        </View>
       </View>
 
       <View style={styles.itemStats}>
@@ -123,7 +134,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
             Total Quantity
           </Typography>
           <Typography variant="body" weight="bold" color={theme.colors.primary[600]}>
-            {item.totalQuantity.toLocaleString()}
+            {item.totalQuantitySold.toLocaleString()}
           </Typography>
         </View>
 
@@ -134,7 +145,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
             Invoices
           </Typography>
           <Typography variant="body" weight="bold" color={theme.colors.success[600]}>
-            {item.totalInvoices}
+            {item.invoiceCount}
           </Typography>
         </View>
 
@@ -145,7 +156,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
             Avg/Invoice
           </Typography>
           <Typography variant="body" weight="bold" color={theme.colors.accent[600]}>
-            {item.averageQuantityPerInvoice.toFixed(1)}
+            {(item.averageQuantityPerInvoice || 0).toFixed(1)}
           </Typography>
         </View>
       </View>
@@ -189,14 +200,14 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
         </View>
 
         {/* Stats Summary */}
-        {!loading && stats.totalItems > 0 && (
+        {!loading && totals.totalItems > 0 && (
           <View style={styles.statsContainer}>
             <View style={styles.statsCard}>
               <Typography variant="small" color={theme.colors.gray[600]}>
                 Total Items
               </Typography>
               <Typography variant="h2" weight="bold" color={theme.colors.primary[600]}>
-                {stats.totalItems}
+                {totals.totalItems}
               </Typography>
             </View>
             <View style={styles.statsSeparator} />
@@ -205,7 +216,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
                 Total Invoices
               </Typography>
               <Typography variant="h2" weight="bold" color={theme.colors.success[600]}>
-                {stats.totalInvoices}
+                {totals.totalInvoices}
               </Typography>
             </View>
           </View>
@@ -246,9 +257,13 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
             <Typography variant="body" color={theme.colors.error[600]}>
               {error}
             </Typography>
-            <Button variant="outline" size="sm" onPress={loadData} style={styles.retryButton}>
-              Retry
-            </Button>
+            <Button
+              title="Retry"
+              variant="outline"
+              size="sm"
+              onPress={loadData}
+              style={styles.retryButton}
+            />
           </View>
         ) : (
           <ScrollView
@@ -261,7 +276,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
                 tintColor={theme.colors.primary[600]}
               />
             }>
-            {items.length === 0 ? (
+            {filteredItems.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <BarChartIcon size={48} color={theme.colors.gray[300]} />
                 <Typography
@@ -277,10 +292,10 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
               <>
                 <View style={styles.resultsHeader}>
                   <Typography variant="small" color={theme.colors.gray[600]}>
-                    {items.length} item{items.length !== 1 ? 's' : ''} found
+                    {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
                   </Typography>
                 </View>
-                {items.map(renderItemCard)}
+                {filteredItems.map(renderItemCard)}
               </>
             )}
           </ScrollView>
