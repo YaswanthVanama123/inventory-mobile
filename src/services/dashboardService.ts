@@ -84,12 +84,39 @@ class DashboardService {
         datasets: [{data: []}],
       },
       statusDistribution: statusDistribution,
-      recentActivity: (recentActivity || []).slice(0, 10).map((activity: any) => ({
-        id: activity._id || activity.id,
-        type: activity.type || 'update',
-        message: activity.message || `${activity.action} - ${activity.itemName || 'Item'}`,
-        timestamp: activity.timestamp || activity.createdAt,
-      })),
+      recentActivity: (recentActivity || []).slice(0, 10).map((activity: any) => {
+        const action = (activity.action || '').toUpperCase();
+        const resource = (activity.resource || '').toLowerCase();
+        const details = activity.details || {};
+        const itemLabel = details.itemName || details.skuCode || details.name || '';
+        let message = activity.message;
+        if (!message) {
+          switch (action) {
+            case 'CREATE':
+              message = `Created ${resource}${itemLabel ? ` ${itemLabel}` : ''}`;
+              break;
+            case 'UPDATE':
+              message = `Updated ${resource}${itemLabel ? ` ${itemLabel}` : ''}`;
+              break;
+            case 'DELETE':
+              message = `Deleted ${resource}${itemLabel ? ` ${itemLabel}` : ''}`;
+              break;
+            case 'VIEW':
+              message = `Viewed ${resource}${itemLabel ? ` ${itemLabel}` : ''}`;
+              break;
+            default:
+              message = action ? `${action} on ${resource || 'item'}` : 'Activity';
+          }
+          message = message.trim();
+        }
+        return {
+          id: activity._id || activity.id,
+          type: activity.type || action.toLowerCase() || 'update',
+          message,
+          user: activity.performedBy?.fullName || activity.performedBy?.username || 'System',
+          timestamp: activity.timestamp || activity.createdAt,
+        };
+      }),
     };
   }
 }

@@ -534,24 +534,31 @@ export const DashboardScreen = () => {
             Recent Activity
           </Typography>
           <View style={styles.activityList}>
-            {(data.recentActivity || []).slice(0, 4).map((activity: any) => (
-              <View key={activity.id} style={styles.activityItem}>
-                <View style={styles.activityIcon}>
-                  <ClipboardIcon size={16} color={theme.colors.primary[600]} />
+            {(data.recentActivity || []).length === 0 ? (
+              <Typography variant="small" color={theme.colors.gray[500]}>
+                No recent activity yet.
+              </Typography>
+            ) : (
+              (data.recentActivity || []).slice(0, 4).map((activity: any) => (
+                <View key={activity.id} style={styles.activityItem}>
+                  <View style={styles.activityIcon}>
+                    <ClipboardIcon size={16} color={theme.colors.primary[600]} />
+                  </View>
+                  <View style={styles.activityContent}>
+                    <Typography variant="small" weight="medium">
+                      {activity.message}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color={theme.colors.gray[500]}
+                      style={styles.activityTime}>
+                      {activity.user ? `${activity.user} • ` : ''}
+                      {activity.timestamp ? formatDateTime(activity.timestamp) : 'Recently'}
+                    </Typography>
+                  </View>
                 </View>
-                <View style={styles.activityContent}>
-                  <Typography variant="small" weight="medium">
-                    {activity.message}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color={theme.colors.gray[500]}
-                    style={styles.activityTime}>
-                    {activity.timestamp ? formatDateTime(activity.timestamp) : 'Recently'}
-                  </Typography>
-                </View>
-              </View>
-            ))}
+              ))
+            )}
           </View>
         </Card>
       </ScrollView>
