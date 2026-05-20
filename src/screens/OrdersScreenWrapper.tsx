@@ -47,6 +47,8 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  const [orderDetails, setOrderDetails] = useState<Record<string, any>>({});
+  const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -156,15 +158,38 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       newExpanded.delete(orderNumber);
     } else {
       newExpanded.add(orderNumber);
+      // Lazy-load items on first expand. The list endpoint only returns
+      // itemCount, not the items array, so we fetch the full order detail
+      // and cache it keyed by orderNumber.
+      if (!orderDetails[orderNumber] && !loadingDetails.has(orderNumber) && token) {
+        const next = new Set(loadingDetails);
+        next.add(orderNumber);
+        setLoadingDetails(next);
+        ordersService
+          .getOrderByNumber(token, orderNumber)
+          .then(detail => {
+            setOrderDetails(prev => ({...prev, [orderNumber]: detail}));
+          })
+          .catch(err => {
+            console.error('Failed to load order details:', err);
+          })
+          .finally(() => {
+            setLoadingDetails(prev => {
+              const updated = new Set(prev);
+              updated.delete(orderNumber);
+              return updated;
+            });
+          });
+      }
     }
     setExpandedOrders(newExpanded);
   };
   const handleVerifyOrder = (order: any) => {
-    if (!order._id) {
-      Alert.alert('Error', 'Order ID not found');
+    if (!order.orderNumber) {
+      Alert.alert('Error', 'Order number not found');
       return;
     }
-    navigation.navigate('OrderVerification', {orderId: order._id});
+    navigation.navigate('OrderVerification', {orderNumber: order.orderNumber});
   };
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
@@ -356,7 +381,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                         variant="body"
                         weight="semibold"
                         color={theme.colors.gray[900]}>
-                        {order.items?.length || 0}
+                        {order.itemCount ?? order.items?.length ?? 0}
                       </Typography>
                     </View>
                     <View style={styles.metaItem}>
@@ -383,55 +408,76 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                       onPress={() => handleVerifyOrder(order)}>
                       <CheckCircleIcon size={16} color={theme.colors.white} />
                       <Typography style={styles.verifyButtonText}>
-                        {order.items?.some((i: any) => (i.receivedQuantity || 0) > 0 && (i.receivedQuantity || 0) < i.qty)
+                        {orderDetails[order.orderNumber]?.items?.some(
+                          (i: any) =>
+                            (i.receivedQuantity || 0) > 0 &&
+                            (i.receivedQuantity || 0) < i.qty,
+                        )
                           ? 'Verify Remaining'
                           : 'Verify Order'}
                       </Typography>
                     </TouchableOpacity>
                   )}
                 {/* Expanded Details */}
-                {expandedOrders.has(order.orderNumber) && (
-                  <View style={styles.expandedContent}>
-                    <Typography
-                      variant="h4"
-                      weight="semibold"
-                      style={{marginBottom: 12}}>
-                      Order Items
-                    </Typography>
-                    {order.items?.slice(0, 5).map((item: any, idx: number) => (
-                      <View key={idx} style={styles.itemRow}>
-                        <View style={{flex: 1}}>
-                          <Typography variant="body" weight="medium">
-                            {item.name}
-                          </Typography>
-                          <Typography
-                            variant="small"
-                            color={theme.colors.gray[500]}>
-                            {item.sku}
-                          </Typography>
-                        </View>
-                        <View style={styles.itemQuantity}>
-                          <Typography variant="body" weight="semibold">
-                            {item.qty}
-                          </Typography>
-                          <Typography
-                            variant="small"
-                            color={theme.colors.gray[600]}>
-                            {formatCurrency(item.price)}
-                          </Typography>
-                        </View>
-                      </View>
-                    ))}
-                    {order.items?.length > 5 && (
+                {expandedOrders.has(order.orderNumber) && (() => {
+                  const detail = orderDetails[order.orderNumber];
+                  const detailItems: any[] = detail?.items || [];
+                  const isLoadingDetail = loadingDetails.has(order.orderNumber);
+                  return (
+                    <View style={styles.expandedContent}>
                       <Typography
-                        variant="small"
-                        color={theme.colors.gray[500]}
-                        style={{marginTop: 8}}>
-                        +{order.items.length - 5} more items
+                        variant="h4"
+                        weight="semibold"
+                        style={{marginBottom: 12}}>
+                        Order Items
                       </Typography>
-                    )}
-                  </View>
-                )}
+                      {isLoadingDetail ? (
+                        <View style={{paddingVertical: 16, alignItems: 'center'}}>
+                          <ActivityIndicator color={theme.colors.primary[600]} />
+                        </View>
+                      ) : detailItems.length === 0 ? (
+                        <Typography variant="small" color={theme.colors.gray[500]}>
+                          No items in this order.
+                        </Typography>
+                      ) : (
+                        <>
+                          {detailItems.slice(0, 5).map((item: any, idx: number) => (
+                            <View key={idx} style={styles.itemRow}>
+                              <View style={{flex: 1}}>
+                                <Typography variant="body" weight="medium">
+                                  {item.name}
+                                </Typography>
+                                <Typography
+                                  variant="small"
+                                  color={theme.colors.gray[500]}>
+                                  {item.sku}
+                                </Typography>
+                              </View>
+                              <View style={styles.itemQuantity}>
+                                <Typography variant="body" weight="semibold">
+                                  {item.qty}
+                                </Typography>
+                                <Typography
+                                  variant="small"
+                                  color={theme.colors.gray[600]}>
+                                  {formatCurrency(item.unitPrice ?? item.price)}
+                                </Typography>
+                              </View>
+                            </View>
+                          ))}
+                          {detailItems.length > 5 && (
+                            <Typography
+                              variant="small"
+                              color={theme.colors.gray[500]}
+                              style={{marginTop: 8}}>
+                              +{detailItems.length - 5} more items
+                            </Typography>
+                          )}
+                        </>
+                      )}
+                    </View>
+                  );
+                })()}
               </Card>
             ))
           )}

@@ -7,10 +7,11 @@ import {
   TextInput as RNTextInput,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
-import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -40,12 +41,13 @@ interface OrderItem {
   verificationHistory?: any[];
   notes?: string;
 }
+
 export const OrderVerificationScreen: React.FC<
   OrderVerificationScreenProps
 > = ({route, navigation}) => {
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
-  const {orderId} = route.params;
+  const {orderNumber} = route.params;
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
@@ -54,11 +56,13 @@ export const OrderVerificationScreen: React.FC<
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
   const [hasDiscrepancies, setHasDiscrepancies] = useState(false);
+
   useEffect(() => {
-    if (orderId && token) {
+    if (orderNumber && token) {
       fetchOrder();
     }
-  }, [orderId, token]);
+  }, [orderNumber, token]);
+
   useEffect(() => {
     const discrepancies = items.some(item => {
       const receivingNow = parseFloat(item.receivingNow.toString()) || 0;
@@ -67,11 +71,12 @@ export const OrderVerificationScreen: React.FC<
     });
     setHasDiscrepancies(discrepancies);
   }, [items]);
+
   const fetchOrder = async () => {
     if (!token) return;
     try {
       setLoading(true);
-      const response = await ordersService.getOrderById(token, orderId);
+      const response = await ordersService.getOrderByNumber(token, orderNumber);
       if (response) {
         setOrder(response);
         setItems(
@@ -94,16 +99,22 @@ export const OrderVerificationScreen: React.FC<
       setLoading(false);
     }
   };
-  const handleQuantityChange = (index: number, value: string) => {
+
+  const setItemQty = (index: number, value: number) => {
     const newItems = [...items];
-    newItems[index].receivingNow = parseFloat(value) || 0;
+    newItems[index].receivingNow = Math.max(0, value);
     setItems(newItems);
   };
+
+  const handleQuantityChange = (index: number, value: string) => {
+    setItemQty(index, parseFloat(value) || 0);
+  };
+
   const handleAllGood = async () => {
-    if (!token || !orderId) return;
+    if (!token || !order?._id) return;
     Alert.alert(
       'Confirm All Good',
-      'Are you sure all items were received as expected?',
+      'Mark all items as fully received?',
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -111,28 +122,18 @@ export const OrderVerificationScreen: React.FC<
           onPress: async () => {
             try {
               setSubmitting(true);
-              await orderDiscrepancyService.verifyOrder(token, orderId, {
+              await orderDiscrepancyService.verifyOrder(token, order._id, {
                 allGood: true,
                 notes: notes.trim() || 'All items received as expected',
               });
-              Alert.alert(
-                'Success',
-                'Order verified successfully - all items correct',
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => navigation.goBack(),
-                  },
-                ],
-              );
+              Alert.alert('Success', 'Order verified successfully', [
+                {text: 'OK', onPress: () => navigation.goBack()},
+              ]);
             } catch (error: any) {
               console.error('Verify order error:', error);
               const wasHandled = await handleApiError(error);
               if (!wasHandled) {
-                Alert.alert(
-                  'Error',
-                  error.message || 'Failed to verify order',
-                );
+                Alert.alert('Error', error.message || 'Failed to verify order');
               }
             } finally {
               setSubmitting(false);
@@ -142,11 +143,12 @@ export const OrderVerificationScreen: React.FC<
       ],
     );
   };
+
   const handleSubmitWithDiscrepancies = async () => {
-    if (!token || !orderId) return;
+    if (!token || !order?._id) return;
     Alert.alert(
       'Submit Verification',
-      'This will record the received quantities. Any remaining items will be tracked for future receipts.',
+      'Record received quantities. Remaining items will be tracked for future receipts.',
       [
         {text: 'Cancel', style: 'cancel'},
         {
@@ -163,27 +165,16 @@ export const OrderVerificationScreen: React.FC<
               }));
               const response = await orderDiscrepancyService.verifyOrder(
                 token,
-                orderId,
-                {
-                  allGood: false,
-                  items: itemsData,
-                  notes: notes.trim(),
-                },
+                order._id,
+                {allGood: false, items: itemsData, notes: notes.trim()},
               );
               const {partiallyVerifiedItems = [], fullyReceived = false} = response;
               const message = fullyReceived
                 ? 'Order fully received and verified'
-                : `Partial receipt recorded - ${partiallyVerifiedItems.length} item(s) still pending`;
-              Alert.alert(
-                'Success',
-                message,
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => navigation.goBack(),
-                  },
-                ],
-              );
+                : `Partial receipt recorded — ${partiallyVerifiedItems.length} item(s) still pending`;
+              Alert.alert('Success', message, [
+                {text: 'OK', onPress: () => navigation.goBack()},
+              ]);
             } catch (error: any) {
               console.error('Submit discrepancies error:', error);
               const wasHandled = await handleApiError(error);
@@ -201,537 +192,619 @@ export const OrderVerificationScreen: React.FC<
       ],
     );
   };
+
+  const renderTopBar = (showSubtitle: boolean) => (
+    <View style={styles.topBar}>
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => navigation.goBack()}
+        hitSlop={{top: 8, right: 8, bottom: 8, left: 8}}>
+        <ArrowLeftIcon size={22} color={theme.colors.gray[900]} />
+      </TouchableOpacity>
+      <View style={styles.topBarTitleWrap}>
+        <Typography variant="h3" weight="semibold">
+          Verify Order
+        </Typography>
+        {showSubtitle && order?.orderNumber ? (
+          <Typography variant="caption" color={theme.colors.gray[500]}>
+            #{order.orderNumber}
+          </Typography>
+        ) : null}
+      </View>
+      <View style={styles.topBarRightSpacer} />
+    </View>
+  );
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {renderTopBar(false)}
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Typography style={styles.loadingText}>Loading order...</Typography>
+          <ActivityIndicator size="large" color={theme.colors.primary[600]} />
+          <Typography variant="body" color={theme.colors.gray[600]} style={styles.loadingText}>
+            Loading order…
+          </Typography>
         </View>
       </SafeAreaView>
     );
   }
+
   if (!order) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <AlertCircleIcon size={48} color={theme.colors.error} />
-          <Typography style={styles.errorText}>Order not found</Typography>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {renderTopBar(false)}
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusIconWrap, {backgroundColor: theme.colors.error[100]}]}>
+            <AlertCircleIcon size={32} color={theme.colors.error[600]} />
+          </View>
+          <Typography variant="h3" weight="semibold" style={styles.statusTitle}>
+            Order not found
+          </Typography>
           <TouchableOpacity
-            style={styles.backButton}
+            style={styles.primaryActionBtn}
             onPress={() => navigation.goBack()}>
-            <Typography style={styles.backButtonText}>Go Back</Typography>
+            <Typography weight="semibold" color={theme.colors.white}>
+              Go Back
+            </Typography>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
+
   if (order.verified) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <CheckCircleIcon size={48} color={theme.colors.success} />
-          <Typography style={styles.infoText}>Already Verified</Typography>
-          <Typography style={styles.infoSubtext}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {renderTopBar(true)}
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusIconWrap, {backgroundColor: theme.colors.success[100]}]}>
+            <CheckCircleIcon size={32} color={theme.colors.success[600]} />
+          </View>
+          <Typography variant="h3" weight="semibold" style={styles.statusTitle}>
+            Already Verified
+          </Typography>
+          <Typography
+            variant="body"
+            color={theme.colors.gray[600]}
+            style={styles.statusSubtitle}>
             This order has already been verified.
           </Typography>
           <TouchableOpacity
-            style={styles.backButton}
+            style={styles.primaryActionBtn}
             onPress={() => navigation.goBack()}>
-            <Typography style={styles.backButtonText}>Go Back</Typography>
+            <Typography weight="semibold" color={theme.colors.white}>
+              Go Back
+            </Typography>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
+
+  const summary = items.reduce(
+    (acc, it) => {
+      const recv = parseFloat(it.receivingNow.toString()) || 0;
+      const after = it.previouslyReceived + recv;
+      if (after >= it.qty) acc.complete++;
+      else if (after > 0) acc.partial++;
+      else acc.pending++;
+      return acc;
+    },
+    {complete: 0, partial: 0, pending: 0},
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backIcon}
-            onPress={() => navigation.goBack()}>
-            <ArrowLeftIcon size={24} color={theme.colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Typography variant="h2">Verify Order Receipt</Typography>
-            <Typography variant="body2" style={styles.subtitle}>
-              Check received items and record any discrepancies
-            </Typography>
-          </View>
-        </View>
-        {/* Order Info */}
-        <Card style={styles.card}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoItem}>
-              <Typography variant="body2" style={styles.infoLabel}>
-                Order Number
-              </Typography>
-              <Typography variant="h3">{order.orderNumber}</Typography>
-            </View>
-            <View style={styles.infoItem}>
-              <Typography variant="body2" style={styles.infoLabel}>
-                Vendor
-              </Typography>
-              <Typography variant="h3">{order.vendor?.name}</Typography>
-            </View>
-          </View>
-          <View style={styles.infoItem}>
-            <Typography variant="body2" style={styles.infoLabel}>
-              Order Date
-            </Typography>
-            <Typography variant="h3">
-              {formatDate(order.orderDate)}
-            </Typography>
-          </View>
-        </Card>
-        {/* Instructions */}
-        <Card style={[styles.card, styles.infoCard]}>
-          <Typography variant="h4" style={styles.instructionTitle}>
-            Instructions
-          </Typography>
-          <Typography variant="body2" style={styles.instructionText}>
-            • Enter the quantity being received now for each item
-          </Typography>
-          <Typography variant="body2" style={styles.instructionText}>
-            • Previously received quantities are shown
-          </Typography>
-          <Typography variant="body2" style={styles.instructionText}>
-            • If all remaining items are received, click "All Good"
-          </Typography>
-          <Typography variant="body2" style={styles.instructionText}>
-            • Otherwise, adjust quantities and submit
-          </Typography>
-        </Card>
-        {/* Items List */}
-        <Card style={styles.card}>
-          <Typography variant="h3" style={styles.sectionTitle}>
-            Order Items ({items.length})
-          </Typography>
-          {items.map((item, index) => {
-            const receivingNow = parseFloat(item.receivingNow.toString()) || 0;
-            const previouslyReceived = item.previouslyReceived || 0;
-            const expected = item.qty;
-            const totalAfterThis = previouslyReceived + receivingNow;
-            const remaining = Math.max(0, expected - totalAfterThis);
-            const isFullyReceived = totalAfterThis >= expected;
-            const isPartial = previouslyReceived > 0 && !isFullyReceived;
-            return (
-              <View
-                key={index}
-                style={[
-                  styles.itemRow,
-                  isPartial && styles.itemRowPartial,
-                  !isFullyReceived && receivingNow < (expected - previouslyReceived) && styles.itemRowDiscrepancy,
-                ]}>
-                <View style={styles.itemInfo}>
-                  <Typography variant="h4">{item.name}</Typography>
-                  <Typography variant="body2" style={styles.itemSku}>
-                    {item.sku}
-                  </Typography>
-                  {item.verificationHistory && item.verificationHistory.length > 0 && (
-                    <Typography variant="body2" style={styles.previousReceiptText}>
-                      {item.verificationHistory.length} previous receipt(s)
-                    </Typography>
-                  )}
-                </View>
-                <View style={styles.quantityRow}>
-                  <View style={styles.quantityItem}>
-                    <Typography variant="body2" style={styles.quantityLabel}>
-                      Expected
-                    </Typography>
-                    <Typography variant="h4">{expected}</Typography>
-                  </View>
-                  <View style={styles.quantityItem}>
-                    <Typography variant="body2" style={styles.quantityLabel}>
-                      Prev Received
-                    </Typography>
-                    <Typography
-                      variant="h4"
-                      style={previouslyReceived > 0 ? styles.previousReceivedValue : styles.zeroValue}>
-                      {previouslyReceived}
-                    </Typography>
-                  </View>
-                </View>
-                <View style={styles.quantityRow}>
-                  <View style={styles.quantityItem}>
-                    <Typography variant="body2" style={styles.quantityLabel}>
-                      Receiving Now
-                    </Typography>
-                    <RNTextInput
-                      style={styles.quantityInput}
-                      value={item.receivingNow.toString()}
-                      onChangeText={value => handleQuantityChange(index, value)}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View style={styles.quantityItem}>
-                    <Typography variant="body2" style={styles.quantityLabel}>
-                      Remaining
-                    </Typography>
-                    <Typography
-                      variant="h4"
-                      style={remaining === 0 ? styles.differenceMatched : styles.differenceShort}>
-                      {remaining}
-                    </Typography>
-                  </View>
-                </View>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    isFullyReceived
-                      ? styles.statusComplete
-                      : previouslyReceived > 0
-                      ? styles.statusPartial
-                      : styles.statusShortage,
-                  ]}>
-                  <Typography
-                    variant="body2"
-                    style={styles.statusBadgeText}>
-                    {isFullyReceived ? 'Complete' : previouslyReceived > 0 ? 'Partial' : 'Pending'}
-                  </Typography>
-                </View>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {renderTopBar(true)}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled">
+          {/* Order summary card */}
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryHeader}>
+              <View style={styles.flex}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Vendor
+                </Typography>
+                <Typography variant="body" weight="semibold">
+                  {order.vendor?.name || '—'}
+                </Typography>
               </View>
-            );
-          })}
-        </Card>
-        {/* Notes */}
-        <Card style={styles.card}>
-          <Typography variant="h4" style={styles.notesLabel}>
-            Notes (Optional)
-          </Typography>
-          <RNTextInput
-            style={styles.notesInput}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="Add any notes about this order verification..."
-            placeholderTextColor={theme.colors.textSecondary}
-            multiline
-            numberOfLines={3}
-          />
-        </Card>
-        {/* Discrepancy Warning */}
-        {hasDiscrepancies && (
-          <Card style={[styles.card, styles.warningCard]}>
-            <AlertCircleIcon size={20} color={theme.colors.primary} />
-            <Typography variant="body2" style={styles.warningText}>
-              Some items will not be fully received after this verification.
-              The remaining quantities will be tracked for future receipts.
+              <View style={styles.summaryDateWrap}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Order Date
+                </Typography>
+                <Typography variant="body" weight="semibold">
+                  {formatDate(order.orderDate)}
+                </Typography>
+              </View>
+            </View>
+            <View style={styles.summaryStatsRow}>
+              <SummaryPill
+                theme={theme}
+                label="Items"
+                value={items.length}
+                tone="neutral"
+              />
+              <SummaryPill
+                theme={theme}
+                label="Complete"
+                value={summary.complete}
+                tone="success"
+              />
+              <SummaryPill
+                theme={theme}
+                label="Partial"
+                value={summary.partial}
+                tone="warning"
+              />
+              <SummaryPill
+                theme={theme}
+                label="Pending"
+                value={summary.pending}
+                tone="error"
+              />
+            </View>
+          </View>
+
+          {/* Items */}
+          <View style={styles.itemsSection}>
+            <View style={styles.itemsSectionHeader}>
+              <Typography variant="body" weight="semibold">
+                Items
+              </Typography>
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                Tap − / + or type to adjust
+              </Typography>
+            </View>
+            {items.map((item, index) => {
+              const receivingNow = parseFloat(item.receivingNow.toString()) || 0;
+              const previouslyReceived = item.previouslyReceived || 0;
+              const expected = item.qty;
+              const totalAfterThis = previouslyReceived + receivingNow;
+              const remaining = Math.max(0, expected - totalAfterThis);
+              const isFullyReceived = totalAfterThis >= expected;
+              const status: 'complete' | 'partial' | 'pending' = isFullyReceived
+                ? 'complete'
+                : totalAfterThis > 0
+                ? 'partial'
+                : 'pending';
+              const statusColor =
+                status === 'complete'
+                  ? {bg: theme.colors.success[100], fg: theme.colors.success[700]}
+                  : status === 'partial'
+                  ? {bg: theme.colors.warning[100], fg: theme.colors.warning[700]}
+                  : {bg: theme.colors.gray[100], fg: theme.colors.gray[700]};
+              const statusLabel =
+                status === 'complete' ? 'Complete' : status === 'partial' ? 'Partial' : 'Pending';
+
+              return (
+                <View key={index} style={styles.itemCard}>
+                  <View style={styles.itemHeaderRow}>
+                    <View style={styles.flex}>
+                      <Typography variant="body" weight="semibold" numberOfLines={2}>
+                        {item.name}
+                      </Typography>
+                      <View style={styles.itemMetaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          SKU {item.sku || '—'}
+                        </Typography>
+                        {previouslyReceived > 0 ? (
+                          <>
+                            <View style={styles.metaDot} />
+                            <Typography variant="caption" color={theme.colors.gray[500]}>
+                              {previouslyReceived} of {expected} received
+                            </Typography>
+                          </>
+                        ) : null}
+                      </View>
+                    </View>
+                    <View style={[styles.statusPill, {backgroundColor: statusColor.bg}]}>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={statusColor.fg}>
+                        {statusLabel}
+                      </Typography>
+                    </View>
+                  </View>
+
+                  <View style={styles.stepperRow}>
+                    <View style={styles.stepperLabelWrap}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Receiving now
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Expected {expected} • Remaining {remaining}
+                      </Typography>
+                    </View>
+                    <View style={styles.stepper}>
+                      <TouchableOpacity
+                        style={styles.stepBtn}
+                        onPress={() => setItemQty(index, receivingNow - 1)}
+                        hitSlop={{top: 8, right: 8, bottom: 8, left: 8}}>
+                        <Typography variant="h3" weight="semibold" color={theme.colors.gray[700]}>
+                          −
+                        </Typography>
+                      </TouchableOpacity>
+                      <RNTextInput
+                        style={styles.stepInput}
+                        value={item.receivingNow.toString()}
+                        onChangeText={value => handleQuantityChange(index, value)}
+                        keyboardType="numeric"
+                        selectTextOnFocus
+                      />
+                      <TouchableOpacity
+                        style={styles.stepBtn}
+                        onPress={() => setItemQty(index, receivingNow + 1)}
+                        hitSlop={{top: 8, right: 8, bottom: 8, left: 8}}>
+                        <Typography variant="h3" weight="semibold" color={theme.colors.gray[700]}>
+                          +
+                        </Typography>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Notes */}
+          <View style={styles.notesCard}>
+            <Typography variant="body" weight="semibold" style={styles.notesLabel}>
+              Notes
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                {'  '}(optional)
+              </Typography>
             </Typography>
-          </Card>
-        )}
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => navigation.goBack()}
-            disabled={submitting}>
-            <Typography style={styles.cancelButtonText}>Cancel</Typography>
-          </TouchableOpacity>
-          {!hasDiscrepancies ? (
+            <RNTextInput
+              style={styles.notesInput}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Add any notes about this verification…"
+              placeholderTextColor={theme.colors.gray[400]}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          {hasDiscrepancies ? (
+            <View style={styles.discrepancyHint}>
+              <AlertCircleIcon size={16} color={theme.colors.warning[600]} />
+              <Typography variant="caption" color={theme.colors.warning[700]} style={styles.flex}>
+                Some items aren't fully received. Remaining quantities will be tracked.
+              </Typography>
+            </View>
+          ) : null}
+        </ScrollView>
+
+        {/* Sticky bottom bar */}
+        <SafeAreaView edges={['bottom']} style={styles.bottomBarSafe}>
+          <View style={styles.bottomBar}>
             <TouchableOpacity
-              style={[
-                styles.allGoodButton,
-                submitting && styles.buttonDisabled,
-              ]}
-              onPress={handleAllGood}
+              style={styles.cancelBtn}
+              onPress={() => navigation.goBack()}
               disabled={submitting}>
-              {submitting ? (
-                <ActivityIndicator size="small" color={theme.colors.white} />
-              ) : (
-                <>
-                  <CheckCircleIcon size={20} color={theme.colors.white} />
-                  <Typography style={styles.allGoodButtonText}>
-                    All Good - Everything Received
-                  </Typography>
-                </>
-              )}
+              <Typography weight="semibold" color={theme.colors.gray[700]}>
+                Cancel
+              </Typography>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                submitting && styles.buttonDisabled,
-              ]}
-              onPress={handleSubmitWithDiscrepancies}
-              disabled={submitting}>
-              {submitting ? (
-                <ActivityIndicator size="small" color={theme.colors.white} />
-              ) : (
-                <>
-                  <ClipboardIcon size={20} color={theme.colors.white} />
-                  <Typography style={styles.submitButtonText}>
-                    Submit Partial Receipt
-                  </Typography>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-      </ScrollView>
+            {!hasDiscrepancies ? (
+              <TouchableOpacity
+                style={[
+                  styles.primaryBtn,
+                  {backgroundColor: theme.colors.success[600]},
+                  submitting && styles.btnDisabled,
+                ]}
+                onPress={handleAllGood}
+                disabled={submitting}>
+                {submitting ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <>
+                    <CheckCircleIcon size={18} color={theme.colors.white} />
+                    <Typography weight="semibold" color={theme.colors.white}>
+                      All Good
+                    </Typography>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.primaryBtn,
+                  {backgroundColor: theme.colors.primary[600]},
+                  submitting && styles.btnDisabled,
+                ]}
+                onPress={handleSubmitWithDiscrepancies}
+                disabled={submitting}>
+                {submitting ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <>
+                    <ClipboardIcon size={18} color={theme.colors.white} />
+                    <Typography weight="semibold" color={theme.colors.white}>
+                      Submit Receipt
+                    </Typography>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
-  container: {
+
+const SummaryPill: React.FC<{
+  theme: Theme;
+  label: string;
+  value: number;
+  tone: 'neutral' | 'success' | 'warning' | 'error';
+}> = ({theme, label, value, tone}) => {
+  const palette =
+    tone === 'success'
+      ? {bg: theme.colors.success[50], fg: theme.colors.success[700]}
+      : tone === 'warning'
+      ? {bg: theme.colors.warning[50], fg: theme.colors.warning[700]}
+      : tone === 'error'
+      ? {bg: theme.colors.gray[100], fg: theme.colors.gray[700]}
+      : {bg: theme.colors.gray[100], fg: theme.colors.gray[700]};
+  return (
+    <View style={[styles_summaryPill.wrap, {backgroundColor: palette.bg}]}>
+      <Typography variant="h4" weight="bold" color={palette.fg}>
+        {value}
+      </Typography>
+      <Typography variant="caption" color={palette.fg}>
+        {label}
+      </Typography>
+    </View>
+  );
+};
+
+const styles_summaryPill = StyleSheet.create({
+  wrap: {
     flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  scrollView: {
-    flex: 1,
-    padding: theme.spacing.md,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: 10,
     alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: theme.spacing.md,
-    color: theme.colors.textSecondary,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing.lg,
-  },
-  errorText: {
-    marginTop: theme.spacing.md,
-    color: theme.colors.error,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  infoText: {
-    marginTop: theme.spacing.md,
-    color: theme.colors.success,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  infoSubtext: {
-    marginTop: theme.spacing.sm,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  backButton: {
-    marginTop: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
-  },
-  backButtonText: {
-    color: theme.colors.white,
-    fontWeight: 'bold',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  backIcon: {
-    padding: theme.spacing.sm,
-  },
-  headerContent: {
-    flex: 1,
-    marginLeft: theme.spacing.sm,
-  },
-  subtitle: {
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
-  },
-  card: {
-    marginBottom: theme.spacing.md,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing.md,
-  },
-  infoItem: {
-    flex: 1,
-  },
-  infoLabel: {
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
-  },
-  infoCard: {
-    backgroundColor: theme.colors.info + '20',
-  },
-  instructionTitle: {
-    marginBottom: theme.spacing.sm,
-    fontWeight: 'bold',
-  },
-  instructionText: {
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
-  },
-  sectionTitle: {
-    marginBottom: theme.spacing.md,
-    fontWeight: 'bold',
-  },
-  itemRow: {
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.sm,
-  },
-  itemRowDiscrepancy: {
-    backgroundColor: theme.colors.primary + '20',
-  },
-  itemRowPartial: {
-    backgroundColor: theme.colors.info + '15',
-  },
-  itemInfo: {
-    marginBottom: theme.spacing.sm,
-  },
-  itemSku: {
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
-  },
-  previousReceiptText: {
-    color: theme.colors.info,
-    marginTop: theme.spacing.xs,
-    fontSize: 12,
-  },
-  quantityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
-  },
-  quantityItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  quantityLabel: {
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.xs,
-    fontSize: 12,
-  },
-  quantityInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.sm,
-    padding: theme.spacing.sm,
-    minWidth: 60,
-    textAlign: 'center',
-    color: theme.colors.text,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  differenceText: {
-    fontWeight: 'bold',
-  },
-  differenceOver: {
-    color: theme.colors.info,
-  },
-  differenceShort: {
-    color: theme.colors.primary,
-  },
-  differenceMatched: {
-    color: theme.colors.success,
-  },
-  previousReceivedValue: {
-    color: theme.colors.info,
-    fontWeight: 'bold',
-  },
-  zeroValue: {
-    color: theme.colors.textSecondary,
-  },
-  statusBadge: {
-    paddingVertical: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.borderRadius.sm,
-    alignSelf: 'flex-start',
-  },
-  statusOverage: {
-    backgroundColor: theme.colors.info,
-  },
-  statusShortage: {
-    backgroundColor: theme.colors.primary,
-  },
-  statusComplete: {
-    backgroundColor: theme.colors.success,
-  },
-  statusPartial: {
-    backgroundColor: theme.colors.info,
-  },
-  statusBadgeText: {
-    color: theme.colors.white,
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  notesLabel: {
-    marginBottom: theme.spacing.sm,
-    fontWeight: 'bold',
-  },
-  notesInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    color: theme.colors.text,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  warningCard: {
-    backgroundColor: theme.colors.primary + '20',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  warningText: {
-    flex: 1,
-    marginLeft: theme.spacing.sm,
-    color: theme.colors.text,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.xl,
-  },
-  cancelButton: {
-    flex: 1,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  cancelButtonText: {
-    color: theme.colors.text,
-    fontWeight: 'bold',
-  },
-  allGoodButton: {
-    flex: 2,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.success,
-    borderRadius: theme.borderRadius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-  },
-  allGoodButtonText: {
-    color: theme.colors.white,
-    fontWeight: 'bold',
-  },
-  submitButton: {
-    flex: 2,
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: theme.spacing.sm,
-  },
-  submitButtonText: {
-    color: theme.colors.white,
-    fontWeight: 'bold',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
   },
 });
+
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    flex: {flex: 1},
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.gray[50],
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      backgroundColor: theme.colors.white,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.gray[200],
+    },
+    backBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    topBarTitleWrap: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    topBarRightSpacer: {
+      width: 36,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 12,
+    },
+    statusContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+    },
+    statusIconWrap: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 16,
+    },
+    statusTitle: {
+      marginBottom: 4,
+    },
+    statusSubtitle: {
+      textAlign: 'center',
+      marginBottom: 24,
+    },
+    primaryActionBtn: {
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      backgroundColor: theme.colors.primary[600],
+      borderRadius: 10,
+    },
+    scrollContent: {
+      padding: 16,
+      paddingBottom: 32,
+    },
+    summaryCard: {
+      backgroundColor: theme.colors.white,
+      borderRadius: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.gray[200],
+      padding: 16,
+      marginBottom: 16,
+    },
+    summaryHeader: {
+      flexDirection: 'row',
+      marginBottom: 12,
+    },
+    summaryDateWrap: {
+      alignItems: 'flex-end',
+    },
+    summaryStatsRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    itemsSection: {
+      marginBottom: 12,
+    },
+    itemsSectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      marginBottom: 8,
+      paddingHorizontal: 4,
+    },
+    itemCard: {
+      backgroundColor: theme.colors.white,
+      borderRadius: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.gray[200],
+      padding: 14,
+      marginBottom: 10,
+    },
+    itemHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 8,
+      marginBottom: 12,
+    },
+    itemMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 2,
+      flexWrap: 'wrap',
+    },
+    metaDot: {
+      width: 3,
+      height: 3,
+      borderRadius: 1.5,
+      backgroundColor: theme.colors.gray[400],
+    },
+    statusPill: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 999,
+    },
+    stepperRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 12,
+    },
+    stepperLabelWrap: {
+      flex: 1,
+      gap: 2,
+    },
+    stepper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.colors.gray[100],
+      borderRadius: 10,
+      padding: 2,
+    },
+    stepBtn: {
+      width: 32,
+      height: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 8,
+    },
+    stepInput: {
+      minWidth: 44,
+      textAlign: 'center',
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      color: theme.colors.gray[900],
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    notesCard: {
+      backgroundColor: theme.colors.white,
+      borderRadius: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.gray[200],
+      padding: 14,
+      marginBottom: 12,
+    },
+    notesLabel: {
+      marginBottom: 8,
+    },
+    notesInput: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.gray[200],
+      borderRadius: 10,
+      padding: 12,
+      color: theme.colors.gray[900],
+      minHeight: 72,
+      textAlignVertical: 'top',
+      backgroundColor: theme.colors.gray[50],
+    },
+    discrepancyHint: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      padding: 12,
+      backgroundColor: theme.colors.warning[50],
+      borderRadius: 10,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.colors.warning[100],
+    },
+    bottomBarSafe: {
+      backgroundColor: theme.colors.white,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.colors.gray[200],
+    },
+    bottomBar: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    cancelBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.gray[200],
+      backgroundColor: theme.colors.white,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    primaryBtn: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 12,
+      borderRadius: 10,
+    },
+    btnDisabled: {
+      opacity: 0.5,
+    },
+  });

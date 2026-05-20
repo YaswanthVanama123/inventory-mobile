@@ -301,7 +301,7 @@ export const DashboardScreen = () => {
             <Typography variant="caption" color={theme.colors.gray[500]} style={styles.headerEyebrow}>
               {greeting()}
             </Typography>
-            <Typography variant="h2" weight="bold" style={styles.headerTitle}>
+            <Typography variant="h3" weight="semibold" style={styles.headerTitle}>
               {displayName}
             </Typography>
             <Typography variant="small" color={theme.colors.gray[500]} style={{marginTop: 2}}>

@@ -24,8 +24,9 @@ import {
   AlertCircleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  PlusIcon,
 } from '../components/icons';
-import {formatDateTime} from '../utils/dateUtils';
+import {formatDate, formatDateTime} from '../utils/dateUtils';
 
 type TabType = 'checkouts' | 'sales';
 type SubTabType = 'all' | 'mine' | 'employees';
@@ -1212,6 +1213,13 @@ export const TruckCheckoutListScreen = () => {
           </Card>
         )}
       </ScrollView>
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('CheckoutForm')}>
+        <PlusIcon size={20} color={theme.colors.white} />
+        <Typography style={styles.fabText}>New</Typography>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -1220,12 +1228,33 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.gray[50],
   },
+  fab: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.primary[600],
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  fabText: {
+    color: theme.colors.white,
+    fontWeight: 'bold',
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 0,
-    paddingBottom: theme.spacing.lg,
+    paddingBottom: 96,
     paddingTop: 0,
   },
   header: {

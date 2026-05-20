@@ -8,7 +8,7 @@ import {useTheme} from '../contexts/ThemeContext';
 
 export type OrderStackParamList = {
   OrdersList: undefined;
-  OrderVerification: {orderId: string};
+  OrderVerification: {orderNumber: string};
   OrderDiscrepancies: undefined;
   ManualOrderForm: undefined;
 };
@@ -35,12 +35,7 @@ export const OrderStackNavigator = () => {
         name="OrderVerification"
         component={OrderVerificationScreen}
         options={{
-          headerShown: true,
-          title: 'Verify Order',
-          headerStyle,
-          headerTitleStyle,
-          headerTintColor: theme.colors.gray[900],
-          headerBackTitle: 'Back',
+          headerShown: false,
         }}
       />
       <Stack.Screen
