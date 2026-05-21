@@ -162,6 +162,28 @@ class ScreenPermissionService {
     }
   }
 
+  // Get default screens (the ones every employee gets automatically)
+  async getDefaultScreens(token: string): Promise<Screen[]> {
+    try {
+      const url = `${API_BASE_URL}/screen-permissions/screens/default`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      return result.data || [];
+    } catch (error: any) {
+      console.error('[ScreenPermissionService] Get default screens error:', error.message);
+      throw error;
+    }
+  }
+
   // Update default screens
   async updateDefaultScreens(token: string, screenIds: string[]): Promise<void> {
     try {

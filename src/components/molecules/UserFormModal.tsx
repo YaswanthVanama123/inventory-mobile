@@ -17,6 +17,7 @@ import {PickerModal} from './PickerModal';
 import {useTheme} from '../../contexts/ThemeContext';
 import {Theme} from '../../theme';
 import userService from '../../services/userService';
+import screenPermissionService, {Screen} from '../../services/screenPermissionService';
 import {ChevronDownIcon, EyeIcon, EyeOffIcon, AlertCircleIcon, CheckIcon} from '../icons';
 
 interface UserFormModalProps {
@@ -56,6 +57,39 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     hasNumber: false,
     hasSpecialChar: false,
   });
+  // Screen permissions for new employees — mirrors webapp UserForm behavior.
+  const [allScreens, setAllScreens] = useState<Screen[]>([]);
+  const [defaultScreens, setDefaultScreens] = useState<Screen[]>([]);
+  const [selectedScreenIds, setSelectedScreenIds] = useState<string[]>([]);
+  const [loadingScreens, setLoadingScreens] = useState(false);
+
+  // Load screens when a new employee is being created
+  useEffect(() => {
+    if (!isEditMode && role === 'employee' && visible && allScreens.length === 0 && token) {
+      const fetchScreens = async () => {
+        try {
+          setLoadingScreens(true);
+          const [screens, defaults] = await Promise.all([
+            screenPermissionService.getAllScreens(token),
+            screenPermissionService.getDefaultScreens(token),
+          ]);
+          setAllScreens(screens || []);
+          setDefaultScreens(defaults || []);
+        } catch (err) {
+          console.error('Error fetching screens:', err);
+        } finally {
+          setLoadingScreens(false);
+        }
+      };
+      fetchScreens();
+    }
+  }, [isEditMode, role, visible, token, allScreens.length]);
+
+  const toggleScreen = (screenId: string) => {
+    setSelectedScreenIds(prev =>
+      prev.includes(screenId) ? prev.filter(id => id !== screenId) : [...prev, screenId],
+    );
+  };
   useEffect(() => {
     if (visible) {
       if (isEditMode && user) {
@@ -102,6 +136,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     setIsActive(true);
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setSelectedScreenIds([]);
   };
   const validateForm = (): string | null => {
     if (!isEditMode) {
@@ -146,7 +181,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         await userService.update(token, user._id, updateData);
         Alert.alert('Success', password ? 'User updated and password reset successfully' : 'User updated successfully');
       } else {
-        await userService.create(token, {
+        const created = await userService.create(token, {
           username: username.trim(),
           email: email.trim(),
           password,
@@ -154,6 +189,28 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           role,
           truckNumber: truckNumber.trim() || undefined,
         });
+        // For new employees, save selected screen permissions. Mirrors
+        // webapp UserForm. Reads _id || id defensively because the backend
+        // response includes both.
+        if (role === 'employee') {
+          try {
+            const createdUser = created?.user || {};
+            const newUserId = createdUser._id || createdUser.id;
+            if (newUserId) {
+              await screenPermissionService.updateUserPermissions(
+                token,
+                newUserId,
+                selectedScreenIds,
+              );
+            }
+          } catch (permErr: any) {
+            console.error('Error saving screen permissions:', permErr);
+            Alert.alert(
+              'Warning',
+              'User created, but screen permissions update failed. You can update them later in Screen Permissions.',
+            );
+          }
+        }
         Alert.alert('Success', 'User created successfully');
       }
       onSuccess();
@@ -270,6 +327,86 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCapitalize="characters"
             />
           </View>
+          {/* Screen Permissions (new employee only) — mirrors webapp UserForm */}
+          {!isEditMode && role === 'employee' && (
+            <Card variant="outlined" padding="md" style={styles.permissionsCard}>
+              <Typography variant="small" weight="semibold" style={styles.inputLabel}>
+                Screen Permissions
+              </Typography>
+              <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 12}}>
+                Default screens are always included. Tick any additional screens this employee can access.
+              </Typography>
+              {loadingScreens ? (
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Loading screens…
+                </Typography>
+              ) : (
+                <>
+                  {defaultScreens.length > 0 && (
+                    <View style={styles.permissionsGroup}>
+                      <View style={styles.permissionsGroupHeader}>
+                        <CheckIcon size={14} color={theme.colors.success[600]} />
+                        <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>
+                          Default (always included)
+                        </Typography>
+                      </View>
+                      <View style={styles.permissionPillsRow}>
+                        {defaultScreens.map(screen => (
+                          <View key={screen._id} style={styles.permissionPillDefault}>
+                            <CheckIcon size={12} color={theme.colors.success[700]} />
+                            <Typography variant="caption" color={theme.colors.success[700]}>
+                              {screen.displayName}
+                            </Typography>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                  {allScreens.filter(s => !s.isDefault).length > 0 && (
+                    <View style={styles.permissionsGroup}>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={theme.colors.gray[700]}
+                        style={{marginBottom: 8}}>
+                        Additional (optional)
+                      </Typography>
+                      <View style={styles.permissionPillsRow}>
+                        {allScreens
+                          .filter(s => !s.isDefault)
+                          .sort((a, b) => a.displayName.localeCompare(b.displayName))
+                          .map(screen => {
+                            const selected = selectedScreenIds.includes(screen._id);
+                            return (
+                              <TouchableOpacity
+                                key={screen._id}
+                                style={[
+                                  styles.permissionPill,
+                                  selected && styles.permissionPillSelected,
+                                ]}
+                                onPress={() => toggleScreen(screen._id)}
+                                disabled={saving}
+                                activeOpacity={0.7}>
+                                {selected ? (
+                                  <CheckIcon size={12} color={theme.colors.primary[700]} />
+                                ) : null}
+                                <Typography
+                                  variant="caption"
+                                  color={
+                                    selected ? theme.colors.primary[700] : theme.colors.gray[700]
+                                  }>
+                                  {screen.displayName}
+                                </Typography>
+                              </TouchableOpacity>
+                            );
+                          })}
+                      </View>
+                    </View>
+                  )}
+                </>
+              )}
+            </Card>
+          )}
           {/* Password */}
           {!isEditMode ? (
             <>
@@ -701,5 +838,48 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   adminNoticeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+  },
+  permissionsCard: {
+    marginBottom: theme.spacing.md,
+  },
+  permissionsGroup: {
+    marginTop: 8,
+  },
+  permissionsGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  permissionPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  permissionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+    backgroundColor: theme.colors.white,
+  },
+  permissionPillSelected: {
+    backgroundColor: theme.colors.primary[50],
+    borderColor: theme.colors.primary[200],
+  },
+  permissionPillDefault: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.colors.success[200],
+    backgroundColor: theme.colors.success[50],
   },
 });
