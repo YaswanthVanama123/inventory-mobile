@@ -65,7 +65,9 @@ class ManualPOItemService {
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Failed to create manual PO item');
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response, 'Failed to create manual PO item'));
+    }
     const result = await response.json();
     return result.data || result;
   }
@@ -79,7 +81,9 @@ class ManualPOItemService {
       },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error('Failed to update manual PO item');
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response, 'Failed to update manual PO item'));
+    }
     const result = await response.json();
     return result.data || result;
   }
@@ -91,7 +95,25 @@ class ManualPOItemService {
         Authorization: `Bearer ${token}`,
       },
     });
-    if (!response.ok) throw new Error('Failed to delete manual PO item');
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response, 'Failed to delete manual PO item'));
+    }
+  }
+}
+
+// Pull a useful message out of the backend's JSON error body so users see
+// real errors like "SKU 'X' already exists" instead of a generic fallback.
+async function extractErrorMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = await response.json();
+    return (
+      body?.error?.message ||
+      body?.message ||
+      (typeof body?.error === 'string' ? body.error : null) ||
+      fallback
+    );
+  } catch {
+    return fallback;
   }
 }
 

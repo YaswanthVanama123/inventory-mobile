@@ -50,6 +50,17 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
+  // Form modal state — handles both create and edit. Mirrors the webapp
+  // ManualPOItems.jsx behavior: SKU is optional on create (auto-generated
+  // server-side if blank) and editable on update with cascade rename.
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<ManualPOItem | null>(null);
+  const [formSku, setFormSku] = useState('');
+  const [formName, setFormName] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formIsActive, setFormIsActive] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
     if (visible && token) {
       loadData();
@@ -115,12 +126,66 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
     setExpandedItems(newExpanded);
   };
 
+  const resetForm = () => {
+    setFormSku('');
+    setFormName('');
+    setFormDescription('');
+    setFormIsActive(true);
+    setEditingItem(null);
+  };
+
   const handleAddNew = () => {
-    Alert.alert('Add New Item', 'This feature will be available in the next update');
+    resetForm();
+    setFormVisible(true);
   };
 
   const handleEdit = (item: ManualPOItem) => {
-    Alert.alert('Edit Item', `Editing ${item.name} will be available in the next update`);
+    setEditingItem(item);
+    setFormSku(item.sku || '');
+    setFormName(item.name || '');
+    setFormDescription(item.description || '');
+    setFormIsActive(item.isActive);
+    setFormVisible(true);
+  };
+
+  const handleCloseForm = () => {
+    if (submitting) return;
+    setFormVisible(false);
+    resetForm();
+  };
+
+  const handleSubmitForm = async () => {
+    if (!token) return;
+    if (!formName.trim()) {
+      Alert.alert('Validation', 'Item name is required');
+      return;
+    }
+    const trimmedSku = formSku.trim().toUpperCase();
+    const payload: Partial<ManualPOItem> = {
+      name: formName.trim(),
+      description: formDescription.trim() || undefined,
+      isActive: formIsActive,
+    };
+    // Only forward SKU when the user supplied something — blank means
+    // "auto-generate" on create, "leave unchanged" on edit.
+    if (trimmedSku) {
+      (payload as any).sku = trimmedSku;
+    }
+    try {
+      setSubmitting(true);
+      if (editingItem) {
+        await manualPOItemService.updateManualPOItem(token, editingItem.sku, payload);
+      } else {
+        await manualPOItemService.createManualPOItem(token, payload);
+      }
+      setFormVisible(false);
+      resetForm();
+      await loadData();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to save item');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleToggleActive = (item: ManualPOItem) => {
@@ -380,6 +445,122 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
           </ScrollView>
         )}
       </SafeAreaView>
+
+      {/* Create / Edit form */}
+      <Modal
+        visible={formVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseForm}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={handleCloseForm} style={styles.closeButton} disabled={submitting}>
+              <Typography
+                variant="body"
+                color={submitting ? theme.colors.gray[400] : theme.colors.primary[600]}
+                weight="semibold">
+                Cancel
+              </Typography>
+            </TouchableOpacity>
+            <Typography variant="h3" weight="bold" style={styles.modalTitle}>
+              {editingItem ? 'Edit Item' : 'Add New Item'}
+            </Typography>
+            <View style={styles.refreshButton} />
+          </View>
+
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.formField}>
+              <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                SKU
+              </Typography>
+              <RNTextInput
+                style={[styles.searchInput, styles.formInput]}
+                value={formSku}
+                onChangeText={setFormSku}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                placeholder={editingItem ? '' : 'Leave blank to auto-generate (CUSTOM-NNN)'}
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+              <Typography variant="caption" color={theme.colors.gray[500]} style={styles.formHint}>
+                {editingItem
+                  ? 'Editing the SKU will rename it on every linked manual order. Must be unique.'
+                  : 'Optional. Leave blank to auto-generate. Must be unique if you set one.'}
+              </Typography>
+            </View>
+
+            <View style={styles.formField}>
+              <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                Item Name *
+              </Typography>
+              <RNTextInput
+                style={[styles.searchInput, styles.formInput]}
+                value={formName}
+                onChangeText={setFormName}
+                placeholder="Enter item name"
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+            </View>
+
+            <View style={styles.formField}>
+              <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                Description
+              </Typography>
+              <RNTextInput
+                style={[styles.searchInput, styles.formInput, styles.formTextArea]}
+                value={formDescription}
+                onChangeText={setFormDescription}
+                placeholder="Optional description"
+                placeholderTextColor={theme.colors.gray[400]}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.formToggleRow}
+              onPress={() => setFormIsActive(prev => !prev)}
+              disabled={submitting}
+              activeOpacity={0.7}>
+              <View style={styles.formToggleLabel}>
+                <Typography variant="body" weight="semibold">
+                  Active
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Inactive items can't be added to new orders
+                </Typography>
+              </View>
+              <View
+                style={[
+                  styles.formToggle,
+                  {
+                    backgroundColor: formIsActive
+                      ? theme.colors.success[500]
+                      : theme.colors.gray[300],
+                  },
+                ]}>
+                <View
+                  style={[
+                    styles.formToggleKnob,
+                    {alignSelf: formIsActive ? 'flex-end' : 'flex-start'},
+                  ]}
+                />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.formActions}>
+              <Button
+                title={editingItem ? 'Save Changes' : 'Create Item'}
+                variant="primary"
+                onPress={handleSubmitForm}
+                disabled={submitting}
+                fullWidth
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </Modal>
   );
 };
@@ -558,5 +739,58 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   activateButton: {
     backgroundColor: theme.colors.success[50],
     borderColor: theme.colors.success[200],
+  },
+  formField: {
+    marginBottom: theme.spacing.md,
+  },
+  formLabel: {
+    marginBottom: 6,
+  },
+  formInput: {
+    fontSize: 15,
+  },
+  formHint: {
+    marginTop: 4,
+  },
+  formTextArea: {
+    minHeight: 84,
+    paddingTop: 12,
+  },
+  formToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+    marginBottom: theme.spacing.lg,
+  },
+  formToggleLabel: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  formToggle: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  formToggleKnob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  formActions: {
+    marginTop: theme.spacing.md,
   },
 });
