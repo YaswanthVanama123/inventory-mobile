@@ -1,4 +1,4 @@
-package com.inventorymobile
+package inventory.enviromasternva.com
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

@@ -1,4 +1,4 @@
-package com.inventorymobile
+package inventory.enviromasternva.com
 
 import android.app.Application
 import com.facebook.react.PackageList
