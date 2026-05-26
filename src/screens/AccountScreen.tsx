@@ -22,9 +22,10 @@ import {ActivityLogScreen} from './ActivityLogScreen';
 import {ScreenPermissionsManagementScreen} from './ScreenPermissionsManagementScreen';
 import {ScreenManagementScreen} from './ScreenManagementScreen';
 import {ItemsInvoiceUsageScreen} from './ItemsInvoiceUsageScreen';
+import userService from '../services/userService';
 
 export const AccountScreen = () => {
-  const {user, logout} = useAuth();
+  const {user, token, logout} = useAuth();
   const {hasAccessToScreen} = useUserScreens();
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
@@ -61,6 +62,52 @@ export const AccountScreen = () => {
             await logout();
           },
           style: 'destructive',
+        },
+      ],
+      {cancelable: true},
+    );
+  };
+  // Self-service deactivation. Same effect as the admin's "Inactive" toggle
+  // — the account is deactivated (not hard-deleted), so an admin can reactivate
+  // later if needed. We log the user out immediately on success because a
+  // deactivated account can't sign in again.
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This will deactivate your account. You will be signed out immediately and won\'t be able to sign in again unless an administrator reactivates the account. Are you sure you want to continue?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Confirm Deletion',
+              'This action will deactivate your account. Continue?',
+              [
+                {text: 'Cancel', style: 'cancel'},
+                {
+                  text: 'Yes, Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    if (!token) {
+                      Alert.alert('Error', 'You must be signed in to delete your account.');
+                      return;
+                    }
+                    try {
+                      await userService.deactivateOwnAccount(token);
+                      await logout();
+                    } catch (err: any) {
+                      Alert.alert(
+                        'Error',
+                        err?.message || 'Failed to delete account. Please try again.',
+                      );
+                    }
+                  },
+                },
+              ],
+            );
+          },
         },
       ],
       {cancelable: true},
@@ -465,6 +512,25 @@ export const AccountScreen = () => {
           </Typography>
         </TouchableOpacity>
 
+        {/* Delete Account Button — deactivates the account (matches admin
+            "Inactive" behavior). Available to both admin and employee. */}
+        <TouchableOpacity
+          style={styles.deleteAccountButton}
+          onPress={handleDeleteAccount}
+          activeOpacity={0.8}>
+          <AlertCircleIcon size={18} color={theme.colors.error[600]} />
+          <Typography variant="body" weight="semibold" color={theme.colors.error[600]}>
+            Delete Account
+          </Typography>
+        </TouchableOpacity>
+        <Typography
+          variant="caption"
+          color={theme.colors.gray[500]}
+          align="center"
+          style={styles.deleteAccountHint}>
+          Your account will be deactivated. An administrator can reactivate it later.
+        </Typography>
+
         {/* App Version */}
         <View style={styles.footer}>
           <Typography variant="caption" color={theme.colors.gray[400]} align="center">
@@ -672,6 +738,23 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
     marginTop: theme.spacing.md,
+  },
+  deleteAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.white,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.error[200],
+    marginTop: theme.spacing.md,
+  },
+  deleteAccountHint: {
+    marginTop: 8,
+    paddingHorizontal: theme.spacing.md,
   },
   footer: {
     marginTop: theme.spacing.xl,

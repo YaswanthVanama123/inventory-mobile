@@ -174,6 +174,27 @@ class UserService {
       throw error;
     }
   }
+  // Self-service: any authenticated user can deactivate their own account.
+  // Backend route: POST /api/users/me/deactivate (no admin gate).
+  async deactivateOwnAccount(token: string) {
+    const url = `${API_BASE_URL}/users/me/deactivate`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      let message = `Failed to deactivate account (${response.status})`;
+      try {
+        const body = await response.json();
+        message = body?.error?.message || body?.message || message;
+      } catch {}
+      throw new Error(message);
+    }
+    return response.json();
+  }
   async resetPassword(token: string, userId: string, newPassword: string) {
     try {
       const url = `${API_BASE_URL}/users/${userId}/reset-password`;
