@@ -2,6 +2,7 @@ import React, {useMemo} from 'react';
 import {NavigationContainer, DefaultTheme, DarkTheme} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {LoginScreen} from '../screens/LoginScreen';
+import {WelcomeScreen} from '../screens/WelcomeScreen';
 import {MainTabNavigator} from './MainTabNavigator';
 import {useAuth} from '../contexts/AuthContext';
 import {View, ActivityIndicator, StyleSheet} from 'react-native';
@@ -9,6 +10,7 @@ import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 
 export type RootStackParamList = {
+  Welcome: undefined;
   Login: undefined;
   Main: undefined;
 };
@@ -45,7 +47,10 @@ export const AppNavigator = () => {
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator screenOptions={{headerShown: false}}>
         {!isAuthenticated ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+          </>
         ) : (
           <Stack.Screen name="Main" component={MainTabNavigator} />
         )}
