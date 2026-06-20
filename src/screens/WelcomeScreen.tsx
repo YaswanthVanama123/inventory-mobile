@@ -8,7 +8,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Typography} from '../components/atoms/Typography';
 import {Button} from '../components/atoms/Button';
@@ -68,6 +68,7 @@ interface PreviewMetric {
 export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
   const theme = useTheme();
   const breakpoint = useBreakpoint();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(theme, breakpoint), [theme, breakpoint]);
 
   const fade = useRef(new Animated.Value(0)).current;
@@ -280,16 +281,16 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <StatusBar
-        barStyle={theme.mode === 'dark' ? 'light-content' : 'dark-content'}
-        backgroundColor={theme.colors.background.primary}
+        barStyle="light-content"
+        backgroundColor={theme.colors.brand.bg}
       />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+        <View style={[styles.hero, {paddingTop: insets.top + theme.spacing.md}]}>
           <Animated.View
             style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]}
           />
@@ -308,7 +309,7 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
                 <BoxIcon size={20} color={theme.colors.brand.text} />
               </View>
               <Typography variant="small" weight="semibold" color={theme.colors.brand.text}>
-                Inventory OS
+                Inventory NVA
               </Typography>
               <View style={styles.versionPill}>
                 <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>

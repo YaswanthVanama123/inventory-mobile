@@ -21,7 +21,6 @@ import {useAuth} from '../contexts/AuthContext';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
-import storageService from '../services/storageService';
 import {
   BoxIcon,
   ShieldIcon,
@@ -45,7 +44,7 @@ export const LoginScreen = () => {
 
   const [loginType, setLoginType] = useState<'admin' | 'employee'>('admin');
   const [formData, setFormData] = useState({username: '', password: ''});
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{username?: string; password?: string}>({});
@@ -54,7 +53,6 @@ export const LoginScreen = () => {
   const blobPulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    loadSavedCredentials();
     Animated.loop(
       Animated.sequence([
         Animated.timing(blobPulse, {toValue: 1, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true}),
@@ -62,19 +60,6 @@ export const LoginScreen = () => {
       ]),
     ).start();
   }, [blobPulse]);
-
-  const loadSavedCredentials = async () => {
-    try {
-      const rememberMePreference = await storageService.getRememberMe();
-      const savedCreds = await storageService.getSavedCredentials();
-      if (rememberMePreference && savedCreds) {
-        setFormData({username: savedCreds.username, password: savedCreds.password});
-        setRememberMe(true);
-      }
-    } catch (err) {
-      console.error('Error loading saved credentials:', err);
-    }
-  };
 
   const validateForm = () => {
     const errors: {username?: string; password?: string} = {};
@@ -167,7 +152,7 @@ export const LoginScreen = () => {
           <BoxIcon size={breakpoint.isWide ? 22 : 18} color={theme.colors.brand.text} />
         </View>
         <Typography variant="small" weight="semibold" color={theme.colors.brand.text}>
-          Inventory OS
+          Inventory NVA
         </Typography>
         <View style={styles.brandVersionPill}>
           <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>

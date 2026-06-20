@@ -25,12 +25,7 @@ class StorageService {
     }
   }
   async removeAuthToken(): Promise<void> {
-    try {
-      await EncryptedStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-    } catch (error) {
-      console.error('Error removing auth token:', error);
-      throw error;
-    }
+    await this.safeRemove(STORAGE_KEYS.AUTH_TOKEN, 'auth token');
   }
   async setUserData(user: any): Promise<void> {
     try {
@@ -53,12 +48,7 @@ class StorageService {
     }
   }
   async removeUserData(): Promise<void> {
-    try {
-      await EncryptedStorage.removeItem(STORAGE_KEYS.USER_DATA);
-    } catch (error) {
-      console.error('Error removing user data:', error);
-      throw error;
-    }
+    await this.safeRemove(STORAGE_KEYS.USER_DATA, 'user data');
   }
   async setRememberMe(remember: boolean): Promise<void> {
     try {
@@ -109,11 +99,19 @@ class StorageService {
     }
   }
   async removeSavedCredentials(): Promise<void> {
+    await this.safeRemove(STORAGE_KEYS.SAVED_CREDENTIALS, 'credentials');
+  }
+  // Removing a key that was never written makes RNEncryptedStorage throw
+  // ("An error occured while removing value"). Only remove when present, and
+  // never let a benign removal failure bubble up to the caller.
+  private async safeRemove(key: string, label: string): Promise<void> {
     try {
-      await EncryptedStorage.removeItem(STORAGE_KEYS.SAVED_CREDENTIALS);
+      const existing = await EncryptedStorage.getItem(key);
+      if (existing != null) {
+        await EncryptedStorage.removeItem(key);
+      }
     } catch (error) {
-      console.error('Error removing credentials:', error);
-      throw error;
+      console.warn(`Skipped removing ${label} (nothing to remove):`, error);
     }
   }
   async clearAll(): Promise<void> {

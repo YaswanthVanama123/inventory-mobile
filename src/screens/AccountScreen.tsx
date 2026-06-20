@@ -34,6 +34,8 @@ import {
   GridIcon,
   BarChartIcon,
   CheckCircleIcon,
+  ArrowRightIcon,
+  TrashIcon,
 } from '../components/icons';
 import {SalesReportScreen} from './SalesReportScreen';
 import {OrdersScreen} from './OrdersScreen';
@@ -562,37 +564,41 @@ export const AccountScreen = () => {
           <TouchableOpacity
             style={styles.logoutButton}
             onPress={handleLogout}
-            activeOpacity={0.85}>
+            activeOpacity={0.9}>
             <View style={styles.logoutIconWrap}>
-              <LogoutIcon size={18} color={theme.colors.brand.text} />
+              <LogoutIcon size={20} color={theme.colors.brand.text} />
             </View>
             <View style={{flex: 1}}>
               <Typography variant="body" weight="bold" color={theme.colors.brand.text}>
-                Logout
+                Log out
               </Typography>
-              <Typography variant="caption" color={theme.colors.brand.textMuted}>
+              <Typography variant="caption" color={theme.colors.brand.textMuted} style={styles.actionSubtitle}>
                 End your session on this device
               </Typography>
             </View>
-            <ChevronRightIcon size={18} color={theme.colors.brand.text} />
+            <View style={styles.logoutArrow}>
+              <ArrowRightIcon size={16} color={theme.colors.brand.text} />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.deleteAccountButton}
             onPress={handleDeleteAccount}
-            activeOpacity={0.85}>
+            activeOpacity={0.9}>
             <View style={styles.deleteIconWrap}>
-              <AlertCircleIcon size={18} color={theme.colors.error[600]} />
+              <TrashIcon size={20} color={theme.colors.error[600]} />
             </View>
             <View style={{flex: 1}}>
               <Typography variant="body" weight="semibold" color={theme.colors.error[700]}>
-                Delete Account
+                Delete account
               </Typography>
-              <Typography variant="caption" color={theme.colors.gray[500]}>
+              <Typography variant="caption" color={theme.colors.gray[500]} style={styles.actionSubtitle}>
                 Deactivates your account · admin can reactivate later
               </Typography>
             </View>
-            <ChevronRightIcon size={18} color={theme.colors.error[400]} />
+            <View style={styles.deleteArrow}>
+              <ArrowRightIcon size={16} color={theme.colors.error[500]} />
+            </View>
           </TouchableOpacity>
 
           <View style={styles.footer}>
@@ -602,7 +608,7 @@ export const AccountScreen = () => {
                 variant="caption"
                 weight="semibold"
                 color={theme.colors.gray[600]}>
-                Inventory OS
+                Inventory NVA
               </Typography>
             </View>
             <Typography variant="caption" color={theme.colors.gray[400]} align="center">
@@ -948,22 +954,33 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.md,
-      backgroundColor: theme.colors.primary[600],
+      backgroundColor: theme.colors.brand.bg,
       paddingVertical: rb(theme.spacing.md * btnPadScale),
-      paddingHorizontal: theme.spacing.md,
-      borderRadius: 14,
+      paddingHorizontal: theme.spacing.md + 2,
+      borderRadius: 18,
       marginTop: theme.spacing.sm,
-      ...theme.shadows.md,
+      ...theme.shadows.lg,
       maxWidth: actionBtnMaxWidth,
       alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+      width: actionBtnMaxWidth ? '100%' : undefined,
     },
     logoutIconWrap: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
-      backgroundColor: 'rgba(255,255,255,0.18)',
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1,
       borderColor: theme.colors.brand.glassBorderStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logoutArrow: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: theme.colors.brand.glassBg,
+      borderWidth: 1,
+      borderColor: theme.colors.brand.glassBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -974,21 +991,34 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       gap: theme.spacing.md,
       backgroundColor: theme.colors.white,
       paddingVertical: rb(theme.spacing.md * btnPadScale),
-      paddingHorizontal: theme.spacing.md,
-      borderRadius: 14,
-      marginTop: theme.spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.error[100],
+      paddingHorizontal: theme.spacing.md + 2,
+      borderRadius: 18,
+      marginTop: theme.spacing.md,
+      borderWidth: 1.5,
+      borderColor: theme.colors.error[200],
+      ...theme.shadows.xs,
       maxWidth: actionBtnMaxWidth,
       alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+      width: actionBtnMaxWidth ? '100%' : undefined,
     },
     deleteIconWrap: {
-      width: 38,
-      height: 38,
-      borderRadius: 11,
+      width: 44,
+      height: 44,
+      borderRadius: 14,
       backgroundColor: theme.colors.error[50],
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    deleteArrow: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: theme.colors.error[50],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionSubtitle: {
+      marginTop: 2,
     },
 
     footer: {

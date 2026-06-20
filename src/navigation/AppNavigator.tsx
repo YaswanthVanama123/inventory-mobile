@@ -5,9 +5,7 @@ import {LoginScreen} from '../screens/LoginScreen';
 import {WelcomeScreen} from '../screens/WelcomeScreen';
 import {MainTabNavigator} from './MainTabNavigator';
 import {useAuth} from '../contexts/AuthContext';
-import {View, ActivityIndicator, StyleSheet} from 'react-native';
 import {useTheme} from '../contexts/ThemeContext';
-import {Theme} from '../theme';
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -18,7 +16,6 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 export const AppNavigator = () => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
   const {isAuthenticated, loading} = useAuth();
 
   const navTheme = useMemo(() => {
@@ -37,11 +34,9 @@ export const AppNavigator = () => {
   }, [theme]);
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-      </View>
-    );
+    // The animated splash (rendered above the navigator in App) covers this
+    // bootstrap window, so we render nothing here rather than a bare spinner.
+    return null;
   }
   return (
     <NavigationContainer theme={navTheme}>
@@ -58,11 +53,3 @@ export const AppNavigator = () => {
     </NavigationContainer>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.gray[50],
-  },
-});

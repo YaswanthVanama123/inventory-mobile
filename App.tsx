@@ -4,12 +4,13 @@
  * @format
  */
 
-import React from 'react';
-import {StatusBar} from 'react-native';
+import React, {useState} from 'react';
+import {StatusBar, View} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
-import {AuthProvider} from './src/contexts/AuthContext';
+import {AuthProvider, useAuth} from './src/contexts/AuthContext';
 import {ThemeProvider, useTheme} from './src/contexts/ThemeContext';
 import {AppNavigator} from './src/navigation/AppNavigator';
+import {AnimatedSplash} from './src/components/AnimatedSplash';
 
 const ThemedStatusBar: React.FC = () => {
   const theme = useTheme();
@@ -21,13 +22,26 @@ const ThemedStatusBar: React.FC = () => {
   );
 };
 
+const Root: React.FC = () => {
+  const {loading} = useAuth();
+  const [splashGone, setSplashGone] = useState(false);
+  return (
+    <View style={{flex: 1}}>
+      <AppNavigator />
+      {!splashGone && (
+        <AnimatedSplash holding={loading} onFinish={() => setSplashGone(true)} />
+      )}
+    </View>
+  );
+};
+
 function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
           <ThemedStatusBar />
-          <AppNavigator />
+          <Root />
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>
