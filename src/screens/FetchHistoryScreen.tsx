@@ -19,6 +19,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import fetchHistoryService from '../services/fetchHistoryService';
 import {
   AlertCircleIcon,
@@ -43,7 +44,8 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
@@ -267,27 +269,27 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
               <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
                 <View style={styles.heroTopRow}>
                   <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <CloseIcon size={16} color={theme.colors.white} />
+                    <CloseIcon size={16} color={theme.colors.brand.text} />
                   </TouchableOpacity>
                   <View style={{flex: 1}}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[200]} style={styles.heroEyebrow}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textTracked} style={styles.heroEyebrow}>
                       SYSTEM
                     </Typography>
-                    <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroTitle}>
+                    <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
                       Fetch History
                     </Typography>
-                    <Typography variant="small" color={theme.colors.primary[100]}>
+                    <Typography variant="small" color={theme.colors.brand.textMuted}>
                       External sync run history · auto-refresh 30s
                     </Typography>
                   </View>
                   <TouchableOpacity onPress={() => loadData()} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <RefreshIcon size={18} color={theme.colors.white} />
+                    <RefreshIcon size={18} color={theme.colors.brand.text} />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.statusChip}>
                   <View style={[styles.statusDot, stats.activeCount > 0 ? {backgroundColor: theme.colors.warning[400]} : null]} />
-                  <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
                     {stats.activeCount > 0
                       ? `${stats.activeCount} running · ${stats.successRate.toFixed(0)}% success`
                       : `Idle · ${stats.successRate.toFixed(0)}% success rate`}
@@ -296,28 +298,28 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
 
                 <View style={styles.heroMetricsRow}>
                   <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
                       ACTIVE
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {stats.activeCount}
                     </Typography>
                   </View>
                   <View style={styles.heroMetricDivider} />
                   <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
                       TODAY
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {stats.todayCount}
                     </Typography>
                   </View>
                   <View style={styles.heroMetricDivider} />
                   <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
                       SUCCESS
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {stats.successRate.toFixed(0)}%
                     </Typography>
                   </View>
@@ -325,6 +327,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
               </Animated.View>
             </View>
 
+            <View style={styles.contentWrap}>
             <View style={styles.statsGridWrap}>
               <View style={[styles.statTile, {backgroundColor: theme.colors.success[50]}]}>
                 <View style={[styles.statTileIcon, {backgroundColor: theme.colors.success[100]}]}>
@@ -641,6 +644,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
                 );
               })}
             </View>
+            </View>{/* end contentWrap */}
           </ScrollView>
         )}
 
@@ -688,9 +692,10 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
   );
 };
 
-const makeStyles = (theme: Theme) =>
-  StyleSheet.create({
-    container: {flex: 1, backgroundColor: theme.colors.primary[700]},
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const wide = !bp.isMobile;
+  return StyleSheet.create({
+    container: {flex: 1, backgroundColor: theme.colors.brand.bg},
     loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.gray[50]},
     loadingMark: {
       width: 56, height: 56, borderRadius: 16,
@@ -702,28 +707,45 @@ const makeStyles = (theme: Theme) =>
     scrollContent: {paddingBottom: theme.spacing.xxxl},
 
     hero: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.xl + theme.spacing.md,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
       overflow: 'hidden',
       position: 'relative',
     },
     blob: {position: 'absolute', borderRadius: 9999},
-    blobOne: {width: 280, height: 280, top: -130, right: -100, backgroundColor: theme.colors.primary[400]},
-    blobTwo: {width: 220, height: 220, bottom: -110, left: -70, backgroundColor: theme.colors.accent[500]},
+    blobOne: {
+      width: wide ? 392 : 280,
+      height: wide ? 392 : 280,
+      top: wide ? -182 : -130,
+      right: wide ? -140 : -100,
+      backgroundColor: theme.colors.primary[400],
+    },
+    blobTwo: {
+      width: wide ? 308 : 220,
+      height: wide ? 308 : 220,
+      bottom: wide ? -154 : -110,
+      left: wide ? -98 : -70,
+      backgroundColor: theme.colors.accent[500],
+    },
     dotGrid: {position: 'absolute', top: 50, right: 18, width: 90, flexDirection: 'row', flexWrap: 'wrap', gap: 10, opacity: 0.18},
     dot: {width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.white},
-    heroBody: {zIndex: 2},
+    heroBody: {
+      zIndex: 2,
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+    },
     heroTopRow: {flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.md},
     heroEyebrow: {letterSpacing: 1.4, marginBottom: 4},
     heroTitle: {letterSpacing: -0.4, marginBottom: 2},
     heroIconBtn: {
       width: 36, height: 36, borderRadius: 12,
-      backgroundColor: 'rgba(255,255,255,0.14)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorderStrong,
       alignItems: 'center', justifyContent: 'center',
     },
     statusChip: {
@@ -731,25 +753,32 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row', alignItems: 'center', gap: 8,
       paddingHorizontal: theme.spacing.sm + 2, paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.12)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: theme.colors.brand.glassBg,
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorder,
       marginBottom: theme.spacing.lg,
     },
     statusDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.success[400]},
     heroMetricsRow: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.10)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderRadius: 14,
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorder,
       paddingVertical: theme.spacing.md - 2, paddingHorizontal: theme.spacing.sm,
     },
     heroMetric: {flex: 1, alignItems: 'center', gap: 2},
     heroMetricLabel: {letterSpacing: 1.2},
     heroMetricDivider: {width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.18)'},
 
+    // Content wrap: centers & caps all post-hero content
+    contentWrap: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: bp.gutter,
+    },
+
     statsGridWrap: {
       flexDirection: 'row',
-      paddingHorizontal: theme.spacing.lg,
       marginTop: -22,
       gap: 8,
       zIndex: 3,
@@ -762,12 +791,11 @@ const makeStyles = (theme: Theme) =>
 
     sectionEyebrow: {
       flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.lg, marginBottom: theme.spacing.md,
     },
     eyebrowLine: {width: 24, height: 2, borderRadius: 1, backgroundColor: theme.colors.primary[600]},
 
-    activeFetchesList: {paddingHorizontal: theme.spacing.lg, gap: theme.spacing.sm},
+    activeFetchesList: {gap: theme.spacing.sm},
     activeFetchCard: {overflow: 'hidden', position: 'relative'},
     activeFetchStripe: {position: 'absolute', top: 0, left: 0, bottom: 0, width: 3},
     activeFetchBody: {
@@ -784,7 +812,7 @@ const makeStyles = (theme: Theme) =>
       borderColor: theme.colors.error[100],
     },
 
-    filtersWrap: {paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md},
+    filtersWrap: {marginTop: theme.spacing.md},
     filtersCard: {
       backgroundColor: theme.colors.white,
       borderRadius: 14,
@@ -804,7 +832,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     errorCard: {
-      marginHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.md,
       backgroundColor: theme.colors.error[50],
       borderColor: theme.colors.error[200],
@@ -818,7 +845,6 @@ const makeStyles = (theme: Theme) =>
     errorText: {flex: 1},
 
     emptyCard: {
-      marginHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.md,
       alignItems: 'center',
       paddingVertical: theme.spacing.xl,
@@ -831,7 +857,7 @@ const makeStyles = (theme: Theme) =>
     },
     emptyTitle: {marginBottom: theme.spacing.xs},
 
-    historyList: {paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md},
+    historyList: {gap: theme.spacing.md},
     historyCard: {overflow: 'hidden', position: 'relative'},
     historyStripe: {position: 'absolute', top: 0, left: 0, right: 0, height: 3},
     historyHeader: {
@@ -883,3 +909,4 @@ const makeStyles = (theme: Theme) =>
     },
     errorSectionTop: {flexDirection: 'row', alignItems: 'center', gap: 6},
   });
+};

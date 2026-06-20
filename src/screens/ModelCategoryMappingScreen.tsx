@@ -21,6 +21,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import modelCategoryService from '../services/modelCategoryService';
 import {
   AlertCircleIcon,
@@ -46,7 +47,8 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
   onClose,
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
@@ -315,31 +317,31 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 ]}>
                 <View style={styles.heroTopRow}>
                   <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <CloseIcon size={16} color={theme.colors.white} />
+                    <CloseIcon size={16} color={theme.colors.brand.text} />
                   </TouchableOpacity>
                   <View style={{flex: 1}}>
                     <Typography
                       variant="caption"
                       weight="semibold"
-                      color={theme.colors.primary[200]}
+                      color={theme.colors.brand.textTracked}
                       style={styles.heroEyebrow}>
                       MAPPING
                     </Typography>
-                    <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroTitle}>
+                    <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
                       Model Categories
                     </Typography>
-                    <Typography variant="small" color={theme.colors.primary[100]}>
+                    <Typography variant="small" color={theme.colors.brand.textMuted}>
                       Link order models to RouteStar items
                     </Typography>
                   </View>
                   <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <RefreshIcon size={18} color={theme.colors.white} />
+                    <RefreshIcon size={18} color={theme.colors.brand.text} />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.statusChip}>
                   <View style={styles.statusDot} />
-                  <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
                     {completionPct}% mapped · {stats.total} models · {routeStarItems.length} items
                   </Typography>
                 </View>
@@ -349,11 +351,11 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                     <Typography
                       variant="caption"
                       weight="semibold"
-                      color={theme.colors.primary[100]}
+                      color={theme.colors.brand.textMuted}
                       style={styles.heroMetricLabel}>
                       TOTAL
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {stats.total}
                     </Typography>
                   </View>
@@ -362,11 +364,11 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                     <Typography
                       variant="caption"
                       weight="semibold"
-                      color={theme.colors.primary[100]}
+                      color={theme.colors.brand.textMuted}
                       style={styles.heroMetricLabel}>
                       MAPPED
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {stats.mapped}
                     </Typography>
                   </View>
@@ -375,11 +377,11 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                     <Typography
                       variant="caption"
                       weight="semibold"
-                      color={theme.colors.primary[100]}
+                      color={theme.colors.brand.textMuted}
                       style={styles.heroMetricLabel}>
                       UNMAPPED
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {stats.unmapped}
                     </Typography>
                   </View>
@@ -387,6 +389,7 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
               </Animated.View>
             </View>
 
+            <View style={styles.contentWrap}>
             <View style={styles.searchWrap}>
               <View style={styles.searchCard}>
                 <SearchIcon size={18} color={theme.colors.gray[500]} />
@@ -633,6 +636,7 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 );
               })}
             </View>
+            </View>{/* contentWrap */}
           </ScrollView>
         )}
 
@@ -655,11 +659,12 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
   );
 };
 
-const makeStyles = (theme: Theme) =>
-  StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const wide = !bp.isMobile;
+  return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
     },
     loadingContainer: {
       flex: 1,
@@ -684,11 +689,17 @@ const makeStyles = (theme: Theme) =>
       paddingBottom: theme.spacing.xxxl,
     },
 
+    contentWrap: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+    },
+
     hero: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.xl + theme.spacing.md,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
       overflow: 'hidden',
@@ -696,17 +707,17 @@ const makeStyles = (theme: Theme) =>
     },
     blob: {position: 'absolute', borderRadius: 9999},
     blobOne: {
-      width: 280,
-      height: 280,
-      top: -130,
-      right: -100,
+      width: wide ? 392 : 280,
+      height: wide ? 392 : 280,
+      top: wide ? -182 : -130,
+      right: wide ? -140 : -100,
       backgroundColor: theme.colors.primary[400],
     },
     blobTwo: {
-      width: 220,
-      height: 220,
-      bottom: -110,
-      left: -70,
+      width: wide ? 308 : 220,
+      height: wide ? 308 : 220,
+      bottom: wide ? -154 : -110,
+      left: wide ? -98 : -70,
       backgroundColor: theme.colors.accent[500],
     },
     dotGrid: {
@@ -720,7 +731,7 @@ const makeStyles = (theme: Theme) =>
       opacity: 0.18,
     },
     dot: {width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.white},
-    heroBody: {zIndex: 2},
+    heroBody: {zIndex: 2, maxWidth: bp.contentMaxWidth, width: '100%', alignSelf: 'center'},
     heroTopRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -733,9 +744,9 @@ const makeStyles = (theme: Theme) =>
       width: 36,
       height: 36,
       borderRadius: 12,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.22)',
+      borderColor: theme.colors.brand.glassBorderStrong,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -747,9 +758,9 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.sm + 2,
       paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       marginBottom: theme.spacing.lg,
     },
     statusDot: {
@@ -761,10 +772,10 @@ const makeStyles = (theme: Theme) =>
     heroMetricsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.10)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       paddingVertical: theme.spacing.md - 2,
       paddingHorizontal: theme.spacing.sm,
     },
@@ -777,7 +788,7 @@ const makeStyles = (theme: Theme) =>
     },
 
     searchWrap: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       marginTop: -22,
       zIndex: 3,
     },
@@ -809,7 +820,7 @@ const makeStyles = (theme: Theme) =>
     },
 
     tabsWrap: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       marginTop: theme.spacing.md,
     },
     tabsCard: {
@@ -834,7 +845,7 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       marginTop: theme.spacing.lg,
       marginBottom: theme.spacing.md,
     },
@@ -846,7 +857,7 @@ const makeStyles = (theme: Theme) =>
     },
 
     errorCard: {
-      marginHorizontal: theme.spacing.lg,
+      marginHorizontal: bp.gutter,
       marginTop: theme.spacing.md,
       backgroundColor: theme.colors.error[50],
       borderColor: theme.colors.error[200],
@@ -863,7 +874,7 @@ const makeStyles = (theme: Theme) =>
     errorText: {flex: 1},
 
     emptyCard: {
-      marginHorizontal: theme.spacing.lg,
+      marginHorizontal: bp.gutter,
       marginTop: theme.spacing.md,
       alignItems: 'center',
       paddingVertical: theme.spacing.xl,
@@ -880,7 +891,7 @@ const makeStyles = (theme: Theme) =>
     emptyTitle: {marginBottom: theme.spacing.xs},
 
     modelsList: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       gap: theme.spacing.md,
     },
     modelCard: {overflow: 'hidden', position: 'relative'},
@@ -994,3 +1005,4 @@ const makeStyles = (theme: Theme) =>
     },
     actionsSection: {marginTop: 4},
   });
+};

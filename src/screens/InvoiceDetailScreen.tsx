@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -13,10 +13,12 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import invoiceService from '../services/invoiceService';
 import {AlertCircleIcon, FileTextIcon} from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
 interface InvoiceDetailScreenProps {
   visible: boolean;
@@ -29,6 +31,9 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   invoiceId,
   onClose,
 }) => {
+  const theme = useTheme();
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
@@ -487,7 +492,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
     </Modal>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -543,9 +548,14 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  // Centers & caps the detail content column on large / XL screens.
   scrollContent: {
-    padding: theme.spacing.lg,
+    paddingHorizontal: bp.gutter,
     paddingBottom: theme.spacing.xxxl,
+    paddingTop: theme.spacing.lg,
+    maxWidth: bp.contentMaxWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
   invoiceHeaderCard: {
     marginBottom: theme.spacing.lg,

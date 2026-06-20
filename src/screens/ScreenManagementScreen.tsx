@@ -18,6 +18,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import screenPermissionService, {Screen} from '../services/screenPermissionService';
 import {
   GridIcon,
@@ -44,7 +45,8 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [screens, setScreens] = useState<Screen[]>([]);
@@ -412,7 +414,7 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
               />
             }>
             {filteredScreens.length === 0 ? (
-              <View style={styles.emptyContainer}>
+              <View style={[styles.contentWrap, styles.emptyContainer]}>
                 <GridIcon size={48} color={theme.colors.gray[300]} />
                 <Typography
                   variant="body"
@@ -424,14 +426,14 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
                 </Typography>
               </View>
             ) : (
-              <>
+              <View style={styles.contentWrap}>
                 <View style={styles.statsRow}>
                   <Typography variant="small" color={theme.colors.gray[600]}>
                     {filteredScreens.length} screen{filteredScreens.length !== 1 ? 's' : ''} found
                   </Typography>
                 </View>
                 {filteredScreens.map(renderScreenItem)}
-              </>
+              </View>
             )}
           </ScrollView>
         )}
@@ -563,7 +565,7 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -660,7 +662,14 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: bp.gutter,
+    paddingTop: theme.spacing.lg,
   },
   statsRow: {
     marginBottom: theme.spacing.md,
@@ -748,10 +757,11 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: theme.spacing.lg,
+    padding: bp.gutter,
   },
   addModalCard: {
-    width: '100%',
+    width: bp.isMobile ? '100%' : '70%',
+    maxWidth: 560,
     maxHeight: '85%',
     backgroundColor: theme.colors.white,
     borderRadius: 16,

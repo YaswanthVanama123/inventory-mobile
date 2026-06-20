@@ -164,13 +164,13 @@ export const LoginScreen = () => {
 
       <View style={styles.brandHeader}>
         <View style={styles.brandLogoMark}>
-          <BoxIcon size={breakpoint.isWide ? 22 : 18} color={theme.colors.white} />
+          <BoxIcon size={breakpoint.isWide ? 22 : 18} color={theme.colors.brand.text} />
         </View>
-        <Typography variant="small" weight="semibold" color={theme.colors.white}>
+        <Typography variant="small" weight="semibold" color={theme.colors.brand.text}>
           Inventory OS
         </Typography>
         <View style={styles.brandVersionPill}>
-          <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+          <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
             v2.6
           </Typography>
         </View>
@@ -179,20 +179,20 @@ export const LoginScreen = () => {
       <View style={styles.brandHero}>
         <View style={styles.brandStatusChip}>
           <View style={styles.brandStatusDot} />
-          <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+          <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
             Live · all systems syncing
           </Typography>
         </View>
         <Typography
           variant="h1"
           weight="bold"
-          color={theme.colors.white}
+          color={theme.colors.brand.text}
           style={styles.brandTitle}>
           Run your inventory{'\n'}with confidence.
         </Typography>
         <Typography
           variant="body"
-          color={theme.colors.primary[100]}
+          color={theme.colors.brand.textMuted}
           style={styles.brandSubtitle}>
           One workspace for stock, orders, invoices, RouteStar sync, and truck checkouts.
           Same data on web, iPad, and Mac.
@@ -202,13 +202,13 @@ export const LoginScreen = () => {
           {features.map(f => (
             <View key={f.title} style={styles.brandFeatureRow}>
               <View style={styles.brandFeatureIcon}>
-                <f.Icon size={16} color={theme.colors.white} />
+                <f.Icon size={16} color={theme.colors.brand.text} />
               </View>
               <View style={{flex: 1}}>
-                <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                <Typography variant="small" weight="semibold" color={theme.colors.brand.text}>
                   {f.title}
                 </Typography>
-                <Typography variant="caption" color={theme.colors.primary[100]}>
+                <Typography variant="caption" color={theme.colors.brand.textMuted}>
                   {f.detail}
                 </Typography>
               </View>
@@ -221,14 +221,14 @@ export const LoginScreen = () => {
         <View style={styles.brandTrustRow}>
           {trustPoints.map(p => (
             <View key={p.label} style={styles.brandTrustItem}>
-              <p.Icon size={12} color={theme.colors.primary[200]} />
-              <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]}>
+              <p.Icon size={12} color={theme.colors.brand.textTracked} />
+              <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted}>
                 {p.label}
               </Typography>
             </View>
           ))}
         </View>
-        <Typography variant="caption" color={theme.colors.primary[200]} style={{marginTop: 8}}>
+        <Typography variant="caption" color={theme.colors.brand.textTracked} style={{marginTop: 8}}>
           © {new Date().getFullYear()} Inventory Management System
         </Typography>
       </View>
@@ -400,7 +400,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   return StyleSheet.create({
     safeArea: {
       flex: 1,
-      backgroundColor: isSplit ? theme.colors.primary[700] : theme.colors.background.secondary,
+      backgroundColor: isSplit ? theme.colors.brand.bg : theme.colors.background.secondary,
     },
     container: {flex: 1},
 
@@ -423,7 +423,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       width: brandWidthPct,
       minWidth: 360,
       maxWidth: 640,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       paddingHorizontal: bp.gutter,
       paddingVertical: bp.isWide ? 56 : 40,
       overflow: 'hidden',
@@ -433,11 +433,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     brandBlob: {position: 'absolute', borderRadius: 9999},
     brandBlobOne: {
       width: 380, height: 380, top: -140, right: -140,
-      backgroundColor: theme.colors.primary[400],
+      backgroundColor: theme.colors.brand.surfaceTint,
     },
     brandBlobTwo: {
       width: 280, height: 280, bottom: -100, left: -80,
-      backgroundColor: theme.colors.accent[500],
+      backgroundColor: theme.colors.brand.accentTint,
     },
     brandDotGrid: {
       position: 'absolute',
@@ -449,7 +449,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       gap: 12,
       opacity: 0.18,
     },
-    brandDot: {width: 5, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.white},
+    brandDot: {width: 5, height: 5, borderRadius: 2.5, backgroundColor: theme.colors.brand.text},
 
     brandHeader: {
       flexDirection: 'row',
@@ -461,20 +461,20 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       width: bp.isWide ? 40 : 34,
       height: bp.isWide ? 40 : 34,
       borderRadius: 12,
-      backgroundColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.25)',
+      borderColor: theme.colors.brand.glassBorderStrong,
     },
     brandVersionPill: {
       marginLeft: 'auto',
       paddingHorizontal: 10,
       paddingVertical: 3,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.15)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
     },
 
     brandHero: {zIndex: 2, marginTop: bp.isWide ? 64 : 40},
@@ -486,19 +486,17 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       marginBottom: 18,
     },
-    brandStatusDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.success[400]},
+    brandStatusDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.brand.successDot},
     brandTitle: {
       letterSpacing: -0.6,
-      lineHeight: bp.isWide ? 50 : bp.isDesktop ? 44 : 38,
       marginBottom: 14,
     },
     brandSubtitle: {
-      lineHeight: bp.isWide ? 26 : 22,
       marginBottom: bp.isWide ? 36 : 28,
       opacity: 0.95,
     },
@@ -514,9 +512,9 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       width: 36,
       height: 36,
       borderRadius: 11,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.2)',
+      borderColor: theme.colors.brand.glassBorderStrong,
       alignItems: 'center',
       justifyContent: 'center',
     },

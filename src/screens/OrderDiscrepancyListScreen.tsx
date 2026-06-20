@@ -16,6 +16,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import orderDiscrepancyService from '../services/orderDiscrepancyService';
 import {
   AlertCircleIcon,
@@ -31,7 +32,8 @@ export const OrderDiscrepancyListScreen: React.FC<
   OrderDiscrepancyListScreenProps
 > = ({navigation}) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
@@ -521,7 +523,7 @@ export const OrderDiscrepancyListScreen: React.FC<
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
@@ -622,6 +624,9 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   listContent: {
     padding: 12,
     gap: 8,
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    width: '100%',
   },
   emptyCard: {
     alignItems: 'center',

@@ -11,7 +11,6 @@ import {
   Alert,
   Animated,
   Easing,
-  Dimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -36,8 +35,8 @@ import {
   CloseIcon,
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const TILE_GAP = 12;
 
 type Tone = 'primary' | 'accent' | 'success' | 'warning' | 'error' | 'info';
@@ -53,7 +52,8 @@ interface StockStatCardProps {
 }
 
 const StockStatCard: React.FC<StockStatCardProps> = ({theme, label, value, subtitle, Icon, tone, width}) => {
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const palette = theme.colors[tone];
   return (
     <View style={[styles.statTileWrapper, {width}]}>
@@ -80,7 +80,8 @@ const StockStatCard: React.FC<StockStatCardProps> = ({theme, label, value, subti
 
 export const StockScreen = () => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
@@ -318,7 +319,10 @@ export const StockScreen = () => {
   const blobScale = blobPulse.interpolate({inputRange: [0, 1], outputRange: [1, 1.08]});
   const blobOpacity = blobPulse.interpolate({inputRange: [0, 1], outputRange: [0.18, 0.28]});
 
-  const tileWidth = (SCREEN_WIDTH - theme.spacing.lg * 2 - TILE_GAP) / 2;
+  const innerWidth = Math.min(bp.width, bp.contentMaxWidth) - bp.gutter * 2;
+  const tileGap = bp.isMobile ? TILE_GAP : 16;
+  const statCols = bp.isWide ? 6 : bp.isDesktop ? 4 : bp.isTablet ? 3 : 2;
+  const tileWidth = (innerWidth - tileGap * (statCols - 1)) / statCols;
   const totalCategories = currentData.items?.length || 0;
   const totalDiscr =
     currentData.totals?.totalDiscrepancyDifference !== undefined
@@ -379,25 +383,25 @@ export const StockScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[200]}
+                  color={theme.colors.brand.textTracked}
                   style={styles.heroEyebrow}>
                   STOCK MANAGEMENT
                 </Typography>
-                <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroTitle}>
+                <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
                   Stock Summary
                 </Typography>
-                <Typography variant="small" color={theme.colors.primary[100]}>
+                <Typography variant="small" color={theme.colors.brand.textMuted}>
                   By category · live data
                 </Typography>
               </View>
               <TouchableOpacity onPress={onRefresh} style={styles.heroRefresh} activeOpacity={0.85}>
-                <RefreshIcon size={18} color={theme.colors.white} />
+                <RefreshIcon size={18} color={theme.colors.brand.text} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.statusChip}>
               <View style={styles.statusDot} />
-              <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+              <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
                 {totalCategories} {totalCategories === 1 ? 'category' : 'categories'} ·{' '}
                 {activeTab === 'sell' ? 'Sell stock' : 'Use stock'}
               </Typography>
@@ -408,11 +412,11 @@ export const StockScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[100]}
+                  color={theme.colors.brand.textMuted}
                   style={styles.heroMetricLabel}>
                   PURCHASED
                 </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                   {currentData.totals?.totalPurchased || 0}
                 </Typography>
               </View>
@@ -421,11 +425,11 @@ export const StockScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[100]}
+                  color={theme.colors.brand.textMuted}
                   style={styles.heroMetricLabel}>
                   SOLD
                 </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                   {currentData.totals?.totalSold || 0}
                 </Typography>
               </View>
@@ -434,11 +438,11 @@ export const StockScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[100]}
+                  color={theme.colors.brand.textMuted}
                   style={styles.heroMetricLabel}>
                   REMAINING
                 </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                   {currentData.totals?.stockRemaining || 0}
                 </Typography>
               </View>
@@ -446,6 +450,7 @@ export const StockScreen = () => {
           </Animated.View>
         </View>
 
+        <View style={styles.contentWrap}>
         <View style={styles.tabsWrap}>
           <View style={styles.tabsCard}>
             <TouchableOpacity
@@ -849,11 +854,11 @@ export const StockScreen = () => {
                                 setShowDiscrepancyModal(true);
                               }}
                               activeOpacity={0.85}>
-                              <PlusIcon size={12} color={theme.colors.white} />
+                              <PlusIcon size={12} color={theme.colors.brand.text} />
                               <Typography
                                 variant="caption"
                                 weight="semibold"
-                                color={theme.colors.white}
+                                color={theme.colors.brand.text}
                                 style={{marginLeft: 4}}>
                                 Add
                               </Typography>
@@ -1073,6 +1078,7 @@ export const StockScreen = () => {
               </Card>
             );
           })}
+        </View>
         </View>
       </ScrollView>
 
@@ -1300,11 +1306,11 @@ export const StockScreen = () => {
                 disabled={submittingDiscrepancy || !discrepancyFormData.discrepancyType}
                 activeOpacity={0.85}>
                 {submittingDiscrepancy ? (
-                  <ActivityIndicator color={theme.colors.white} />
+                  <ActivityIndicator color={theme.colors.brand.text} />
                 ) : (
                   <>
-                    <CheckCircleIcon size={16} color={theme.colors.white} />
-                    <Typography variant="small" weight="bold" color={theme.colors.white}>
+                    <CheckCircleIcon size={16} color={theme.colors.brand.text} />
+                    <Typography variant="small" weight="bold" color={theme.colors.brand.text}>
                       Record Discrepancy
                     </Typography>
                   </>
@@ -1318,11 +1324,14 @@ export const StockScreen = () => {
   );
 };
 
-const makeStyles = (theme: Theme) =>
-  StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const wide = !bp.isMobile;
+  const tileGap = bp.isMobile ? TILE_GAP : 16;
+
+  return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
     },
     loadingContainer: {
       flex: 1,
@@ -1348,10 +1357,10 @@ const makeStyles = (theme: Theme) =>
     },
 
     hero: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.xl + theme.spacing.md,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
       overflow: 'hidden',
@@ -1362,17 +1371,17 @@ const makeStyles = (theme: Theme) =>
       borderRadius: 9999,
     },
     blobOne: {
-      width: 280,
-      height: 280,
-      top: -130,
-      right: -100,
+      width: wide ? 420 : 280,
+      height: wide ? 420 : 280,
+      top: wide ? -170 : -130,
+      right: wide ? -150 : -100,
       backgroundColor: theme.colors.primary[400],
     },
     blobTwo: {
-      width: 220,
-      height: 220,
-      bottom: -110,
-      left: -70,
+      width: wide ? 320 : 220,
+      height: wide ? 320 : 220,
+      bottom: wide ? -150 : -110,
+      left: wide ? -100 : -70,
       backgroundColor: theme.colors.accent[500],
     },
     dotGrid: {
@@ -1392,7 +1401,17 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: theme.colors.white,
     },
     heroBody: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
       zIndex: 2,
+    },
+
+    contentWrap: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: bp.gutter,
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -1411,9 +1430,9 @@ const makeStyles = (theme: Theme) =>
       width: 40,
       height: 40,
       borderRadius: 12,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.22)',
+      borderColor: theme.colors.brand.glassBorderStrong,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -1425,9 +1444,9 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.sm + 2,
       paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       marginBottom: theme.spacing.lg,
     },
     statusDot: {
@@ -1439,10 +1458,10 @@ const makeStyles = (theme: Theme) =>
     heroMetricsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.10)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       paddingVertical: theme.spacing.md - 2,
       paddingHorizontal: theme.spacing.sm,
     },
@@ -1461,7 +1480,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     tabsWrap: {
-      paddingHorizontal: theme.spacing.lg,
       marginTop: -22,
       zIndex: 3,
     },
@@ -1490,7 +1508,6 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.lg,
       marginBottom: theme.spacing.md,
     },
@@ -1504,8 +1521,7 @@ const makeStyles = (theme: Theme) =>
     statsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      paddingHorizontal: theme.spacing.lg,
-      gap: TILE_GAP,
+      gap: tileGap,
       marginBottom: theme.spacing.sm,
     },
     statTileWrapper: {},
@@ -1552,7 +1568,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     errorCard: {
-      marginHorizontal: theme.spacing.lg,
       marginBottom: theme.spacing.md,
       backgroundColor: theme.colors.error[50],
       borderColor: theme.colors.error[200],
@@ -1575,7 +1590,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     emptyCard: {
-      marginHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.md,
       alignItems: 'center',
       paddingVertical: theme.spacing.xl,
@@ -1594,7 +1608,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     categoriesList: {
-      paddingHorizontal: theme.spacing.lg,
       gap: theme.spacing.md,
     },
     categoryCard: {
@@ -1926,3 +1939,4 @@ const makeStyles = (theme: Theme) =>
       opacity: 0.5,
     },
   });
+};

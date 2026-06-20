@@ -16,6 +16,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import ordersService from '../services/ordersService';
 import orderDiscrepancyService from '../services/orderDiscrepancyService';
 import {
@@ -46,7 +47,8 @@ export const OrderVerificationScreen: React.FC<
   OrderVerificationScreenProps
 > = ({route, navigation}) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {orderNumber} = route.params;
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
@@ -578,7 +580,7 @@ const styles_summaryPill = StyleSheet.create({
   },
 });
 
-const makeStyles = (theme: Theme) =>
+const makeStyles = (theme: Theme, bp: BreakpointInfo) =>
   StyleSheet.create({
     flex: {flex: 1},
     container: {
@@ -646,6 +648,9 @@ const makeStyles = (theme: Theme) =>
     scrollContent: {
       padding: 16,
       paddingBottom: 32,
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      width: '100%',
     },
     summaryCard: {
       backgroundColor: theme.colors.white,
@@ -784,6 +789,9 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: 16,
       paddingTop: 10,
       paddingBottom: 10,
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      width: '100%',
     },
     cancelBtn: {
       paddingHorizontal: 16,

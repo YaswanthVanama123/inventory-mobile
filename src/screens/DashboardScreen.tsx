@@ -3,7 +3,6 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  Dimensions,
   RefreshControl,
   ActivityIndicator,
   Animated,
@@ -35,8 +34,8 @@ import {
 } from '../components/icons';
 import dashboardService from '../services/dashboardService';
 import {formatDateTime} from '../utils/dateUtils';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
 const TILE_GAP = 12;
 
 type Tone = 'primary' | 'accent' | 'success' | 'warning' | 'error' | 'info';
@@ -53,7 +52,8 @@ interface StatTileProps {
 }
 
 const StatTile: React.FC<StatTileProps> = ({theme, label, value, change, trend, Icon, tone, width}) => {
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const palette = theme.colors[tone];
   const trendColor =
     trend === 'up'
@@ -104,7 +104,8 @@ interface QuickAction {
 
 export const DashboardScreen = () => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const navigation = useNavigation<any>();
@@ -331,8 +332,17 @@ export const DashboardScreen = () => {
   const blobScale = blobPulse.interpolate({inputRange: [0, 1], outputRange: [1, 1.08]});
   const blobOpacity = blobPulse.interpolate({inputRange: [0, 1], outputRange: [0.18, 0.28]});
 
-  const tileWidth = (SCREEN_WIDTH - theme.spacing.lg * 2 - TILE_GAP) / 2;
-  const quickWidth = (SCREEN_WIDTH - theme.spacing.lg * 2 - TILE_GAP * 3) / 4;
+  // Responsive layout: cap content width on large/XL screens and grow the
+  // grid from 2 columns (phone) up to 6 (XL), mirroring the webapp dashboard.
+  const contentWidth = Math.min(bp.width, bp.contentMaxWidth);
+  const innerWidth = contentWidth - bp.gutter * 2;
+  const tileGap = bp.isMobile ? TILE_GAP : 16;
+  const statCols = bp.isWide ? 6 : bp.isDesktop ? 4 : bp.isTablet ? 3 : 2;
+  const tileWidth = (innerWidth - tileGap * (statCols - 1)) / statCols;
+  const quickCols = 4;
+  const quickWidth = (innerWidth - tileGap * (quickCols - 1)) / quickCols;
+  // Charts live inside an elevated Card with `lg` padding (spacing.xl on each side).
+  const chartWidth = innerWidth - theme.spacing.xl * 2;
 
   if (loading) {
     return (
@@ -395,25 +405,25 @@ export const DashboardScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[200]}
+                  color={theme.colors.brand.textTracked}
                   style={styles.heroEyebrow}>
                   {greeting()}
                 </Typography>
-                <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroName}>
+                <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroName}>
                   {displayName}
                 </Typography>
-                <Typography variant="small" color={theme.colors.primary[100]} style={styles.heroDate}>
+                <Typography variant="small" color={theme.colors.brand.textMuted} style={styles.heroDate}>
                   {todayLabel}
                 </Typography>
               </View>
               <TouchableOpacity onPress={onRefresh} style={styles.heroRefresh} activeOpacity={0.85}>
-                <RefreshIcon size={18} color={theme.colors.white} />
+                <RefreshIcon size={18} color={theme.colors.brand.text} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.statusChip}>
               <View style={styles.statusDot} />
-              <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+              <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
                 Live · all systems syncing
               </Typography>
             </View>
@@ -423,11 +433,11 @@ export const DashboardScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[100]}
+                  color={theme.colors.brand.textMuted}
                   style={styles.heroKpiLabel}>
                   TOTAL REVENUE
                 </Typography>
-                <Typography variant="h1" weight="bold" color={theme.colors.white} style={styles.heroKpiValue}>
+                <Typography variant="h1" weight="bold" color={theme.colors.brand.text} style={styles.heroKpiValue}>
                   {revenueValue}
                 </Typography>
                 <View style={styles.heroDeltaRow}>
@@ -436,323 +446,328 @@ export const DashboardScreen = () => {
                       ▲ {revenueChange}
                     </Typography>
                   </View>
-                  <Typography variant="caption" color={theme.colors.primary[100]}>
+                  <Typography variant="caption" color={theme.colors.brand.textMuted}>
                     vs last period
                   </Typography>
                 </View>
               </View>
               <View style={styles.heroKpiIcon}>
-                <BarChartIcon size={26} color={theme.colors.white} />
+                <BarChartIcon size={26} color={theme.colors.brand.text} />
               </View>
             </View>
           </Animated.View>
         </View>
 
-        <View style={styles.quickActionsWrap}>
-          {quickActions.map(qa => {
-            const palette = theme.colors[qa.tone];
-            return (
-              <TouchableOpacity
-                key={qa.label}
-                style={[styles.quickAction, {width: quickWidth}]}
-                onPress={() => navigateToTab(qa.route)}
-                activeOpacity={0.8}>
-                <View style={[styles.quickActionIcon, {backgroundColor: palette[50]}]}>
-                  <qa.Icon size={20} color={palette[600]} />
-                </View>
-                <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>
-                  {qa.label}
-                </Typography>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        <View style={styles.sectionEyebrow}>
-          <View style={styles.eyebrowLine} />
-          <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-            OVERVIEW
-          </Typography>
-        </View>
-
-        <Animated.View
-          style={[
-            styles.statsGrid,
-            {opacity: statsOpacity, transform: [{scale: statsScale}]},
-          ]}>
-          <StatTile
-            theme={theme}
-            label="Total Orders"
-            value={data.kpis?.totalOrders?.toLocaleString() || '1,234'}
-            change={data.kpis?.ordersChange || '+8.3%'}
-            trend="up"
-            tone="primary"
-            Icon={ClipboardIcon}
-            width={tileWidth}
-          />
-          <StatTile
-            theme={theme}
-            label="Orders Cost"
-            value={`$${((data.kpis?.totalPurchaseAmount || 0) / 1000).toFixed(1)}K`}
-            change={`${data.kpis?.purchaseCostChange > 0 ? '+' : ''}${data.kpis?.purchaseCostChange || '0'}%`}
-            trend={data.kpis?.purchaseCostChange >= 0 ? 'down' : 'up'}
-            tone="accent"
-            Icon={FileTextIcon}
-            width={tileWidth}
-          />
-          <StatTile
-            theme={theme}
-            label="Profit / Loss"
-            value={`$${((data.kpis?.totalProfit || 0) / 1000).toFixed(1)}K`}
-            change={`${data.kpis?.profitMargin || '0'}% margin`}
-            trend={data.kpis?.totalProfit >= 0 ? 'up' : 'down'}
-            tone="success"
-            Icon={DollarIcon}
-            width={tileWidth}
-          />
-          <StatTile
-            theme={theme}
-            label="Low Stock"
-            value={data.kpis?.lowStock?.toString() || '23'}
-            change="Needs attention"
-            trend="neutral"
-            tone="warning"
-            Icon={WarningIcon}
-            width={tileWidth}
-          />
-          <StatTile
-            theme={theme}
-            label="Inventory Value"
-            value={`$${((data.kpis?.inventoryValue || 0) / 1000).toFixed(1)}K`}
-            change="Total worth"
-            trend="neutral"
-            tone="info"
-            Icon={BoxIcon}
-            width={tileWidth}
-          />
-          <StatTile
-            theme={theme}
-            label="Avg Order"
-            value={`$${(data.kpis?.avgOrderValue || 36.65).toFixed(2)}`}
-            change="per invoice"
-            trend="neutral"
-            tone="primary"
-            Icon={DollarIcon}
-            width={tileWidth}
-          />
-        </Animated.View>
-
-        <View style={styles.sectionEyebrow}>
-          <View style={styles.eyebrowLine} />
-          <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-            ANALYTICS
-          </Typography>
-        </View>
-
-        <Animated.View style={{opacity: fadeAnim1, transform: [{translateY: slideAnim1}]}}>
-          <Card variant="elevated" padding="lg" style={styles.chartCard}>
-            <View style={styles.chartCardStripe} />
-            <View style={styles.chartHeader}>
-              <View style={{flex: 1}}>
-                <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
-                  Revenue & Profit Trend
-                </Typography>
-                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
-                  Last 6 months performance
-                </Typography>
-              </View>
-              <View style={[styles.growthBadge, {backgroundColor: theme.colors.success[50]}]}>
-                <View style={styles.growthArrow}>
-                  <ArrowRightIcon size={14} color={theme.colors.success[600]} />
-                </View>
-                <Typography variant="caption" weight="semibold" color={theme.colors.success[600]}>
-                  +24.5%
-                </Typography>
-              </View>
-            </View>
-            <LineChart
-              data={data.revenueTrend}
-              width={SCREEN_WIDTH - 72}
-              height={200}
-              chartConfig={chartConfig}
-              bezier
-              style={styles.chart}
-              withInnerLines
-              withOuterLines
-              withVerticalLines={false}
-              withHorizontalLines
-              withVerticalLabels
-              withHorizontalLabels
-              withDots
-              withShadow={false}
-              fromZero
-            />
-          </Card>
-        </Animated.View>
-
-        <Animated.View style={{opacity: fadeAnim2, transform: [{translateY: slideAnim2}]}}>
-          <Card variant="elevated" padding="lg" style={styles.chartCard}>
-            <View style={[styles.chartCardStripe, {backgroundColor: theme.colors.accent[500]}]} />
-            <View style={styles.chartHeader}>
-              <View style={{flex: 1}}>
-                <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
-                  Top Selling Products
-                </Typography>
-                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
-                  Best performers this month
-                </Typography>
-              </View>
-              <View style={[styles.growthBadge, {backgroundColor: theme.colors.accent[50]}]}>
-                <InventoryIcon size={14} color={theme.colors.accent[600]} />
-                <Typography
-                  variant="caption"
-                  weight="semibold"
-                  color={theme.colors.accent[600]}
-                  style={{marginLeft: 4}}>
-                  Top 5
-                </Typography>
-              </View>
-            </View>
-            <BarChart
-              data={{
-                ...data.topProducts,
-                labels: data.topProducts.labels.map((label: string) =>
-                  label.length > 8 ? label.substring(0, 8) + '...' : label,
-                ),
-              }}
-              width={SCREEN_WIDTH - 72}
-              height={240}
-              chartConfig={{
-                ...chartConfig,
-                barPercentage: 0.7,
-                fillShadowGradientFrom: theme.colors.primary[500],
-                fillShadowGradientTo: theme.colors.primary[600],
-                fillShadowGradientOpacity: 1,
-                propsForLabels: {fontSize: 9, fontWeight: '500', rotation: 0},
-              }}
-              style={styles.chart}
-              withInnerLines={false}
-              fromZero
-              showValuesOnTopOfBars
-              yAxisLabel="$"
-              yAxisSuffix=""
-              segments={4}
-            />
-          </Card>
-        </Animated.View>
-
-        <Animated.View style={{opacity: fadeAnim3, transform: [{translateY: slideAnim3}]}}>
-          <Card variant="elevated" padding="lg" style={styles.chartCard}>
-            <View style={[styles.chartCardStripe, {backgroundColor: theme.colors.success[500]}]} />
-            <View style={styles.chartHeader}>
-              <View style={{flex: 1}}>
-                <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
-                  Invoice Status
-                </Typography>
-                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
-                  Order status distribution
-                </Typography>
-              </View>
-              <View style={[styles.growthBadge, {backgroundColor: theme.colors.primary[50]}]}>
-                <ClipboardIcon size={14} color={theme.colors.primary[600]} />
-                <Typography
-                  variant="caption"
-                  weight="semibold"
-                  color={theme.colors.primary[600]}
-                  style={{marginLeft: 4}}>
-                  {data.statusDistribution?.length || 0} Types
-                </Typography>
-              </View>
-            </View>
-            <PieChart
-              data={data.statusDistribution}
-              width={SCREEN_WIDTH - 72}
-              height={220}
-              chartConfig={chartConfig}
-              accessor="population"
-              backgroundColor="transparent"
-              paddingLeft="15"
-              style={styles.chart}
-              hasLegend
-            />
-          </Card>
-        </Animated.View>
-
-        <View style={styles.sectionEyebrow}>
-          <View style={styles.eyebrowLine} />
-          <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-            RECENT ACTIVITY
-          </Typography>
-        </View>
-
-        <Card variant="elevated" padding="lg" style={styles.activityCard}>
-          <View style={styles.activityHeader}>
-            <View style={styles.activityHeaderIcon}>
-              <TimelineIcon size={16} color={theme.colors.primary[600]} />
-            </View>
-            <Typography variant="h3" weight="semibold" style={styles.activityHeaderTitle}>
-              What's happening
-            </Typography>
-            <View style={styles.activityHeaderPill}>
-              <View style={styles.activityLiveDot} />
-              <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
-                live
-              </Typography>
-            </View>
-          </View>
-          <View style={styles.activityList}>
-            {(data.recentActivity || []).length === 0 ? (
-              <View style={styles.activityEmpty}>
-                <View style={styles.activityEmptyIcon}>
-                  <TimelineIcon size={18} color={theme.colors.gray[400]} />
-                </View>
-                <Typography variant="small" color={theme.colors.gray[500]}>
-                  No recent activity yet.
-                </Typography>
-                <Typography variant="caption" color={theme.colors.gray[400]} style={{marginTop: 2}}>
-                  Activity will show up here as your team works.
-                </Typography>
-              </View>
-            ) : (
-              (data.recentActivity || []).slice(0, 5).map((activity: any, idx: number) => {
-                const palettes: Tone[] = ['primary', 'accent', 'success', 'warning', 'info'];
-                const tone = palettes[idx % palettes.length];
-                const palette = theme.colors[tone];
-                const ActivityIcon = idx % 3 === 0 ? CheckCircleIcon : idx % 3 === 1 ? RefreshIcon : ClipboardIcon;
-                return (
-                  <View key={activity.id || idx} style={styles.activityItem}>
-                    <View style={[styles.activityIcon, {backgroundColor: palette[50]}]}>
-                      <ActivityIcon size={16} color={palette[600]} />
-                    </View>
-                    <View style={styles.activityContent}>
-                      <Typography variant="small" weight="semibold">
-                        {activity.message}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        color={theme.colors.gray[500]}
-                        style={styles.activityTime}>
-                        {activity.user ? `${activity.user} • ` : ''}
-                        {activity.timestamp ? formatDateTime(activity.timestamp) : 'Recently'}
-                      </Typography>
-                    </View>
-                    <View style={[styles.activityDotMark, {backgroundColor: palette[500]}]} />
+        <View style={styles.contentWrap}>
+          <View style={styles.quickActionsWrap}>
+            {quickActions.map(qa => {
+              const palette = theme.colors[qa.tone];
+              return (
+                <TouchableOpacity
+                  key={qa.label}
+                  style={[styles.quickAction, {width: quickWidth}]}
+                  onPress={() => navigateToTab(qa.route)}
+                  activeOpacity={0.8}>
+                  <View style={[styles.quickActionIcon, {backgroundColor: palette[50]}]}>
+                    <qa.Icon size={20} color={palette[600]} />
                   </View>
-                );
-              })
-            )}
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>
+                    {qa.label}
+                  </Typography>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        </Card>
+
+          <View style={styles.sectionEyebrow}>
+            <View style={styles.eyebrowLine} />
+            <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+              OVERVIEW
+            </Typography>
+          </View>
+
+          <Animated.View
+            style={[
+              styles.statsGrid,
+              {opacity: statsOpacity, transform: [{scale: statsScale}]},
+            ]}>
+            <StatTile
+              theme={theme}
+              label="Total Orders"
+              value={data.kpis?.totalOrders?.toLocaleString() || '1,234'}
+              change={data.kpis?.ordersChange || '+8.3%'}
+              trend="up"
+              tone="primary"
+              Icon={ClipboardIcon}
+              width={tileWidth}
+            />
+            <StatTile
+              theme={theme}
+              label="Orders Cost"
+              value={`$${((data.kpis?.totalPurchaseAmount || 0) / 1000).toFixed(1)}K`}
+              change={`${data.kpis?.purchaseCostChange > 0 ? '+' : ''}${data.kpis?.purchaseCostChange || '0'}%`}
+              trend={data.kpis?.purchaseCostChange >= 0 ? 'down' : 'up'}
+              tone="accent"
+              Icon={FileTextIcon}
+              width={tileWidth}
+            />
+            <StatTile
+              theme={theme}
+              label="Profit / Loss"
+              value={`$${((data.kpis?.totalProfit || 0) / 1000).toFixed(1)}K`}
+              change={`${data.kpis?.profitMargin || '0'}% margin`}
+              trend={data.kpis?.totalProfit >= 0 ? 'up' : 'down'}
+              tone="success"
+              Icon={DollarIcon}
+              width={tileWidth}
+            />
+            <StatTile
+              theme={theme}
+              label="Low Stock"
+              value={data.kpis?.lowStock?.toString() || '23'}
+              change="Needs attention"
+              trend="neutral"
+              tone="warning"
+              Icon={WarningIcon}
+              width={tileWidth}
+            />
+            <StatTile
+              theme={theme}
+              label="Inventory Value"
+              value={`$${((data.kpis?.inventoryValue || 0) / 1000).toFixed(1)}K`}
+              change="Total worth"
+              trend="neutral"
+              tone="info"
+              Icon={BoxIcon}
+              width={tileWidth}
+            />
+            <StatTile
+              theme={theme}
+              label="Avg Order"
+              value={`$${(data.kpis?.avgOrderValue || 36.65).toFixed(2)}`}
+              change="per invoice"
+              trend="neutral"
+              tone="primary"
+              Icon={DollarIcon}
+              width={tileWidth}
+            />
+          </Animated.View>
+
+          <View style={styles.sectionEyebrow}>
+            <View style={styles.eyebrowLine} />
+            <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+              ANALYTICS
+            </Typography>
+          </View>
+
+          <Animated.View style={{opacity: fadeAnim1, transform: [{translateY: slideAnim1}]}}>
+            <Card variant="elevated" padding="lg" style={styles.chartCard}>
+              <View style={styles.chartCardStripe} />
+              <View style={styles.chartHeader}>
+                <View style={{flex: 1}}>
+                  <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
+                    Revenue & Profit Trend
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                    Last 6 months performance
+                  </Typography>
+                </View>
+                <View style={[styles.growthBadge, {backgroundColor: theme.colors.success[50]}]}>
+                  <View style={styles.growthArrow}>
+                    <ArrowRightIcon size={14} color={theme.colors.success[600]} />
+                  </View>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.success[600]}>
+                    +24.5%
+                  </Typography>
+                </View>
+              </View>
+              <LineChart
+                data={data.revenueTrend}
+                width={chartWidth}
+                height={200}
+                chartConfig={chartConfig}
+                bezier
+                style={styles.chart}
+                withInnerLines
+                withOuterLines
+                withVerticalLines={false}
+                withHorizontalLines
+                withVerticalLabels
+                withHorizontalLabels
+                withDots
+                withShadow={false}
+                fromZero
+              />
+            </Card>
+          </Animated.View>
+
+          <Animated.View style={{opacity: fadeAnim2, transform: [{translateY: slideAnim2}]}}>
+            <Card variant="elevated" padding="lg" style={styles.chartCard}>
+              <View style={[styles.chartCardStripe, {backgroundColor: theme.colors.accent[500]}]} />
+              <View style={styles.chartHeader}>
+                <View style={{flex: 1}}>
+                  <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
+                    Top Selling Products
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                    Best performers this month
+                  </Typography>
+                </View>
+                <View style={[styles.growthBadge, {backgroundColor: theme.colors.accent[50]}]}>
+                  <InventoryIcon size={14} color={theme.colors.accent[600]} />
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.accent[600]}
+                    style={{marginLeft: 4}}>
+                    Top 5
+                  </Typography>
+                </View>
+              </View>
+              <BarChart
+                data={{
+                  ...data.topProducts,
+                  labels: data.topProducts.labels.map((label: string) =>
+                    label.length > 8 ? label.substring(0, 8) + '...' : label,
+                  ),
+                }}
+                width={chartWidth}
+                height={240}
+                chartConfig={{
+                  ...chartConfig,
+                  barPercentage: 0.7,
+                  fillShadowGradientFrom: theme.colors.primary[500],
+                  fillShadowGradientTo: theme.colors.primary[600],
+                  fillShadowGradientOpacity: 1,
+                  propsForLabels: {fontSize: 9, fontWeight: '500', rotation: 0},
+                }}
+                style={styles.chart}
+                withInnerLines={false}
+                fromZero
+                showValuesOnTopOfBars
+                yAxisLabel="$"
+                yAxisSuffix=""
+                segments={4}
+              />
+            </Card>
+          </Animated.View>
+
+          <Animated.View style={{opacity: fadeAnim3, transform: [{translateY: slideAnim3}]}}>
+            <Card variant="elevated" padding="lg" style={styles.chartCard}>
+              <View style={[styles.chartCardStripe, {backgroundColor: theme.colors.success[500]}]} />
+              <View style={styles.chartHeader}>
+                <View style={{flex: 1}}>
+                  <Typography variant="h3" weight="semibold" style={styles.chartTitle}>
+                    Invoice Status
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                    Order status distribution
+                  </Typography>
+                </View>
+                <View style={[styles.growthBadge, {backgroundColor: theme.colors.primary[50]}]}>
+                  <ClipboardIcon size={14} color={theme.colors.primary[600]} />
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.primary[600]}
+                    style={{marginLeft: 4}}>
+                    {data.statusDistribution?.length || 0} Types
+                  </Typography>
+                </View>
+              </View>
+              <PieChart
+                data={data.statusDistribution}
+                width={chartWidth}
+                height={220}
+                chartConfig={chartConfig}
+                accessor="population"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                style={styles.chart}
+                hasLegend
+              />
+            </Card>
+          </Animated.View>
+
+          <View style={styles.sectionEyebrow}>
+            <View style={styles.eyebrowLine} />
+            <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+              RECENT ACTIVITY
+            </Typography>
+          </View>
+
+          <Card variant="elevated" padding="lg" style={styles.activityCard}>
+            <View style={styles.activityHeader}>
+              <View style={styles.activityHeaderIcon}>
+                <TimelineIcon size={16} color={theme.colors.primary[600]} />
+              </View>
+              <Typography variant="h3" weight="semibold" style={styles.activityHeaderTitle}>
+                What's happening
+              </Typography>
+              <View style={styles.activityHeaderPill}>
+                <View style={styles.activityLiveDot} />
+                <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                  live
+                </Typography>
+              </View>
+            </View>
+            <View style={styles.activityList}>
+              {(data.recentActivity || []).length === 0 ? (
+                <View style={styles.activityEmpty}>
+                  <View style={styles.activityEmptyIcon}>
+                    <TimelineIcon size={18} color={theme.colors.gray[400]} />
+                  </View>
+                  <Typography variant="small" color={theme.colors.gray[500]}>
+                    No recent activity yet.
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[400]} style={{marginTop: 2}}>
+                    Activity will show up here as your team works.
+                  </Typography>
+                </View>
+              ) : (
+                (data.recentActivity || []).slice(0, 5).map((activity: any, idx: number) => {
+                  const palettes: Tone[] = ['primary', 'accent', 'success', 'warning', 'info'];
+                  const tone = palettes[idx % palettes.length];
+                  const palette = theme.colors[tone];
+                  const ActivityIcon = idx % 3 === 0 ? CheckCircleIcon : idx % 3 === 1 ? RefreshIcon : ClipboardIcon;
+                  return (
+                    <View key={activity.id || idx} style={styles.activityItem}>
+                      <View style={[styles.activityIcon, {backgroundColor: palette[50]}]}>
+                        <ActivityIcon size={16} color={palette[600]} />
+                      </View>
+                      <View style={styles.activityContent}>
+                        <Typography variant="small" weight="semibold">
+                          {activity.message}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color={theme.colors.gray[500]}
+                          style={styles.activityTime}>
+                          {activity.user ? `${activity.user} • ` : ''}
+                          {activity.timestamp ? formatDateTime(activity.timestamp) : 'Recently'}
+                        </Typography>
+                      </View>
+                      <View style={[styles.activityDotMark, {backgroundColor: palette[500]}]} />
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          </Card>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const makeStyles = (theme: Theme) =>
-  StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const wide = !bp.isMobile;
+  const tileGap = bp.isMobile ? TILE_GAP : 16;
+
+  return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
     },
     loadingContainer: {
       flex: 1,
@@ -777,11 +792,19 @@ const makeStyles = (theme: Theme) =>
       paddingBottom: theme.spacing.xxxl,
     },
 
+    // Centers all post-hero content and caps its width on large/XL screens.
+    contentWrap: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: bp.gutter,
+    },
+
     hero: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.xl + theme.spacing.md,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
       overflow: 'hidden',
@@ -792,17 +815,17 @@ const makeStyles = (theme: Theme) =>
       borderRadius: 9999,
     },
     blobOne: {
-      width: 280,
-      height: 280,
-      top: -120,
-      right: -100,
+      width: wide ? 420 : 280,
+      height: wide ? 420 : 280,
+      top: wide ? -170 : -120,
+      right: wide ? -150 : -100,
       backgroundColor: theme.colors.primary[400],
     },
     blobTwo: {
-      width: 220,
-      height: 220,
-      bottom: -110,
-      left: -70,
+      width: wide ? 320 : 220,
+      height: wide ? 320 : 220,
+      bottom: wide ? -150 : -110,
+      left: wide ? -100 : -70,
       backgroundColor: theme.colors.accent[500],
     },
     dotGrid: {
@@ -823,6 +846,9 @@ const makeStyles = (theme: Theme) =>
     },
 
     heroBody: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
       zIndex: 2,
     },
     heroTopRow: {
@@ -844,9 +870,9 @@ const makeStyles = (theme: Theme) =>
       width: 40,
       height: 40,
       borderRadius: 12,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.22)',
+      borderColor: theme.colors.brand.glassBorderStrong,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -859,9 +885,9 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.sm + 2,
       paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       marginBottom: theme.spacing.lg,
     },
     statusDot: {
@@ -876,9 +902,9 @@ const makeStyles = (theme: Theme) =>
       alignItems: 'center',
       padding: theme.spacing.md,
       borderRadius: 18,
-      backgroundColor: 'rgba(255,255,255,0.10)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
     },
     heroKpiLabel: {
       letterSpacing: 1.4,
@@ -905,7 +931,7 @@ const makeStyles = (theme: Theme) =>
       width: 56,
       height: 56,
       borderRadius: 16,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1,
       borderColor: 'rgba(255,255,255,0.2)',
       alignItems: 'center',
@@ -915,10 +941,9 @@ const makeStyles = (theme: Theme) =>
 
     quickActionsWrap: {
       flexDirection: 'row',
-      paddingHorizontal: theme.spacing.lg,
       marginTop: -22,
       marginBottom: theme.spacing.md,
-      gap: TILE_GAP,
+      gap: tileGap,
       zIndex: 3,
     },
     quickAction: {
@@ -943,7 +968,6 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.lg,
       marginBottom: theme.spacing.md,
     },
@@ -957,8 +981,7 @@ const makeStyles = (theme: Theme) =>
     statsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      paddingHorizontal: theme.spacing.lg,
-      gap: TILE_GAP,
+      gap: tileGap,
       marginBottom: theme.spacing.sm,
     },
     statTileWrapper: {},
@@ -1013,7 +1036,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     chartCard: {
-      marginHorizontal: theme.spacing.lg,
       marginBottom: theme.spacing.md,
       paddingTop: theme.spacing.lg + 4,
       overflow: 'hidden',
@@ -1054,7 +1076,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     activityCard: {
-      marginHorizontal: theme.spacing.lg,
       marginBottom: theme.spacing.lg,
     },
     activityHeader: {
@@ -1137,3 +1158,4 @@ const makeStyles = (theme: Theme) =>
       marginBottom: theme.spacing.sm,
     },
   });
+};

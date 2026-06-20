@@ -10,7 +10,6 @@ import {
   Alert,
   Animated,
   Easing,
-  Dimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -36,13 +35,12 @@ import {
 } from '../components/icons';
 import {PartialVerificationModal} from '../components/molecules/PartialVerificationModal';
 import {formatDate} from '../utils/dateUtils';
-
-const {width: SCREEN_WIDTH} = Dimensions.get('window');
-const TILE_GAP = 12;
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
 export const InventoryScreen = () => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
@@ -350,25 +348,25 @@ export const InventoryScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[200]}
+                  color={theme.colors.brand.textTracked}
                   style={styles.heroEyebrow}>
                   INVENTORY
                 </Typography>
-                <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroTitle}>
+                <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
                   Inventory items
                 </Typography>
-                <Typography variant="small" color={theme.colors.primary[100]}>
+                <Typography variant="small" color={theme.colors.brand.textMuted}>
                   Grouped by SKU · expand for orders & invoices
                 </Typography>
               </View>
               <TouchableOpacity onPress={onRefresh} style={styles.heroRefresh} activeOpacity={0.85}>
-                <RefreshIcon size={18} color={theme.colors.white} />
+                <RefreshIcon size={18} color={theme.colors.brand.text} />
               </TouchableOpacity>
             </View>
 
             <View style={styles.statusChip}>
               <View style={styles.statusDot} />
-              <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+              <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
                 {totalItems} {totalItems === 1 ? 'item' : 'items'} ·{' '}
                 {activeTab === 'purchases' ? 'Purchases' : 'Sells'}
               </Typography>
@@ -379,11 +377,11 @@ export const InventoryScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[100]}
+                  color={theme.colors.brand.textMuted}
                   style={styles.heroMetricLabel}>
                   ITEMS
                 </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                   {totalItems}
                 </Typography>
               </View>
@@ -392,11 +390,11 @@ export const InventoryScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[100]}
+                  color={theme.colors.brand.textMuted}
                   style={styles.heroMetricLabel}>
                   {activeTab === 'purchases' ? 'ORDERED' : 'SOLD'}
                 </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                   {totalQty}
                 </Typography>
               </View>
@@ -405,11 +403,11 @@ export const InventoryScreen = () => {
                 <Typography
                   variant="caption"
                   weight="semibold"
-                  color={theme.colors.primary[100]}
+                  color={theme.colors.brand.textMuted}
                   style={styles.heroMetricLabel}>
                   {activeTab === 'purchases' ? 'VALUE' : 'REVENUE'}
                 </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                   ${(totalValue / 1000).toFixed(1)}K
                 </Typography>
               </View>
@@ -417,6 +415,7 @@ export const InventoryScreen = () => {
           </Animated.View>
         </View>
 
+        <View style={styles.contentWrap}>
         <View style={styles.searchWrap}>
           <View style={styles.searchCard}>
             <SearchIcon size={18} color={theme.colors.gray[500]} />
@@ -932,6 +931,7 @@ export const InventoryScreen = () => {
             );
           })}
         </View>
+        </View>
       </ScrollView>
 
       <PartialVerificationModal
@@ -949,11 +949,13 @@ export const InventoryScreen = () => {
   );
 };
 
-const makeStyles = (theme: Theme) =>
-  StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const wide = !bp.isMobile;
+
+  return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
     },
     loadingContainer: {
       flex: 1,
@@ -979,10 +981,10 @@ const makeStyles = (theme: Theme) =>
     },
 
     hero: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.xl + theme.spacing.md,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
       overflow: 'hidden',
@@ -993,17 +995,17 @@ const makeStyles = (theme: Theme) =>
       borderRadius: 9999,
     },
     blobOne: {
-      width: 280,
-      height: 280,
-      top: -130,
-      right: -100,
+      width: wide ? 420 : 280,
+      height: wide ? 420 : 280,
+      top: wide ? -170 : -130,
+      right: wide ? -150 : -100,
       backgroundColor: theme.colors.primary[400],
     },
     blobTwo: {
-      width: 220,
-      height: 220,
-      bottom: -110,
-      left: -70,
+      width: wide ? 320 : 220,
+      height: wide ? 320 : 220,
+      bottom: wide ? -150 : -110,
+      left: wide ? -100 : -70,
       backgroundColor: theme.colors.accent[500],
     },
     dotGrid: {
@@ -1023,7 +1025,17 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: theme.colors.white,
     },
     heroBody: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
       zIndex: 2,
+    },
+
+    contentWrap: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: bp.gutter,
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -1042,9 +1054,9 @@ const makeStyles = (theme: Theme) =>
       width: 40,
       height: 40,
       borderRadius: 12,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.22)',
+      borderColor: theme.colors.brand.glassBorderStrong,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -1056,9 +1068,9 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.sm + 2,
       paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       marginBottom: theme.spacing.lg,
     },
     statusDot: {
@@ -1070,10 +1082,10 @@ const makeStyles = (theme: Theme) =>
     heroMetricsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.10)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       paddingVertical: theme.spacing.md - 2,
       paddingHorizontal: theme.spacing.sm,
     },
@@ -1092,7 +1104,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     searchWrap: {
-      paddingHorizontal: theme.spacing.lg,
       marginTop: -22,
       zIndex: 3,
     },
@@ -1124,7 +1135,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     tabsWrap: {
-      paddingHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.md,
     },
     tabsCard: {
@@ -1151,7 +1161,6 @@ const makeStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.lg,
       marginBottom: theme.spacing.md,
     },
@@ -1163,7 +1172,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     errorCard: {
-      marginHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.md,
       backgroundColor: theme.colors.error[50],
       borderColor: theme.colors.error[200],
@@ -1186,7 +1194,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     emptyCard: {
-      marginHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.md,
       alignItems: 'center',
       paddingVertical: theme.spacing.xl,
@@ -1205,7 +1212,6 @@ const makeStyles = (theme: Theme) =>
     },
 
     itemsList: {
-      paddingHorizontal: theme.spacing.lg,
       gap: theme.spacing.md,
     },
     groupCard: {
@@ -1338,3 +1344,4 @@ const makeStyles = (theme: Theme) =>
       paddingVertical: theme.spacing.md,
     },
   });
+};

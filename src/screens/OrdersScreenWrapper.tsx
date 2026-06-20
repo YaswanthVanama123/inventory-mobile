@@ -28,6 +28,7 @@ import {
   PlusIcon,
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
 interface OrdersScreenWrapperProps {
   navigation: any;
@@ -37,7 +38,8 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   navigation,
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const isAdmin = user?.role === 'admin';
@@ -230,6 +232,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
         </View>
       ) : (
         <>
+          <View style={styles.contentWrap}>
           {/* Stats - Fixed */}
           <View style={styles.statsContainer}>
             <Card style={styles.statCard}>
@@ -274,6 +277,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               placeholderTextColor={theme.colors.gray[400]}
             />
           </View>
+          </View>{/* end contentWrap */}
 
           {/* Scrollable Content */}
           <ScrollView
@@ -586,7 +590,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     </SafeAreaView>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -596,18 +600,27 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Centers & caps content on large / XL screens.
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: bp.gutter,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    paddingHorizontal: bp.gutter,
     paddingTop: 0,
     paddingBottom: 80,
+    maxWidth: bp.contentMaxWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 16,
     paddingTop: 16,
     marginBottom: 12,
   },
@@ -617,7 +630,6 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     alignItems: 'center',
   },
   searchContainer: {
-    paddingHorizontal: 16,
     marginBottom: 12,
   },
   searchInput: {

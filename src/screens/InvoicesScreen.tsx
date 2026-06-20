@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
   ScrollView,
@@ -14,16 +14,21 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
-import {theme} from '../theme';
+import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
 import invoiceService from '../services/invoiceService';
 import {AlertCircleIcon, FileTextIcon} from '../components/icons';
 import {InvoiceDetailScreen} from './InvoiceDetailScreen';
 import {formatDate} from '../utils/dateUtils';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
 type StatusFilter = '' | 'draft' | 'issued' | 'paid' | 'cancelled';
 type PaymentStatusFilter = '' | 'pending' | 'paid' | 'overdue';
 
 export const InvoicesScreen = () => {
+  const theme = useTheme();
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
@@ -606,7 +611,7 @@ export const InvoicesScreen = () => {
     </SafeAreaView>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -621,8 +626,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    paddingHorizontal: bp.gutter,
     paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl,
+    maxWidth: bp.contentMaxWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     marginBottom: theme.spacing.xl,
@@ -722,8 +731,8 @@ const styles = StyleSheet.create({
     color: theme.colors.gray[700],
   },
   filterScroll: {
-    marginHorizontal: -theme.spacing.lg,
-    paddingHorizontal: theme.spacing.lg,
+    marginHorizontal: -bp.gutter,
+    paddingHorizontal: bp.gutter,
   },
   filterChips: {
     flexDirection: 'row',

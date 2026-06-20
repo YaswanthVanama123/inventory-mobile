@@ -17,6 +17,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import truckCheckoutService from '../services/truckCheckoutService';
 import {
   BoxIcon,
@@ -29,7 +30,8 @@ import {
 
 export const TruckCheckoutScreen = () => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
@@ -349,6 +351,7 @@ export const TruckCheckoutScreen = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
         {/* Header */}
+        <View style={styles.contentWrap}>
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <TruckIcon size={32} color={theme.colors.primary[600]} />
@@ -566,6 +569,7 @@ export const TruckCheckoutScreen = () => {
             )}
           </TouchableOpacity>
         </Card>
+        </View>
       </ScrollView>
       {/* Item Picker Modal */}
       <Modal
@@ -779,7 +783,7 @@ export const TruckCheckoutScreen = () => {
     </SafeAreaView>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -788,8 +792,14 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
     paddingTop: theme.spacing.xl,
+    paddingBottom: theme.spacing.xxxl,
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: bp.gutter,
   },
   header: {
     marginBottom: theme.spacing.lg,
@@ -948,8 +958,8 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   discrepancyModalContent: {
     backgroundColor: theme.colors.white,
     borderRadius: 16,
-    width: '100%',
-    maxWidth: 500,
+    width: bp.isMobile ? '100%' : '70%',
+    maxWidth: 560,
     overflow: 'hidden',
   },
   discrepancyHeader: {

@@ -20,6 +20,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import userService from '../services/userService';
 import {
   AlertCircleIcon,
@@ -46,7 +47,8 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   const {token, user: currentUser} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
@@ -393,7 +395,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             </View>
 
             {/* Scrollable Content */}
-            <View>
+            <View style={styles.contentWrap}>
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -582,7 +584,12 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     </Modal>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  // Stat grid: 2 cols on phone, 4 on tablet+
+  const statCols = bp.isWide ? 4 : bp.isDesktop ? 4 : bp.isTablet ? 4 : 2;
+  const statCardBasis = `${100 / statCols}%` as any;
+
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -621,21 +628,33 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   scrollContent: {
     paddingBottom: theme.spacing.lg,
   },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: bp.gutter,
+  },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -4,
-    paddingHorizontal: theme.spacing.lg,
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: bp.gutter,
     paddingTop: theme.spacing.lg,
     marginBottom: theme.spacing.md,
   },
   stickyHeaderContainer: {
     backgroundColor: theme.colors.gray[50],
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: bp.gutter,
     paddingBottom: theme.spacing.md,
+    maxWidth: bp.contentMaxWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
   statCardWrapper: {
-    width: '50%',
+    width: statCardBasis,
     padding: 6,
   },
   statCard: {
@@ -693,9 +712,8 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     color: theme.colors.gray[900],
   },
   errorCard: {
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.md,
     marginBottom: theme.spacing.lg,
+    marginTop: theme.spacing.md,
     backgroundColor: theme.colors.error[50],
   },
   errorContent: {
@@ -707,7 +725,6 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
   },
   emptyCard: {
-    marginHorizontal: theme.spacing.lg,
     marginTop: theme.spacing.md,
     alignItems: 'center',
     paddingVertical: theme.spacing.xl * 2,
@@ -718,7 +735,6 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   },
   usersList: {
     gap: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.md,
   },
   userCard: {
@@ -792,7 +808,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
   },
-  actionButton: {
+    actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -803,4 +819,5 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.gray[200],
   },
-});
+  });
+};

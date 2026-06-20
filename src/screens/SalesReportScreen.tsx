@@ -33,6 +33,7 @@ import {
   BarChartIcon,
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
 interface SalesReportScreenProps {
   visible: boolean;
@@ -43,7 +44,8 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<any[]>([]);
@@ -165,67 +167,67 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
               <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
                 <View style={styles.heroTopRow}>
                   <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <CloseIcon size={16} color={theme.colors.white} />
+                    <CloseIcon size={16} color={theme.colors.brand.text} />
                   </TouchableOpacity>
                   <View style={{flex: 1}}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[200]} style={styles.heroEyebrow}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textTracked} style={styles.heroEyebrow}>
                       REPORT
                     </Typography>
-                    <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroTitle}>
+                    <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
                       Sales Performance
                     </Typography>
-                    <Typography variant="small" color={theme.colors.primary[100]}>
+                    <Typography variant="small" color={theme.colors.brand.textMuted}>
                       Item-level sales rollup
                     </Typography>
                   </View>
                   <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <RefreshIcon size={18} color={theme.colors.white} />
+                    <RefreshIcon size={18} color={theme.colors.brand.text} />
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.heroKpiCard}>
                   <View style={{flex: 1}}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroKpiLabel}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroKpiLabel}>
                       TOTAL REVENUE
                     </Typography>
-                    <Typography variant="h1" weight="bold" color={theme.colors.white} style={styles.heroKpiValue}>
+                    <Typography variant="h1" weight="bold" color={theme.colors.brand.text} style={styles.heroKpiValue}>
                       {totalAmount >= 1000
                         ? `$${(totalAmount / 1000).toFixed(1)}K`
                         : formatCurrency(totalAmount)}
                     </Typography>
-                    <Typography variant="caption" color={theme.colors.primary[100]} style={{marginTop: 4}}>
+                    <Typography variant="caption" color={theme.colors.brand.textMuted} style={{marginTop: 4}}>
                       across {totals.totalInvoices || 0} invoices
                     </Typography>
                   </View>
                   <View style={styles.heroKpiIcon}>
-                    <DollarIcon size={26} color={theme.colors.white} />
+                    <DollarIcon size={26} color={theme.colors.brand.text} />
                   </View>
                 </View>
 
                 <View style={styles.heroMetricsRow}>
                   <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
                       ITEMS
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {totals.totalItems || 0}
                     </Typography>
                   </View>
                   <View style={styles.heroMetricDivider} />
                   <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
                       UNITS SOLD
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {totals.totalSoldQuantity || 0}
                     </Typography>
                   </View>
                   <View style={styles.heroMetricDivider} />
                   <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
                       INVOICES
                     </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
                       {totals.totalInvoices || 0}
                     </Typography>
                   </View>
@@ -233,6 +235,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
               </Animated.View>
             </View>
 
+            <View style={styles.contentWrap}>
             <View style={styles.searchWrap}>
               <View style={styles.searchCard}>
                 <SearchIcon size={18} color={theme.colors.gray[500]} />
@@ -454,6 +457,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
                 );
               })}
             </View>
+            </View>
           </ScrollView>
         )}
       </SafeAreaView>
@@ -461,9 +465,11 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
   );
 };
 
-const makeStyles = (theme: Theme) =>
-  StyleSheet.create({
-    container: {flex: 1, backgroundColor: theme.colors.primary[700]},
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const wide = !bp.isMobile;
+
+  return StyleSheet.create({
+    container: {flex: 1, backgroundColor: theme.colors.brand.bg},
     loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.gray[50]},
     loadingMark: {
       width: 56, height: 56, borderRadius: 16,
@@ -475,59 +481,72 @@ const makeStyles = (theme: Theme) =>
     scrollContent: {paddingBottom: theme.spacing.xxxl},
 
     hero: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.xl + theme.spacing.md,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
       overflow: 'hidden',
       position: 'relative',
     },
     blob: {position: 'absolute', borderRadius: 9999},
-    blobOne: {width: 280, height: 280, top: -130, right: -100, backgroundColor: theme.colors.primary[400]},
-    blobTwo: {width: 220, height: 220, bottom: -110, left: -70, backgroundColor: theme.colors.accent[500]},
+    blobOne: {width: wide ? 420 : 280, height: wide ? 420 : 280, top: wide ? -170 : -130, right: wide ? -150 : -100, backgroundColor: theme.colors.primary[400]},
+    blobTwo: {width: wide ? 320 : 220, height: wide ? 320 : 220, bottom: wide ? -150 : -110, left: wide ? -100 : -70, backgroundColor: theme.colors.accent[500]},
     dotGrid: {position: 'absolute', top: 50, right: 18, width: 90, flexDirection: 'row', flexWrap: 'wrap', gap: 10, opacity: 0.18},
     dot: {width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.white},
-    heroBody: {zIndex: 2},
+    heroBody: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      zIndex: 2,
+    },
+
+    contentWrap: {
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: bp.gutter,
+    },
+
     heroTopRow: {flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.md},
     heroEyebrow: {letterSpacing: 1.4, marginBottom: 4},
     heroTitle: {letterSpacing: -0.4, marginBottom: 2},
     heroIconBtn: {
       width: 36, height: 36, borderRadius: 12,
-      backgroundColor: 'rgba(255,255,255,0.14)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorderStrong,
       alignItems: 'center', justifyContent: 'center',
     },
     heroKpiCard: {
       flexDirection: 'row', alignItems: 'center',
       padding: theme.spacing.md,
       borderRadius: 16,
-      backgroundColor: 'rgba(255,255,255,0.10)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: theme.colors.brand.glassBg,
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorder,
       marginBottom: theme.spacing.md,
     },
     heroKpiLabel: {letterSpacing: 1.4, marginBottom: 4},
     heroKpiValue: {letterSpacing: -0.6},
     heroKpiIcon: {
       width: 56, height: 56, borderRadius: 16,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
       alignItems: 'center', justifyContent: 'center',
       marginLeft: theme.spacing.md,
     },
     heroMetricsRow: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.10)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderRadius: 14,
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorder,
       paddingVertical: theme.spacing.md - 2, paddingHorizontal: theme.spacing.sm,
     },
     heroMetric: {flex: 1, alignItems: 'center', gap: 2},
     heroMetricLabel: {letterSpacing: 1.2},
     heroMetricDivider: {width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.18)'},
 
-    searchWrap: {paddingHorizontal: theme.spacing.lg, marginTop: -22, zIndex: 3},
+    searchWrap: {marginTop: -22, zIndex: 3},
     searchCard: {
       flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
       backgroundColor: theme.colors.white, borderRadius: 14,
@@ -544,13 +563,11 @@ const makeStyles = (theme: Theme) =>
 
     sectionEyebrow: {
       flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.lg, marginBottom: theme.spacing.md,
     },
     eyebrowLine: {width: 24, height: 2, borderRadius: 1, backgroundColor: theme.colors.primary[600]},
 
     errorCard: {
-      marginHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.md,
       backgroundColor: theme.colors.error[50],
       borderColor: theme.colors.error[200],
@@ -564,7 +581,6 @@ const makeStyles = (theme: Theme) =>
     errorText: {flex: 1},
 
     emptyCard: {
-      marginHorizontal: theme.spacing.lg,
       marginTop: theme.spacing.md,
       alignItems: 'center',
       paddingVertical: theme.spacing.xl,
@@ -577,7 +593,7 @@ const makeStyles = (theme: Theme) =>
     },
     emptyTitle: {marginBottom: theme.spacing.xs},
 
-    itemsList: {paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md},
+    itemsList: {gap: theme.spacing.md},
     itemCard: {overflow: 'hidden', position: 'relative'},
     itemStripe: {position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: theme.colors.primary[500]},
     itemHeader: {
@@ -629,3 +645,4 @@ const makeStyles = (theme: Theme) =>
       paddingVertical: theme.spacing.md,
     },
   });
+};

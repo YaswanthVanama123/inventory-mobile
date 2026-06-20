@@ -15,6 +15,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import manualOrderService from '../services/manualOrderService';
 import manualPOItemService from '../services/manualPOItemService';
 import vendorService from '../services/vendorService';
@@ -36,7 +37,8 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
   navigation,
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
 
@@ -223,6 +225,7 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
+        <View style={styles.contentWrap}>
         {/* Order Information Card */}
         <Card style={styles.section}>
           <Typography variant="h3" weight="bold" style={styles.sectionTitle}>
@@ -479,15 +482,21 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
             )}
           </TouchableOpacity>
         </View>
+        </View>{/* contentWrap */}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
   },
   loadingContainer: {
     flex: 1,

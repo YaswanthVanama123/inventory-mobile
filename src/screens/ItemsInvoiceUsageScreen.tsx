@@ -17,6 +17,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import itemsInvoiceUsageService, {
   ItemUsage,
   InvoiceUsageTotals,
@@ -36,7 +37,8 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<ItemUsage[]>([]);
@@ -276,6 +278,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
                 tintColor={theme.colors.primary[600]}
               />
             }>
+            <View style={styles.contentWrap}>
             {filteredItems.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <BarChartIcon size={48} color={theme.colors.gray[300]} />
@@ -298,6 +301,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
                 {filteredItems.map(renderItemCard)}
               </>
             )}
+            </View>{/* contentWrap */}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -305,16 +309,21 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: bp.gutter,
     paddingVertical: theme.spacing.md,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
@@ -343,7 +352,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: theme.colors.white,
     paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: bp.gutter,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray[200],
   },
@@ -357,7 +366,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     marginHorizontal: theme.spacing.lg,
   },
   searchSection: {
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: bp.gutter,
     paddingVertical: theme.spacing.md,
     backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
@@ -371,6 +380,9 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     gap: theme.spacing.sm,
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    width: '100%',
   },
   searchInput: {
     flex: 1,
@@ -382,7 +394,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    padding: bp.gutter,
   },
   resultsHeader: {
     marginBottom: theme.spacing.md,

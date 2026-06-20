@@ -16,6 +16,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import activityLogService from '../services/activityLogService';
 import {
   TimelineIcon,
@@ -42,7 +43,8 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [logs, setLogs] = useState<any[]>([]);
@@ -757,7 +759,7 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -784,6 +786,9 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: theme.spacing.md,
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    width: '100%',
   },
   statCard: {
     flex: 1,
@@ -846,6 +851,9 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   },
   logsContainer: {
     padding: theme.spacing.lg,
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    width: '100%',
   },
   logCard: {
     backgroundColor: theme.colors.white,
@@ -933,6 +941,9 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
     maxHeight: '80%',
+    width: bp.isMobile ? '100%' : '70%',
+    maxWidth: 560,
+    alignSelf: 'center',
   },
   filterHeader: {
     flexDirection: 'row',

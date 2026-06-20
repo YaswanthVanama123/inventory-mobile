@@ -1,5 +1,6 @@
 import {colors} from './colors';
 import {darkColors} from './darkColors';
+import {brandColors} from './brandColors';
 import {spacing} from './spacing';
 import {typography} from './typography';
 import {status} from './status';
@@ -112,14 +113,14 @@ const darkShadows = {
 
 export const lightTheme = {
   mode: 'light' as ThemeMode,
-  colors,
+  colors: {...colors, brand: brandColors},
   shadows: lightShadows,
   ...baseTokens,
 };
 
 export const darkTheme = {
   mode: 'dark' as ThemeMode,
-  colors: darkColors,
+  colors: {...darkColors, brand: brandColors},
   shadows: darkShadows,
   ...baseTokens,
 };
@@ -129,5 +130,5 @@ export const darkTheme = {
 export const theme = lightTheme;
 
 export type Theme = typeof lightTheme;
-export {colors, spacing, typography, status};
+export {colors, spacing, typography, status, brandColors};
 export * from './status';

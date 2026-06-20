@@ -15,6 +15,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useUserScreens} from '../hooks/useUserScreens';
 import {useTheme, useThemeContext} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import {
   LogoutIcon,
   UserIcon,
@@ -63,12 +64,13 @@ interface MenuRow {
 
 interface MenuSectionProps {
   theme: Theme;
+  bp: BreakpointInfo;
   eyebrow: string;
   rows: MenuRow[];
 }
 
-const MenuSection: React.FC<MenuSectionProps> = ({theme, eyebrow, rows}) => {
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+const MenuSection: React.FC<MenuSectionProps> = ({theme, bp, eyebrow, rows}) => {
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const visibleRows = rows.filter(r => r.visible);
   if (visibleRows.length === 0) return null;
   return (
@@ -120,7 +122,8 @@ export const AccountScreen = () => {
   const {user, token, logout} = useAuth();
   const {hasAccessToScreen} = useUserScreens();
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {preference, setPreference, mode} = useThemeContext();
   const isAdmin = user?.role === 'admin';
   const canSee = (path: string) => isAdmin || hasAccessToScreen(path);
@@ -431,13 +434,13 @@ export const AccountScreen = () => {
               <Typography
                 variant="caption"
                 weight="semibold"
-                color={theme.colors.primary[200]}
+                color={theme.colors.brand.textTracked}
                 style={styles.heroEyebrow}>
                 ACCOUNT
               </Typography>
               <View style={styles.statusChip}>
                 <View style={styles.statusDot} />
-                <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
                   Signed in
                 </Typography>
               </View>
@@ -447,32 +450,32 @@ export const AccountScreen = () => {
               <View style={styles.avatarWrap}>
                 <View style={styles.avatarRing}>
                   <View style={styles.avatar}>
-                    <Typography variant="h2" weight="bold" color={theme.colors.white}>
+                    <Typography variant="h2" weight="bold" color={theme.colors.brand.text}>
                       {initials}
                     </Typography>
                   </View>
                 </View>
                 <View style={styles.avatarBadge}>
-                  <CheckCircleIcon size={12} color={theme.colors.white} />
+                  <CheckCircleIcon size={12} color={theme.colors.brand.text} />
                 </View>
               </View>
               <View style={styles.identityText}>
                 <Typography
                   variant="h2"
                   weight="bold"
-                  color={theme.colors.white}
+                  color={theme.colors.brand.text}
                   style={styles.identityName}>
                   {user?.fullName || user?.username || 'Guest'}
                 </Typography>
                 <Typography
                   variant="small"
-                  color={theme.colors.primary[100]}
+                  color={theme.colors.brand.textMuted}
                   style={styles.identityEmail}>
                   {user?.email || '—'}
                 </Typography>
                 <View style={styles.rolePill}>
-                  <ShieldIcon size={12} color={theme.colors.white} />
-                  <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                  <ShieldIcon size={12} color={theme.colors.brand.text} />
+                  <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
                     {user?.role === 'admin' ? 'ADMINISTRATOR' : 'EMPLOYEE'}
                   </Typography>
                 </View>
@@ -485,10 +488,10 @@ export const AccountScreen = () => {
                   <Typography
                     variant="caption"
                     weight="semibold"
-                    color={theme.colors.primary[100]}>
+                    color={theme.colors.brand.textMuted}>
                     {s.label}
                   </Typography>
-                  <Typography variant="small" weight="bold" color={theme.colors.white}>
+                  <Typography variant="small" weight="bold" color={theme.colors.brand.text}>
                     {s.value}
                   </Typography>
                   {idx < heroStats.length - 1 && <View style={styles.heroStatDivider} />}
@@ -499,10 +502,10 @@ export const AccountScreen = () => {
         </View>
 
         <View style={styles.body}>
-          <MenuSection theme={theme} eyebrow="ADMINISTRATION" rows={adminRows} />
-          <MenuSection theme={theme} eyebrow="INVENTORY MANAGEMENT" rows={inventoryRows} />
-          <MenuSection theme={theme} eyebrow="ORDERS & VENDORS" rows={ordersRows} />
-          <MenuSection theme={theme} eyebrow="REPORTS" rows={reportsRows} />
+          <MenuSection theme={theme} bp={bp} eyebrow="ADMINISTRATION" rows={adminRows} />
+          <MenuSection theme={theme} bp={bp} eyebrow="INVENTORY MANAGEMENT" rows={inventoryRows} />
+          <MenuSection theme={theme} bp={bp} eyebrow="ORDERS & VENDORS" rows={ordersRows} />
+          <MenuSection theme={theme} bp={bp} eyebrow="REPORTS" rows={reportsRows} />
 
           <View style={styles.sectionEyebrow}>
             <View style={styles.eyebrowLine} />
@@ -561,17 +564,17 @@ export const AccountScreen = () => {
             onPress={handleLogout}
             activeOpacity={0.85}>
             <View style={styles.logoutIconWrap}>
-              <LogoutIcon size={18} color={theme.colors.white} />
+              <LogoutIcon size={18} color={theme.colors.brand.text} />
             </View>
             <View style={{flex: 1}}>
-              <Typography variant="body" weight="bold" color={theme.colors.white}>
+              <Typography variant="body" weight="bold" color={theme.colors.brand.text}>
                 Logout
               </Typography>
-              <Typography variant="caption" color={theme.colors.primary[100]}>
+              <Typography variant="caption" color={theme.colors.brand.textMuted}>
                 End your session on this device
               </Typography>
             </View>
-            <ChevronRightIcon size={18} color={theme.colors.white} />
+            <ChevronRightIcon size={18} color={theme.colors.brand.text} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -674,11 +677,12 @@ export const AccountScreen = () => {
   );
 };
 
-const makeStyles = (theme: Theme) =>
-  StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const wide = !bp.isMobile;
+  return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
     },
     scrollView: {
       flex: 1,
@@ -689,10 +693,10 @@ const makeStyles = (theme: Theme) =>
     },
 
     hero: {
-      paddingHorizontal: theme.spacing.lg,
+      paddingHorizontal: bp.gutter,
       paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.xl + theme.spacing.md,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       borderBottomLeftRadius: 28,
       borderBottomRightRadius: 28,
       overflow: 'hidden',
@@ -703,17 +707,17 @@ const makeStyles = (theme: Theme) =>
       borderRadius: 9999,
     },
     blobOne: {
-      width: 280,
-      height: 280,
-      top: -130,
-      right: -100,
+      width: wide ? 392 : 280,
+      height: wide ? 392 : 280,
+      top: wide ? -182 : -130,
+      right: wide ? -140 : -100,
       backgroundColor: theme.colors.primary[400],
     },
     blobTwo: {
-      width: 220,
-      height: 220,
-      bottom: -110,
-      left: -70,
+      width: wide ? 308 : 220,
+      height: wide ? 308 : 220,
+      bottom: wide ? -154 : -110,
+      left: wide ? -98 : -70,
       backgroundColor: theme.colors.accent[500],
     },
     dotGrid: {
@@ -735,6 +739,9 @@ const makeStyles = (theme: Theme) =>
 
     heroBody: {
       zIndex: 2,
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -752,9 +759,9 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: theme.spacing.sm + 2,
       paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      backgroundColor: theme.colors.brand.glassBg,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
     },
     statusDot: {
       width: 8,
@@ -821,7 +828,7 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.14)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       borderWidth: 1,
       borderColor: 'rgba(255,255,255,0.2)',
     },
@@ -831,7 +838,7 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: 'rgba(255,255,255,0.1)',
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.18)',
+      borderColor: theme.colors.brand.glassBorder,
       paddingVertical: theme.spacing.sm,
     },
     heroStatCell: {
@@ -849,8 +856,12 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: 'rgba(255,255,255,0.18)',
     },
 
+    // Content wrap: centers & caps all post-hero content
     body: {
-      paddingHorizontal: theme.spacing.lg,
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+      paddingHorizontal: bp.gutter,
     },
 
     sectionEyebrow: {
@@ -947,7 +958,7 @@ const makeStyles = (theme: Theme) =>
       borderRadius: 11,
       backgroundColor: 'rgba(255,255,255,0.18)',
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.22)',
+      borderColor: theme.colors.brand.glassBorderStrong,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -985,3 +996,4 @@ const makeStyles = (theme: Theme) =>
       gap: 6,
     },
   });
+};

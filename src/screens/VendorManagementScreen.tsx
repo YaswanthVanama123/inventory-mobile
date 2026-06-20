@@ -18,6 +18,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import vendorService, {Vendor} from '../services/vendorService';
 import {
   AlertCircleIcon,
@@ -40,7 +41,8 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
   onClose,
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
@@ -189,6 +191,7 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }>
             {/* Add New Button */}
+            <View style={styles.contentWrap}>
             <View style={styles.addButtonContainer}>
               <Button
                 title="Add New Vendor"
@@ -370,6 +373,7 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
                 );
               })}
             </View>
+            </View>
           </ScrollView>
         )}
       </SafeAreaView>
@@ -377,7 +381,7 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -414,7 +418,14 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: bp.gutter,
+    paddingTop: theme.spacing.lg,
   },
   addButtonContainer: {
     marginBottom: theme.spacing.md,

@@ -16,6 +16,7 @@ import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import discrepancyService from '../services/discrepancyService';
 import {
   AlertCircleIcon,
@@ -79,7 +80,8 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   onClose,
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {user} = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -765,7 +767,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -871,6 +873,9 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   listContent: {
     padding: theme.spacing.md,
     gap: theme.spacing.sm,
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    width: '100%',
   },
   emptyCard: {
     alignItems: 'center',

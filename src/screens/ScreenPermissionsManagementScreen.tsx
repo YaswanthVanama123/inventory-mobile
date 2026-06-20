@@ -18,6 +18,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import screenPermissionService, {
   Screen,
   UserWithPermissions,
@@ -44,7 +45,8 @@ export const ScreenPermissionsManagementScreen: React.FC<
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -227,6 +229,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
             tintColor={theme.colors.primary[600]}
           />
         }>
+        <View style={styles.contentWrap}>
         <View style={styles.header}>
           <Typography variant="body" weight="semibold">
             Default Screens for All Employees
@@ -306,6 +309,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
             </Card>
           );
         })}
+        </View>
       </ScrollView>
     );
   };
@@ -325,6 +329,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
               tintColor={theme.colors.primary[600]}
             />
           }>
+          <View style={styles.contentWrap}>
           <TouchableOpacity
             style={styles.backRow}
             onPress={() => setSelectedUser(null)}>
@@ -432,6 +437,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
               </Card>
             );
           })}
+          </View>
         </ScrollView>
       );
     }
@@ -448,6 +454,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
             tintColor={theme.colors.primary[600]}
           />
         }>
+        <View style={styles.contentWrap}>
         <Typography
           variant="body"
           weight="semibold"
@@ -488,6 +495,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
             <ChevronDownIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
         ))}
+        </View>
       </ScrollView>
     );
   };
@@ -588,7 +596,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -655,7 +663,14 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
   },
   tabContentInner: {
-    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.lg,
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: bp.gutter,
+    paddingTop: theme.spacing.lg,
   },
   header: {
     marginBottom: theme.spacing.md,
@@ -718,7 +733,8 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flexDirection: 'row',
   },
   usersList: {
-    width: '40%',
+    width: bp.isMobile ? '90%' : '70%',
+    maxWidth: 560,
     backgroundColor: theme.colors.white,
     borderRightWidth: 1,
     borderRightColor: theme.colors.gray[200],

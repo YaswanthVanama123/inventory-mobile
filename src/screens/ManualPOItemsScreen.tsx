@@ -18,6 +18,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import manualPOItemService, {ManualPOItem} from '../services/manualPOItemService';
 import {
   AlertCircleIcon,
@@ -40,7 +41,8 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   onClose,
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
@@ -257,6 +259,7 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }>
+            <View style={styles.contentWrap}>
             {/* Add New Button */}
             <View style={styles.addButtonContainer}>
               <Button
@@ -442,6 +445,7 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                 );
               })}
             </View>
+            </View>{/* contentWrap */}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -469,6 +473,7 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
           </View>
 
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.contentWrap}>
             <View style={styles.formField}>
               <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
                 SKU
@@ -558,6 +563,7 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                 fullWidth
               />
             </View>
+            </View>{/* contentWrap */}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -565,10 +571,15 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   );
 };
 
-const makeStyles = (theme: Theme) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
   },
   modalHeader: {
     flexDirection: 'row',

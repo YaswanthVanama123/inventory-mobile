@@ -14,6 +14,8 @@ import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
+import {Theme} from '../theme';
+import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import truckCheckoutService from '../services/truckCheckoutService';
 import {
   TruckIcon,
@@ -32,6 +34,8 @@ export const TruckCheckoutDetailScreen: React.FC<
   TruckCheckoutDetailScreenProps
 > = ({route, navigation}) => {
   const theme = useTheme();
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {checkoutId} = route.params;
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
@@ -162,6 +166,7 @@ export const TruckCheckoutDetailScreen: React.FC<
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
+        <View style={styles.contentWrap}>
         {/* Header Card */}
         <Card style={styles.headerCard}>
           <View style={styles.headerTop}>
@@ -565,12 +570,13 @@ export const TruckCheckoutDetailScreen: React.FC<
             Delete Checkout
           </Typography>
         </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
@@ -579,8 +585,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
     paddingBottom: 40,
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    paddingHorizontal: bp.gutter,
+    paddingTop: bp.gutter,
   },
   loadingContainer: {
     flex: 1,
@@ -613,10 +625,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   infoGrid: {
+    flexDirection: bp.isMobile ? 'column' : 'row',
     gap: 12,
     marginBottom: 12,
   },
   infoCard: {
+    flex: bp.isMobile ? undefined : 1,
     padding: 16,
   },
   sectionTitle: {

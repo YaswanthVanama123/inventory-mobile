@@ -127,11 +127,15 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
 
   const toneStyles = (tone: FeatureTile['tone']) => {
     const palette = theme.colors[tone];
+    const isDark = theme.mode === 'dark';
     return {
-      tile: {backgroundColor: palette[50]},
-      iconWrap: {backgroundColor: palette[100]},
-      iconColor: palette[600],
-      accent: palette[600],
+      tile: {
+        backgroundColor: isDark ? theme.colors.gray[100] : palette[50],
+        borderColor: isDark ? palette[400] : theme.colors.gray[200],
+      },
+      iconWrap: {backgroundColor: isDark ? palette[400] : palette[100]},
+      iconColor: isDark ? theme.colors.white : palette[600],
+      accent: palette[isDark ? 400 : 600],
     };
   };
 
@@ -223,7 +227,7 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
       style={[styles.heroContent, {opacity: fade, transform: [{translateY: slide}]}]}>
       <View style={styles.statusChip}>
         <View style={styles.statusDot} />
-        <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+        <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
           Live · all systems syncing
         </Typography>
       </View>
@@ -231,13 +235,13 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
       <Typography
         variant="h1"
         weight="bold"
-        color={theme.colors.white}
+        color={theme.colors.brand.text}
         style={styles.heroTitle}>
         Run your inventory{'\n'}with confidence.
       </Typography>
       <Typography
         variant="body"
-        color={theme.colors.primary[100]}
+        color={theme.colors.brand.textMuted}
         style={styles.heroSubtitle}>
         One workspace for stock, orders, invoices, RouteStar sync and truck checkouts. Same data on web, iPad and mobile.
       </Typography>
@@ -247,13 +251,13 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
           title="Sign in"
           variant="primary"
           size="lg"
-          rightIcon={<ArrowRightIcon size={18} color={theme.colors.primary[700]} />}
+          rightIcon={<ArrowRightIcon size={18} color={theme.colors.brand.bg} />}
           onPress={handleSignIn}
           style={wide ? {...styles.primaryCta, flex: 0, paddingHorizontal: 28} : styles.primaryCta}
-          textStyle={{color: theme.colors.primary[700]}}
+          textStyle={{color: theme.colors.brand.bg}}
         />
         <TouchableOpacity style={styles.secondaryCta} onPress={handleSignIn} activeOpacity={0.85}>
-          <Typography variant="body" weight="semibold" color={theme.colors.white}>
+          <Typography variant="body" weight="semibold" color={theme.colors.brand.text}>
             Take a tour
           </Typography>
         </TouchableOpacity>
@@ -262,10 +266,10 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
       <View style={styles.statsRow}>
         {stats.map((s, idx) => (
           <View key={s.label} style={styles.statCell}>
-            <Typography variant="h3" weight="bold" color={theme.colors.white}>
+            <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
               {s.value}
             </Typography>
-            <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]}>
+            <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted}>
               {s.label.toUpperCase()}
             </Typography>
             {idx < stats.length - 1 && <View style={styles.statDivider} />}
@@ -301,13 +305,13 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
           <View style={styles.heroInner}>
             <View style={styles.brandRow}>
               <View style={styles.logoMark}>
-                <BoxIcon size={20} color={theme.colors.white} />
+                <BoxIcon size={20} color={theme.colors.brand.text} />
               </View>
-              <Typography variant="small" weight="semibold" color={theme.colors.white}>
+              <Typography variant="small" weight="semibold" color={theme.colors.brand.text}>
                 Inventory OS
               </Typography>
               <View style={styles.versionPill}>
-                <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
                   v2.6
                 </Typography>
               </View>
@@ -362,17 +366,24 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
               {features.map(feature => {
                 const t = toneStyles(feature.tone);
                 return (
-                  <View key={feature.title} style={[styles.featureTile, t.tile]}>
-                    <View style={[styles.featureIconWrap, t.iconWrap]}>
-                      <feature.Icon size={breakpoint.isWide ? 24 : 20} color={t.iconColor} />
+                  <View key={feature.title} style={styles.featureTile}>
+                    <View
+                      style={[
+                        styles.featureTileInner,
+                        t.tile,
+                        wide && styles.featureTileInnerWide,
+                      ]}>
+                      <View style={[styles.featureIconWrap, t.iconWrap]}>
+                        <feature.Icon size={breakpoint.isWide ? 26 : breakpoint.isDesktop ? 24 : 20} color={t.iconColor} />
+                      </View>
+                      <Typography variant="small" weight="bold" style={styles.featureTitle}>
+                        {feature.title}
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[600]} style={styles.featureDesc}>
+                        {feature.description}
+                      </Typography>
+                      <View style={[styles.featureAccent, {backgroundColor: t.accent}]} />
                     </View>
-                    <Typography variant="small" weight="bold" style={styles.featureTitle}>
-                      {feature.title}
-                    </Typography>
-                    <Typography variant="caption" color={theme.colors.gray[600]} style={styles.featureDesc}>
-                      {feature.description}
-                    </Typography>
-                    <View style={[styles.featureAccent, {backgroundColor: t.accent}]} />
                   </View>
                 );
               })}
@@ -451,7 +462,7 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
             <Typography
               variant="caption"
               weight="semibold"
-              color={theme.colors.primary[200]}
+              color={theme.colors.brand.textTracked}
               align="center"
               style={styles.ctaEyebrow}>
               READY WHEN YOU ARE
@@ -459,23 +470,23 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
             <Typography
               variant="h2"
               weight="bold"
-              color={theme.colors.white}
+              color={theme.colors.brand.text}
               align="center"
               style={styles.ctaTitle}>
               Get back to work.
             </Typography>
             <Typography
               variant="small"
-              color={theme.colors.primary[100]}
+              color={theme.colors.brand.textMuted}
               align="center"
               style={styles.ctaSubtitle}>
               Sign in to manage stock, run point of sale, and reconcile truck inventory.
             </Typography>
             <TouchableOpacity style={styles.ctaButton} onPress={handleSignIn} activeOpacity={0.85}>
-              <Typography variant="body" weight="semibold" color={theme.colors.primary[700]}>
+              <Typography variant="body" weight="semibold" color={theme.colors.brand.bg}>
                 Sign in to your workspace
               </Typography>
-              <ArrowRightIcon size={18} color={theme.colors.primary[700]} />
+              <ArrowRightIcon size={18} color={theme.colors.brand.bg} />
             </TouchableOpacity>
           </View>
 
@@ -517,7 +528,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     scrollContent: {paddingBottom: theme.spacing.xxl},
 
     hero: {
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bg,
       borderBottomLeftRadius: wide ? 40 : 32,
       borderBottomRightRadius: wide ? 40 : 32,
       overflow: 'hidden',
@@ -530,12 +541,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     blobOne: {
       width: wide ? 460 : 320, height: wide ? 460 : 320,
       top: wide ? -180 : -120, right: wide ? -160 : -100,
-      backgroundColor: theme.colors.primary[400],
+      backgroundColor: theme.colors.brand.surfaceTint,
     },
     blobTwo: {
       width: wide ? 340 : 240, height: wide ? 340 : 240,
       bottom: wide ? -140 : -90, left: wide ? -100 : -60,
-      backgroundColor: theme.colors.accent[500],
+      backgroundColor: theme.colors.brand.accentTint,
     },
     dotGrid: {
       position: 'absolute',
@@ -547,7 +558,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       gap: 12,
       opacity: 0.18,
     },
-    dot: {width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.white},
+    dot: {width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.brand.text},
 
     heroInner: {
       maxWidth: bp.contentMaxWidth,
@@ -563,16 +574,16 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     },
     logoMark: {
       width: 36, height: 36, borderRadius: 10,
-      backgroundColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: theme.colors.brand.glassBgStrong,
       alignItems: 'center', justifyContent: 'center',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorderStrong,
     },
     versionPill: {
       marginLeft: 'auto',
       paddingHorizontal: 10, paddingVertical: 3,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: theme.colors.brand.glassBg,
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorder,
     },
 
     heroSplit: {
@@ -592,11 +603,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       flexDirection: 'row', alignItems: 'center', gap: 8,
       paddingHorizontal: 10, paddingVertical: 6,
       borderRadius: 999,
-      backgroundColor: 'rgba(255,255,255,0.12)',
-      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: theme.colors.brand.glassBg,
+      borderWidth: 1, borderColor: theme.colors.brand.glassBorder,
       marginBottom: theme.spacing.lg,
     },
-    statusDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.success[400]},
+    statusDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.brand.successDot},
 
     heroTitle: {
       letterSpacing: -0.6,
@@ -614,14 +625,14 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       gap: theme.spacing.sm,
       marginBottom: theme.spacing.xl,
     },
-    primaryCta: {flex: 1, backgroundColor: theme.colors.white},
+    primaryCta: {flex: 1, backgroundColor: theme.colors.brand.text},
     secondaryCta: {
       paddingHorizontal: theme.spacing.md,
       paddingVertical: 14,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.32)',
-      backgroundColor: 'rgba(255,255,255,0.08)',
+      borderColor: theme.colors.brand.glassBorderStrong,
+      backgroundColor: theme.colors.brand.glassBg,
     },
 
     statsRow: {flexDirection: 'row', alignItems: 'center'},
@@ -630,7 +641,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       position: 'absolute',
       right: 0, top: 4, bottom: 4,
       width: 1,
-      backgroundColor: 'rgba(255,255,255,0.18)',
+      backgroundColor: theme.colors.brand.glassBorder,
     },
 
     previewWrap: {
@@ -711,6 +722,17 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingHorizontal: tileGap / 2,
       marginBottom: tileGap,
     },
+    featureTileInner: {
+      borderRadius: 18,
+      padding: wide ? 22 : 16,
+      borderWidth: 1,
+      position: 'relative',
+      overflow: 'hidden',
+      minHeight: wide ? 200 : 160,
+    },
+    featureTileInnerWide: {
+      ...theme.shadows.xs,
+    },
 
     featureIconWrap: {
       width: wide ? 48 : 38,
@@ -724,9 +746,9 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     featureDesc: {lineHeight: 18},
     featureAccent: {
       position: 'absolute',
-      left: tileGap / 2,
-      bottom: tileGap,
-      width: 36,
+      left: 0,
+      bottom: 0,
+      width: wide ? 56 : 36,
       height: 3,
       borderTopRightRadius: 3,
     },
@@ -800,7 +822,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       marginTop: theme.spacing.xl,
       padding: wide ? theme.spacing.xxl : theme.spacing.xl,
       borderRadius: 24,
-      backgroundColor: theme.colors.primary[700],
+      backgroundColor: theme.colors.brand.bgDeep,
       alignItems: 'center',
       overflow: 'hidden',
       position: 'relative',
@@ -808,14 +830,14 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     ctaBlobOne: {
       width: 240, height: 240,
       top: -80, right: -60,
-      backgroundColor: theme.colors.primary[500],
-      opacity: 0.45,
+      backgroundColor: theme.colors.brand.bgSoft,
+      opacity: 0.55,
     },
     ctaBlobTwo: {
       width: 200, height: 200,
       bottom: -60, left: -40,
-      backgroundColor: theme.colors.accent[500],
-      opacity: 0.35,
+      backgroundColor: theme.colors.brand.accentTint,
+      opacity: 0.4,
     },
     ctaEyebrow: {letterSpacing: 1.5, marginBottom: theme.spacing.sm, zIndex: 2},
     ctaTitle: {marginBottom: theme.spacing.sm, zIndex: 2, letterSpacing: -0.4},
@@ -824,7 +846,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.sm,
-      backgroundColor: theme.colors.white,
+      backgroundColor: theme.colors.brand.text,
       paddingHorizontal: theme.spacing.lg,
       paddingVertical: theme.spacing.md,
       borderRadius: 12,
