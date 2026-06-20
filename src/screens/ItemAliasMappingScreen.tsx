@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   ScrollView,
@@ -9,12 +9,13 @@ import {
   TextInput as RNTextInput,
   RefreshControl,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
-import {PickerModal} from '../components/molecules/PickerModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -24,13 +25,14 @@ import {
   AlertCircleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  BoxIcon,
   CheckCircleIcon,
-  WarningIcon,
   TagIcon,
   LinkIcon,
   EditIcon,
   CloseIcon,
+  RefreshIcon,
+  SearchIcon,
+  PlusIcon,
 } from '../components/icons';
 
 interface ItemAliasMappingScreenProps {
@@ -38,10 +40,7 @@ interface ItemAliasMappingScreenProps {
   onClose: () => void;
 }
 
-export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
-  visible,
-  onClose,
-}) => {
+export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({visible, onClose}) => {
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const {token} = useAuth();
@@ -56,56 +55,71 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
   const [filterStatus, setFilterStatus] = useState<'all' | 'mapped' | 'unmapped'>('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    totalUniqueItems: 0,
-    mappedItems: 0,
-    unmappedItems: 0,
-  });
+  const [stats, setStats] = useState({totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0});
   const [quickMapVisible, setQuickMapVisible] = useState(false);
   const [quickMapItem, setQuickMapItem] = useState<any>(null);
   const [quickCanonicalName, setQuickCanonicalName] = useState('');
   const [quickMapSelectedItems, setQuickMapSelectedItems] = useState<Set<string>>(new Set());
   const [quickMapSearchQuery, setQuickMapSearchQuery] = useState('');
-
-  // Edit Mapping state
   const [editMappingVisible, setEditMappingVisible] = useState(false);
   const [editingMapping, setEditingMapping] = useState<any>(null);
   const [editCanonicalName, setEditCanonicalName] = useState('');
   const [editSelectedAliases, setEditSelectedAliases] = useState<Set<string>>(new Set());
   const [editSearchQuery, setEditSearchQuery] = useState('');
   const [showMappingsSection, setShowMappingsSection] = useState(false);
+
+  const heroFade = useRef(new Animated.Value(1)).current;
+  const heroSlide = useRef(new Animated.Value(0)).current;
+  const blobPulse = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
+    if (visible && token) loadData();
   }, [visible, token]);
+
   useEffect(() => {
     filterItems();
   }, [uniqueItems, searchQuery, filterStatus]);
+
+  useEffect(() => {
+    if (visible) {
+      heroFade.setValue(0.6);
+      heroSlide.setValue(16);
+      Animated.parallel([
+        Animated.timing(heroFade, {toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true}),
+        Animated.timing(heroSlide, {toValue: 0, duration: 360, easing: Easing.out(Easing.cubic), useNativeDriver: true}),
+      ]).start();
+    }
+  }, [visible, heroFade, heroSlide]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(blobPulse, {toValue: 1, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true}),
+        Animated.timing(blobPulse, {toValue: 0, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true}),
+      ]),
+    ).start();
+  }, [blobPulse]);
+
   const loadData = async () => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
       const pageData = await itemAliasService.getPageData(token);
-      console.log('[ItemAliasScreen] Page data loaded:', {
-        mappings: pageData.mappings?.length || 0,
-        items: pageData.items?.length || 0,
-        stats: pageData.stats,
-      });
       setMappings(pageData.mappings || []);
       setUniqueItems(pageData.items || []);
       setStats(pageData.stats || {totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0});
-    } catch (error: any) {
-      console.error('Failed to fetch item alias data:', error);
-      const wasHandled = await handleApiError(error);
+    } catch (err: any) {
+      console.error('Failed to fetch item alias data:', err);
+      const wasHandled = await handleApiError(err);
       if (wasHandled) return;
-      setError(error.message || 'Failed to load data');
+      setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
+
   const filterItems = () => {
     let filtered = [...uniqueItems];
     if (searchQuery) {
@@ -114,36 +128,31 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
         item =>
           item.itemName.toLowerCase().includes(searchLower) ||
           (item.canonicalName && item.canonicalName.toLowerCase().includes(searchLower)) ||
-          (item.itemParent && item.itemParent.toLowerCase().includes(searchLower))
+          (item.itemParent && item.itemParent.toLowerCase().includes(searchLower)),
       );
     }
-    if (filterStatus === 'mapped') {
-      filtered = filtered.filter(item => item.isMapped);
-    } else if (filterStatus === 'unmapped') {
-      filtered = filtered.filter(item => !item.isMapped);
-    }
+    if (filterStatus === 'mapped') filtered = filtered.filter(item => item.isMapped);
+    else if (filterStatus === 'unmapped') filtered = filtered.filter(item => !item.isMapped);
     setFilteredItems(filtered);
   };
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
+
   const handleItemPress = (itemName: string) => {
     const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(itemName)) {
-      newExpanded.delete(itemName);
-    } else {
-      newExpanded.add(itemName);
-    }
+    if (newExpanded.has(itemName)) newExpanded.delete(itemName);
+    else newExpanded.add(itemName);
     setExpandedItems(newExpanded);
   };
+
   const openQuickMapModal = (item: any) => {
     setQuickMapItem(item);
     setQuickCanonicalName(item.itemName);
     setQuickMapSearchQuery('');
-    const currentMapping = mappings.find(m =>
-      m.aliases.some((a: any) => a.name === item.itemName)
-    );
+    const currentMapping = mappings.find(m => m.aliases.some((a: any) => a.name === item.itemName));
     if (currentMapping) {
       setQuickCanonicalName(currentMapping.canonicalName);
       const aliasNames = new Set<string>(currentMapping.aliases.map((a: any) => a.name));
@@ -153,27 +162,22 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
     }
     setQuickMapVisible(true);
   };
+
   const toggleQuickMapItem = (itemName: string) => {
     const newSelected = new Set(quickMapSelectedItems);
     if (itemName === quickMapItem?.itemName && newSelected.has(itemName) && newSelected.size === 1) {
       Alert.alert('Warning', 'You must select at least the current item');
       return;
     }
-    if (newSelected.has(itemName)) {
-      newSelected.delete(itemName);
-    } else {
-      newSelected.add(itemName);
-    }
+    if (newSelected.has(itemName)) newSelected.delete(itemName);
+    else newSelected.add(itemName);
     setQuickMapSelectedItems(newSelected);
   };
+
   const getFilteredItemsForQuickMap = () => {
-    const currentMapping = mappings.find(m =>
-      m.aliases.some((a: any) => a.name === quickMapItem?.itemName)
-    );
+    const currentMapping = mappings.find(m => m.aliases.some((a: any) => a.name === quickMapItem?.itemName));
     return uniqueItems.filter(item => {
-      if (item.isMapped && currentMapping && item.canonicalName !== currentMapping.canonicalName) {
-        return false;
-      }
+      if (item.isMapped && currentMapping && item.canonicalName !== currentMapping.canonicalName) return false;
       if (quickMapSearchQuery) {
         const searchLower = quickMapSearchQuery.toLowerCase();
         return (
@@ -184,6 +188,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
       return true;
     });
   };
+
   const quickMapSubmit = async () => {
     if (!quickCanonicalName.trim()) {
       Alert.alert('Error', 'Please enter a canonical name');
@@ -195,9 +200,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
     }
     try {
       setSaving(true);
-      const currentMapping = mappings.find(m =>
-        m.aliases.some((a: any) => a.name === quickMapItem?.itemName)
-      );
+      const currentMapping = mappings.find(m => m.aliases.some((a: any) => a.name === quickMapItem?.itemName));
       if (currentMapping) {
         await itemAliasService.deleteMapping(token!, currentMapping._id);
       }
@@ -214,14 +217,13 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
       setQuickMapSelectedItems(new Set());
       setQuickMapSearchQuery('');
       loadData();
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create mapping');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to create mapping');
     } finally {
       setSaving(false);
     }
   };
 
-  // Edit Mapping functions
   const openEditMapping = (mapping: any) => {
     setEditingMapping(mapping);
     setEditCanonicalName(mapping.canonicalName);
@@ -247,9 +249,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
 
   const getFilteredItemsForEdit = () => {
     return uniqueItems.filter(item => {
-      // Show unmapped items or items already in this mapping
-      const isAvailable = !item.isMapped ||
-        (editingMapping && item.canonicalName === editingMapping.canonicalName);
+      const isAvailable = !item.isMapped || (editingMapping && item.canonicalName === editingMapping.canonicalName);
       if (!isAvailable) return false;
       if (editSearchQuery) {
         const searchLower = editSearchQuery.toLowerCase();
@@ -287,42 +287,30 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
       setEditSelectedAliases(new Set());
       setEditSearchQuery('');
       loadData();
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update mapping');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to update mapping');
     } finally {
       setSaving(false);
     }
   };
+
+  const blobScale = blobPulse.interpolate({inputRange: [0, 1], outputRange: [1, 1.08]});
+  const blobOpacity = blobPulse.interpolate({inputRange: [0, 1], outputRange: [0.18, 0.28]});
+
+  const completionPct = stats.totalUniqueItems > 0
+    ? Math.round((stats.mappedItems / stats.totalUniqueItems) * 100)
+    : 0;
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
-              Close
-            </Typography>
-          </TouchableOpacity>
-          <Typography variant="h3" weight="bold" style={styles.modalTitle}>
-            Item Alias Mapping
-          </Typography>
-          <TouchableOpacity onPress={loadData} style={styles.refreshButton}>
-            <Typography variant="small" color={theme.colors.primary[600]} weight="semibold">
-              Refresh
-            </Typography>
-          </TouchableOpacity>
-        </View>
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
+            <View style={styles.loadingMark}>
+              <TagIcon size={22} color={theme.colors.primary[600]} />
+            </View>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-            <Typography
-              variant="body"
-              color={theme.colors.gray[600]}
-              style={{marginTop: 16}}>
+            <Typography variant="body" color={theme.colors.gray[600]} style={{marginTop: 16}}>
               Loading item aliases...
             </Typography>
           </View>
@@ -332,305 +320,307 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.white} />
             }>
-            {/* Stats Cards */}
-            <View style={styles.statsGrid}>
-              <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.gray[600]}]}>
-                  <TagIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Unique Items
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.totalUniqueItems}
-                  </Typography>
-                </View>
+            <View style={styles.hero}>
+              <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+              <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+              <View style={styles.dotGrid} pointerEvents="none">
+                {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
               </View>
-              <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
-                  <CheckCircleIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Mapped
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.mappedItems}
-                  </Typography>
-                  <Typography variant="caption" style={styles.statSubtitle}>
-                    {stats.totalUniqueItems > 0
-                      ? Math.round((stats.mappedItems / stats.totalUniqueItems) * 100)
-                      : 0}
-                    % complete
+
+              <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
+                <View style={styles.heroTopRow}>
+                  <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
+                    <CloseIcon size={16} color={theme.colors.white} />
+                  </TouchableOpacity>
+                  <View style={{flex: 1}}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[200]} style={styles.heroEyebrow}>
+                      MAPPING
+                    </Typography>
+                    <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroTitle}>
+                      Item Aliases
+                    </Typography>
+                    <Typography variant="small" color={theme.colors.primary[100]}>
+                      Group variant names under one canonical item
+                    </Typography>
+                  </View>
+                  <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
+                    <RefreshIcon size={18} color={theme.colors.white} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.statusChip}>
+                  <View style={styles.statusDot} />
+                  <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                    {completionPct}% mapped · {mappings.length} groups
                   </Typography>
                 </View>
-              </View>
-              <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
-                  <WarningIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Unmapped
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.unmappedItems}
-                  </Typography>
-                  <Typography variant="caption" style={styles.statSubtitle}>
-                    Needs attention
-                  </Typography>
+
+                <View style={styles.heroMetricsRow}>
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      ITEMS
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.totalUniqueItems}
+                    </Typography>
+                  </View>
+                  <View style={styles.heroMetricDivider} />
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      MAPPED
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.mappedItems}
+                    </Typography>
+                  </View>
+                  <View style={styles.heroMetricDivider} />
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      UNMAPPED
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.unmappedItems}
+                    </Typography>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
-                  <LinkIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Mappings
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {mappings.length}
-                  </Typography>
-                  <Typography variant="caption" style={styles.statSubtitle}>
-                    Active
-                  </Typography>
-                </View>
+              </Animated.View>
+            </View>
+
+            <View style={styles.searchWrap}>
+              <View style={styles.searchCard}>
+                <SearchIcon size={18} color={theme.colors.gray[500]} />
+                <RNTextInput
+                  style={styles.searchInput}
+                  placeholder="Search by name or canonical..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+                {searchQuery ? (
+                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear} activeOpacity={0.7}>
+                    <CloseIcon size={14} color={theme.colors.gray[500]} />
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
-            {/* Existing Mappings Section */}
-            <Card variant="elevated" padding="md" style={styles.mappingsSection}>
-              <TouchableOpacity
-                style={styles.mappingsSectionHeader}
-                onPress={() => setShowMappingsSection(!showMappingsSection)}>
-                <Typography variant="body" weight="bold">
-                  Existing Mappings ({mappings.length})
-                </Typography>
-                {showMappingsSection ? (
-                  <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
-                ) : (
-                  <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
-                )}
-              </TouchableOpacity>
-              {showMappingsSection && (
-                <View style={styles.mappingsList}>
-                  {mappings.map((mapping: any, idx: number) => (
+
+            <View style={styles.tabsWrap}>
+              <View style={styles.tabsCard}>
+                {(
+                  [
+                    {key: 'all', label: 'All'},
+                    {key: 'mapped', label: 'Mapped'},
+                    {key: 'unmapped', label: 'Unmapped'},
+                  ] as const
+                ).map(opt => {
+                  const active = filterStatus === opt.key;
+                  return (
                     <TouchableOpacity
-                      key={mapping._id || idx}
-                      style={[styles.mappingItem, idx > 0 && styles.mappingItemBorder]}
-                      onPress={() => openEditMapping(mapping)}>
-                      <View style={styles.mappingItemContent}>
-                        <Typography variant="body" weight="semibold" numberOfLines={1}>
-                          {mapping.canonicalName}
-                        </Typography>
-                        <View style={styles.aliasChipsRow}>
-                          {mapping.aliases.slice(0, 3).map((alias: any, aIdx: number) => (
-                            <View key={aIdx} style={styles.aliasChip}>
-                              <Typography variant="caption" color={theme.colors.primary[700]}>
-                                {alias.name}
-                              </Typography>
-                            </View>
-                          ))}
-                          {mapping.aliases.length > 3 && (
-                            <Typography variant="caption" color={theme.colors.gray[500]}>
-                              +{mapping.aliases.length - 3} more
-                            </Typography>
-                          )}
-                        </View>
-                      </View>
-                      <View style={styles.editBadge}>
-                        <EditIcon size={16} color={theme.colors.primary[600]} />
-                      </View>
+                      key={opt.key}
+                      style={[styles.tab, active && styles.tabActive]}
+                      onPress={() => setFilterStatus(opt.key)}
+                      activeOpacity={0.85}>
+                      <Typography
+                        variant="small"
+                        weight="semibold"
+                        color={active ? theme.colors.white : theme.colors.gray[700]}>
+                        {opt.label}
+                      </Typography>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </Card>
-            {/* Filter Tabs */}
-            <View style={styles.tabsContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  filterStatus === 'all' && styles.tabActive,
-                ]}
-                onPress={() => setFilterStatus('all')}>
-                <Typography
-                  variant="small"
-                  weight="semibold"
-                  color={
-                    filterStatus === 'all'
-                      ? theme.colors.white
-                      : theme.colors.gray[600]
-                  }>
-                  All Items
-                </Typography>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  filterStatus === 'mapped' && styles.tabActive,
-                ]}
-                onPress={() => setFilterStatus('mapped')}>
-                <Typography
-                  variant="small"
-                  weight="semibold"
-                  color={
-                    filterStatus === 'mapped'
-                      ? theme.colors.white
-                      : theme.colors.gray[600]
-                  }>
-                  Mapped
-                </Typography>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  filterStatus === 'unmapped' && styles.tabActive,
-                ]}
-                onPress={() => setFilterStatus('unmapped')}>
-                <Typography
-                  variant="small"
-                  weight="semibold"
-                  color={
-                    filterStatus === 'unmapped'
-                      ? theme.colors.white
-                      : theme.colors.gray[600]
-                  }>
-                  Unmapped
-                </Typography>
-              </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-              <RNTextInput
-                style={styles.searchInput}
-                placeholder="Search item names..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor={theme.colors.gray[400]}
-              />
-            </View>
-            {/* Error State */}
+
+            {mappings.length > 0 && (
+              <View style={styles.mappingsSectionWrap}>
+                <Card variant="elevated" padding="none" style={styles.mappingsCard}>
+                  <TouchableOpacity
+                    style={styles.mappingsHeader}
+                    onPress={() => setShowMappingsSection(!showMappingsSection)}
+                    activeOpacity={0.85}>
+                    <View style={styles.mappingsHeaderLeft}>
+                      <View style={[styles.mappingsHeaderIcon, {backgroundColor: theme.colors.success[50]}]}>
+                        <LinkIcon size={14} color={theme.colors.success[600]} />
+                      </View>
+                      <Typography variant="small" weight="semibold">
+                        Existing mappings
+                      </Typography>
+                      <View style={[styles.countPill, {backgroundColor: theme.colors.success[50]}]}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                          {mappings.length}
+                        </Typography>
+                      </View>
+                    </View>
+                    {showMappingsSection ? (
+                      <ChevronDownIcon size={16} color={theme.colors.gray[600]} />
+                    ) : (
+                      <ChevronRightIcon size={16} color={theme.colors.gray[600]} />
+                    )}
+                  </TouchableOpacity>
+                  {showMappingsSection && (
+                    <View style={styles.mappingsBody}>
+                      {mappings.map((mapping: any, idx: number) => (
+                        <TouchableOpacity
+                          key={mapping._id || idx}
+                          style={[styles.mappingItem, idx > 0 && styles.mappingItemBorder]}
+                          onPress={() => openEditMapping(mapping)}
+                          activeOpacity={0.85}>
+                          <View style={styles.mappingItemContent}>
+                            <Typography variant="small" weight="bold" numberOfLines={1}>
+                              {mapping.canonicalName}
+                            </Typography>
+                            <View style={styles.aliasChipsRow}>
+                              {mapping.aliases.slice(0, 3).map((alias: any, aIdx: number) => (
+                                <View key={aIdx} style={styles.aliasChip}>
+                                  <Typography variant="caption" color={theme.colors.primary[700]} numberOfLines={1}>
+                                    {alias.name}
+                                  </Typography>
+                                </View>
+                              ))}
+                              {mapping.aliases.length > 3 && (
+                                <Typography variant="caption" color={theme.colors.gray[500]}>
+                                  +{mapping.aliases.length - 3} more
+                                </Typography>
+                              )}
+                            </View>
+                          </View>
+                          <View style={styles.editBadge}>
+                            <EditIcon size={14} color={theme.colors.primary[600]} />
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </Card>
+              </View>
+            )}
+
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
                 <View style={styles.errorContent}>
-                  <AlertCircleIcon size={24} color={theme.colors.error[500]} />
-                  <Typography
-                    variant="body"
-                    color={theme.colors.error[700]}
-                    style={styles.errorText}>
+                  <View style={styles.errorIconWrap}>
+                    <AlertCircleIcon size={22} color={theme.colors.error[600]} />
+                  </View>
+                  <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
                     {error}
                   </Typography>
                 </View>
               </Card>
             )}
-            {/* Empty State */}
+
             {!error && filteredItems.length === 0 && (
-              <Card variant="outlined" padding="lg" style={styles.emptyCard}>
-                <TagIcon size={48} color={theme.colors.gray[400]} />
-                <Typography
-                  variant="h3"
-                  weight="semibold"
-                  color={theme.colors.gray[700]}
-                  style={styles.emptyTitle}>
+              <Card variant="elevated" padding="lg" style={styles.emptyCard}>
+                <View style={styles.emptyIconWrap}>
+                  <TagIcon size={32} color={theme.colors.primary[600]} />
+                </View>
+                <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
                   No items found
                 </Typography>
-                <Typography
-                  variant="body"
-                  color={theme.colors.gray[500]}
-                  align="center">
-                  {searchQuery
-                    ? 'Try adjusting your search'
-                    : 'No items available'}
+                <Typography variant="small" color={theme.colors.gray[500]} align="center">
+                  {searchQuery ? 'Try adjusting your search.' : 'No items available yet.'}
                 </Typography>
               </Card>
             )}
-            {/* Items List */}
+
+            {!error && filteredItems.length > 0 && (
+              <View style={styles.sectionEyebrow}>
+                <View style={styles.eyebrowLine} />
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+                  ITEMS · {filteredItems.length}
+                </Typography>
+              </View>
+            )}
+
             <View style={styles.itemsList}>
               {filteredItems.map((item, index) => {
                 const isExpanded = expandedItems.has(item.itemName);
                 const isMapped = Boolean(item.isMapped);
+                const stripeColor = isMapped ? theme.colors.success[500] : theme.colors.warning[500];
                 return (
-                  <Card
-                    key={item.itemName || index}
-                    variant="elevated"
-                    padding="none"
-                    style={[
-                      styles.itemCard,
-                      isMapped && styles.itemCardMapped,
-                    ]}>
-                    <TouchableOpacity
-                      onPress={() => handleItemPress(item.itemName)}
-                      style={styles.itemHeader}>
-                      <View style={styles.itemHeaderLeft}>
-                        <View style={styles.chevronContainer}>
-                          {isExpanded ? (
-                            <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
-                          ) : (
-                            <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
-                          )}
-                        </View>
-                        <View style={styles.itemInfo}>
-                          <Typography variant="body" weight="bold" numberOfLines={1}>
-                            {item.itemName}
-                          </Typography>
-                          <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                            {item.itemParent || 'No parent'}
-                          </Typography>
-                        </View>
+                  <Card key={item.itemName || index} variant="elevated" padding="none" style={styles.itemCard}>
+                    <View style={[styles.itemStripe, {backgroundColor: stripeColor}]} />
+                    <TouchableOpacity onPress={() => handleItemPress(item.itemName)} style={styles.itemHeader} activeOpacity={0.85}>
+                      <View
+                        style={[
+                          styles.itemIconWrap,
+                          {backgroundColor: isMapped ? theme.colors.success[50] : theme.colors.warning[50]},
+                        ]}>
+                        <TagIcon
+                          size={18}
+                          color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]}
+                        />
                       </View>
-                      <View style={styles.itemHeaderRight}>
-                        {isMapped ? (
-                          <View style={[styles.statusBadge, {backgroundColor: theme.colors.success[100]}]}>
+                      <View style={styles.itemInfo}>
+                        <Typography variant="body" weight="bold" numberOfLines={1}>
+                          {item.itemName}
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                          {item.itemParent || 'No parent'} · qty {item.qtyOnHand?.toFixed(2) || '0'}
+                        </Typography>
+                        {isMapped && item.canonicalName && (
+                          <View style={styles.canonicalHint}>
+                            <LinkIcon size={11} color={theme.colors.success[600]} />
                             <Typography
                               variant="caption"
                               weight="semibold"
-                              color={theme.colors.success[600]}>
-                              Mapped
-                            </Typography>
-                          </View>
-                        ) : (
-                          <View style={[styles.statusBadge, {backgroundColor: theme.colors.error[100]}]}>
-                            <Typography
-                              variant="caption"
-                              weight="semibold"
-                              color={theme.colors.error[600]}>
-                              Unmapped
+                              color={theme.colors.success[700]}
+                              numberOfLines={1}>
+                              {item.canonicalName}
                             </Typography>
                           </View>
                         )}
                       </View>
+                      <View
+                        style={[
+                          styles.statusPill,
+                          {backgroundColor: isMapped ? theme.colors.success[50] : theme.colors.warning[50]},
+                        ]}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={isMapped ? theme.colors.success[700] : theme.colors.warning[700]}>
+                          {isMapped ? 'Mapped' : 'Unmapped'}
+                        </Typography>
+                      </View>
+                      <View style={styles.chevronCircle}>
+                        {isExpanded ? (
+                          <ChevronDownIcon size={14} color={theme.colors.gray[700]} />
+                        ) : (
+                          <ChevronRightIcon size={14} color={theme.colors.gray[700]} />
+                        )}
+                      </View>
                     </TouchableOpacity>
-                    {/* Item Details */}
+
                     <View style={styles.itemMeta}>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Mapped To
-                        </Typography>
-                        <Typography variant="small" weight="medium" numberOfLines={1} style={{flex: 1, textAlign: 'right'}}>
-                          {item.canonicalName || 'Not mapped'}
-                        </Typography>
-                      </View>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Qty on Hand
-                        </Typography>
-                        <Typography variant="small" weight="medium">
-                          {item.qtyOnHand !== undefined ? item.qtyOnHand.toFixed(2) : '0'}
-                        </Typography>
-                      </View>
                       <View style={styles.metaRow}>
                         <Typography variant="caption" color={theme.colors.gray[500]}>
                           Occurrences
                         </Typography>
-                        <Typography variant="small" weight="medium">
+                        <Typography variant="small" weight="semibold">
                           {item.occurrences || 0}
                         </Typography>
                       </View>
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Qty on hand
+                        </Typography>
+                        <Typography variant="small" weight="semibold">
+                          {item.qtyOnHand !== undefined ? item.qtyOnHand.toFixed(2) : '0'}
+                        </Typography>
+                      </View>
                     </View>
-                    {/* Expanded Content */}
+
                     {isExpanded && !isMapped && (
                       <View style={styles.expandedContent}>
                         <Button
-                          title="Quick Map This Item"
+                          title="Quick map this item"
                           variant="primary"
                           onPress={() => openQuickMapModal(item)}
                           fullWidth
+                          leftIcon={<PlusIcon size={14} color={theme.colors.white} />}
                         />
                       </View>
                     )}
@@ -640,38 +630,43 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
             </View>
           </ScrollView>
         )}
-        {/* Quick Map Modal */}
+
         <Modal
           visible={quickMapVisible}
           animationType="slide"
           presentationStyle="pageSheet"
           onRequestClose={() => setQuickMapVisible(false)}>
-          <SafeAreaView style={styles.modalContainer} edges={['top', 'left', 'right']}>
-            <View style={styles.quickMapHeader}>
-              <TouchableOpacity onPress={() => setQuickMapVisible(false)} style={styles.closeButton}>
-                <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
-                  Cancel
-                </Typography>
+          <SafeAreaView style={styles.subModalContainer} edges={['top', 'left', 'right']}>
+            <View style={styles.subModalHeader}>
+              <TouchableOpacity onPress={() => setQuickMapVisible(false)} style={styles.subModalCloseBtn} activeOpacity={0.7}>
+                <CloseIcon size={16} color={theme.colors.gray[600]} />
               </TouchableOpacity>
-              <Typography variant="h3" weight="bold" style={styles.modalTitle}>
-                Quick Map
-              </Typography>
-              <View style={styles.closeButton} />
+              <View style={{flex: 1}}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]} style={{letterSpacing: 1.2}}>
+                  QUICK MAP
+                </Typography>
+                <Typography variant="h3" weight="bold">
+                  Group items
+                </Typography>
+              </View>
             </View>
-            <ScrollView style={styles.quickMapScroll} contentContainerStyle={styles.quickMapContent}>
-              {/* Main Item Info */}
-              <Card variant="elevated" padding="md" style={styles.mainItemCard}>
-                <Typography variant="small" color={theme.colors.primary[600]} weight="semibold">
+            <ScrollView style={{flex: 1}} contentContainerStyle={styles.subModalContent}>
+              <View style={styles.mainItemCard}>
+                <Typography
+                  variant="caption"
+                  weight="semibold"
+                  color={theme.colors.primary[700]}
+                  style={{letterSpacing: 1}}>
                   MAIN ITEM
                 </Typography>
-                <Typography variant="body" weight="bold" style={{marginTop: 4}}>
+                <Typography variant="body" weight="bold" style={{marginTop: 2}}>
                   {quickMapItem?.itemName}
                 </Typography>
-              </Card>
-              {/* Canonical Name Input */}
+              </View>
+
               <View style={styles.inputSection}>
-                <Typography variant="small" weight="semibold" style={styles.inputLabel}>
-                  Canonical Name (Master Name) *
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
+                  CANONICAL NAME *
                 </Typography>
                 <RNTextInput
                   style={styles.textInput}
@@ -681,39 +676,45 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   placeholderTextColor={theme.colors.gray[400]}
                 />
                 <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
-                  All selected items will be displayed as this name in reports
+                  Selected items will display under this name in reports.
                 </Typography>
               </View>
-              {/* Selected Items */}
-              <Card variant="elevated" padding="md" style={styles.selectedItemsCard}>
-                <Typography variant="small" weight="semibold" color={theme.colors.success[700]}>
-                  Selected Items ({quickMapSelectedItems.size})
-                </Typography>
+
+              <View style={styles.selectedItemsCard}>
+                <View style={styles.selectedItemsHeader}>
+                  <CheckCircleIcon size={14} color={theme.colors.success[600]} />
+                  <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                    Selected · {quickMapSelectedItems.size}
+                  </Typography>
+                </View>
                 <View style={styles.selectedItemsContainer}>
                   {Array.from(quickMapSelectedItems).map((name, idx) => (
                     <View key={idx} style={styles.selectedItemChip}>
-                      <Typography variant="caption" color={theme.colors.success[700]}>
+                      <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
                         {name}
                       </Typography>
                     </View>
                   ))}
                 </View>
-              </Card>
-              {/* Search Items */}
-              <View style={styles.inputSection}>
-                <Typography variant="small" weight="semibold" style={styles.inputLabel}>
-                  Select Items to Group Together
-                </Typography>
-                <RNTextInput
-                  style={styles.textInput}
-                  placeholder="Search items to combine..."
-                  value={quickMapSearchQuery}
-                  onChangeText={setQuickMapSearchQuery}
-                  placeholderTextColor={theme.colors.gray[400]}
-                />
               </View>
-              {/* Items List */}
-              <Card variant="elevated" padding="none" style={styles.itemsListCard}>
+
+              <View style={styles.inputSection}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
+                  ADD MORE ITEMS
+                </Typography>
+                <View style={styles.searchInputRow}>
+                  <SearchIcon size={16} color={theme.colors.gray[500]} />
+                  <RNTextInput
+                    style={styles.searchInputField}
+                    placeholder="Search items..."
+                    value={quickMapSearchQuery}
+                    onChangeText={setQuickMapSearchQuery}
+                    placeholderTextColor={theme.colors.gray[400]}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.itemsListCard}>
                 {getFilteredItemsForQuickMap().map((item, idx) => {
                   const isSelected = quickMapSelectedItems.has(item.itemName);
                   return (
@@ -724,31 +725,30 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                         isSelected && styles.selectableItemSelected,
                         idx > 0 && styles.selectableItemBorder,
                       ]}
-                      onPress={() => toggleQuickMapItem(item.itemName)}>
-                      <View style={styles.checkboxContainer}>
-                        <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                          {isSelected && <CheckCircleIcon size={16} color={theme.colors.white} />}
-                        </View>
+                      onPress={() => toggleQuickMapItem(item.itemName)}
+                      activeOpacity={0.85}>
+                      <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                        {isSelected && <CheckCircleIcon size={14} color={theme.colors.white} />}
                       </View>
                       <View style={styles.selectableItemContent}>
-                        <Typography variant="small" weight={isSelected ? 'semibold' : 'normal'} numberOfLines={1}>
+                        <Typography variant="small" weight={isSelected ? 'bold' : 'normal'} numberOfLines={1}>
                           {item.itemName}
                           {item.itemName === quickMapItem?.itemName && (
-                            <Typography variant="caption" color={theme.colors.primary[600]}> (Main)</Typography>
+                            <Typography variant="caption" color={theme.colors.primary[600]}> · main</Typography>
                           )}
                         </Typography>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          {item.itemParent || 'No parent'} • Qty: {item.qtyOnHand?.toFixed(2) || '0'}
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                          {item.itemParent || 'No parent'} · qty {item.qtyOnHand?.toFixed(2) || '0'}
                         </Typography>
                       </View>
                     </TouchableOpacity>
                   );
                 })}
-              </Card>
-              {/* Action Buttons */}
+              </View>
+
               <View style={styles.actionButtons}>
                 <Button
-                  title={`Map ${quickMapSelectedItems.size} Items`}
+                  title={saving ? 'Saving...' : `Map ${quickMapSelectedItems.size} items`}
                   variant="primary"
                   onPress={quickMapSubmit}
                   disabled={saving || !quickCanonicalName.trim()}
@@ -759,29 +759,29 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
           </SafeAreaView>
         </Modal>
 
-        {/* Edit Mapping Modal */}
         <Modal
           visible={editMappingVisible}
           animationType="slide"
           presentationStyle="pageSheet"
           onRequestClose={() => setEditMappingVisible(false)}>
-          <SafeAreaView style={styles.modalContainer} edges={['top', 'left', 'right']}>
-            <View style={styles.quickMapHeader}>
-              <TouchableOpacity onPress={() => setEditMappingVisible(false)} style={styles.closeButton}>
-                <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
-                  Cancel
-                </Typography>
+          <SafeAreaView style={styles.subModalContainer} edges={['top', 'left', 'right']}>
+            <View style={styles.subModalHeader}>
+              <TouchableOpacity onPress={() => setEditMappingVisible(false)} style={styles.subModalCloseBtn} activeOpacity={0.7}>
+                <CloseIcon size={16} color={theme.colors.gray[600]} />
               </TouchableOpacity>
-              <Typography variant="h3" weight="bold" style={styles.modalTitle}>
-                Edit Mapping
-              </Typography>
-              <View style={styles.closeButton} />
+              <View style={{flex: 1}}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]} style={{letterSpacing: 1.2}}>
+                  EDIT MAPPING
+                </Typography>
+                <Typography variant="h3" weight="bold">
+                  Update aliases
+                </Typography>
+              </View>
             </View>
-            <ScrollView style={styles.quickMapScroll} contentContainerStyle={styles.quickMapContent}>
-              {/* Canonical Name Input */}
+            <ScrollView style={{flex: 1}} contentContainerStyle={styles.subModalContent}>
               <View style={styles.inputSection}>
-                <Typography variant="small" weight="semibold" style={styles.inputLabel}>
-                  Canonical Name *
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
+                  CANONICAL NAME *
                 </Typography>
                 <RNTextInput
                   style={styles.textInput}
@@ -791,43 +791,50 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                   placeholderTextColor={theme.colors.gray[400]}
                 />
               </View>
-              {/* Current Aliases */}
-              <Card variant="elevated" padding="md" style={styles.selectedItemsCard}>
-                <Typography variant="small" weight="semibold" color={theme.colors.success[700]}>
-                  Aliases ({editSelectedAliases.size})
-                </Typography>
+
+              <View style={styles.selectedItemsCard}>
+                <View style={styles.selectedItemsHeader}>
+                  <CheckCircleIcon size={14} color={theme.colors.success[600]} />
+                  <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                    Aliases · {editSelectedAliases.size}
+                  </Typography>
+                </View>
                 <View style={styles.selectedItemsContainer}>
                   {Array.from(editSelectedAliases).map((name, idx) => (
                     <TouchableOpacity
                       key={idx}
                       style={styles.editAliasChip}
-                      onPress={() => toggleEditAlias(name)}>
-                      <Typography variant="caption" color={theme.colors.success[700]}>
+                      onPress={() => toggleEditAlias(name)}
+                      activeOpacity={0.85}>
+                      <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
                         {name}
                       </Typography>
-                      <CloseIcon size={12} color={theme.colors.success[700]} />
+                      <CloseIcon size={11} color={theme.colors.success[700]} />
                     </TouchableOpacity>
                   ))}
                 </View>
-                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 8}}>
-                  Tap an alias to remove it. Select items below to add new aliases.
+                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 6}}>
+                  Tap an alias to remove it. Select items below to add new ones.
                 </Typography>
-              </Card>
-              {/* Search Items to Add */}
-              <View style={styles.inputSection}>
-                <Typography variant="small" weight="semibold" style={styles.inputLabel}>
-                  Add Aliases from Items
-                </Typography>
-                <RNTextInput
-                  style={styles.textInput}
-                  placeholder="Search unmapped items..."
-                  value={editSearchQuery}
-                  onChangeText={setEditSearchQuery}
-                  placeholderTextColor={theme.colors.gray[400]}
-                />
               </View>
-              {/* Items List */}
-              <Card variant="elevated" padding="none" style={styles.itemsListCard}>
+
+              <View style={styles.inputSection}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
+                  ADD ALIASES
+                </Typography>
+                <View style={styles.searchInputRow}>
+                  <SearchIcon size={16} color={theme.colors.gray[500]} />
+                  <RNTextInput
+                    style={styles.searchInputField}
+                    placeholder="Search unmapped items..."
+                    value={editSearchQuery}
+                    onChangeText={setEditSearchQuery}
+                    placeholderTextColor={theme.colors.gray[400]}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.itemsListCard}>
                 {getFilteredItemsForEdit().map((item, idx) => {
                   const isSelected = editSelectedAliases.has(item.itemName);
                   return (
@@ -838,28 +845,27 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
                         isSelected && styles.selectableItemSelected,
                         idx > 0 && styles.selectableItemBorder,
                       ]}
-                      onPress={() => toggleEditAlias(item.itemName)}>
-                      <View style={styles.checkboxContainer}>
-                        <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
-                          {isSelected && <CheckCircleIcon size={16} color={theme.colors.white} />}
-                        </View>
+                      onPress={() => toggleEditAlias(item.itemName)}
+                      activeOpacity={0.85}>
+                      <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                        {isSelected && <CheckCircleIcon size={14} color={theme.colors.white} />}
                       </View>
                       <View style={styles.selectableItemContent}>
-                        <Typography variant="small" weight={isSelected ? 'semibold' : 'normal'} numberOfLines={1}>
+                        <Typography variant="small" weight={isSelected ? 'bold' : 'normal'} numberOfLines={1}>
                           {item.itemName}
                         </Typography>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          {item.itemParent || 'No parent'} • Qty: {item.qtyOnHand?.toFixed(2) || '0'}
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                          {item.itemParent || 'No parent'} · qty {item.qtyOnHand?.toFixed(2) || '0'}
                         </Typography>
                       </View>
                     </TouchableOpacity>
                   );
                 })}
-              </Card>
-              {/* Action Buttons */}
+              </View>
+
               <View style={styles.actionButtons}>
                 <Button
-                  title={saving ? 'Saving...' : `Update Mapping (${editSelectedAliases.size} aliases)`}
+                  title={saving ? 'Saving...' : `Update mapping (${editSelectedAliases.size})`}
                   variant="primary"
                   onPress={editMappingSubmit}
                   disabled={saving || !editCanonicalName.trim() || editSelectedAliases.size === 0}
@@ -873,329 +879,285 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({
     </Modal>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.gray[50],
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.white,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray[200],
-    backgroundColor: theme.colors.white,
-  },
-  quickMapHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray[200],
-  },
-  closeButton: {
-    paddingVertical: 4,
-    width: 60,
-  },
-  refreshButton: {
-    paddingVertical: 4,
-    width: 60,
-    alignItems: 'flex-end',
-  },
-  modalTitle: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: theme.spacing.lg,
-  },
-  quickMapScroll: {
-    flex: 1,
-  },
-  quickMapContent: {
-    padding: theme.spacing.lg,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-    marginBottom: theme.spacing.lg,
-  },
-  statCardWrapper: {
-    width: '50%',
-    padding: 4,
-  },
-  statCard: {
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 110,
-  },
-  statLabel: {
-    color: '#ffffff',
-    fontSize: 11,
-    opacity: 0.9,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statValue: {
-    color: '#ffffff',
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  statSubtitle: {
-    color: '#ffffff',
-    fontSize: 10,
-    opacity: 0.85,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: theme.spacing.md,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: theme.colors.gray[200],
-  },
-  tabActive: {
-    backgroundColor: theme.colors.primary[600],
-  },
-  searchContainer: {
-    marginBottom: theme.spacing.md,
-  },
-  searchInput: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[200],
-    color: theme.colors.gray[900],
-  },
-  errorCard: {
-    marginBottom: theme.spacing.lg,
-    backgroundColor: theme.colors.error[50],
-  },
-  errorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  errorText: {
-    flex: 1,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    paddingVertical: theme.spacing.xl * 2,
-  },
-  emptyTitle: {
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
-  },
-  itemsList: {
-    gap: theme.spacing.md,
-  },
-  itemCard: {
-    marginBottom: 0,
-    overflow: 'hidden',
-  },
-  itemCardMapped: {
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.success[500],
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: theme.spacing.md,
-  },
-  itemHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  chevronContainer: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemHeaderRight: {
-    marginLeft: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  itemMeta: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  expandedContent: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.gray[50],
-  },
-  mainItemCard: {
-    marginBottom: theme.spacing.md,
-    backgroundColor: theme.colors.primary[50],
-  },
-  inputSection: {
-    marginBottom: theme.spacing.md,
-  },
-  inputLabel: {
-    marginBottom: theme.spacing.sm,
-    color: theme.colors.gray[700],
-  },
-  textInput: {
-    backgroundColor: theme.colors.gray[100],
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: theme.colors.gray[900],
-    borderWidth: 1,
-    borderColor: theme.colors.gray[300],
-  },
-  selectedItemsCard: {
-    marginBottom: theme.spacing.md,
-    backgroundColor: theme.colors.success[50],
-  },
-  selectedItemsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: theme.spacing.sm,
-  },
-  selectedItemChip: {
-    backgroundColor: theme.colors.success[100],
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  itemsListCard: {
-    marginBottom: theme.spacing.md,
-    maxHeight: 400,
-  },
-  selectableItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.white,
-  },
-  selectableItemSelected: {
-    backgroundColor: theme.colors.success[50],
-  },
-  selectableItemBorder: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-  },
-  checkboxContainer: {
-    marginRight: theme.spacing.md,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: theme.colors.gray[300],
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.white,
-  },
-  checkboxChecked: {
-    borderColor: theme.colors.success[600],
-    backgroundColor: theme.colors.success[600],
-  },
-  selectableItemContent: {
-    flex: 1,
-  },
-  actionButtons: {
-    marginTop: theme.spacing.md,
-  },
-  mappingsSection: {
-    marginBottom: theme.spacing.lg,
-  },
-  mappingsSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  mappingsList: {
-    marginTop: theme.spacing.md,
-  },
-  mappingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: theme.spacing.sm,
-  },
-  mappingItemBorder: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-  },
-  mappingItemContent: {
-    flex: 1,
-  },
-  aliasChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 4,
-  },
-  aliasChip: {
-    backgroundColor: theme.colors.primary[100],
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  editBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
-  },
-  editAliasChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.colors.success[100],
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-});
+
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {flex: 1, backgroundColor: theme.colors.primary[700]},
+    loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.gray[50]},
+    loadingMark: {
+      width: 56, height: 56, borderRadius: 16,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    scrollView: {flex: 1, backgroundColor: theme.colors.background.secondary},
+    scrollContent: {paddingBottom: theme.spacing.xxxl},
+
+    hero: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingTop: theme.spacing.md,
+      paddingBottom: theme.spacing.xl + theme.spacing.md,
+      backgroundColor: theme.colors.primary[700],
+      borderBottomLeftRadius: 28,
+      borderBottomRightRadius: 28,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    blob: {position: 'absolute', borderRadius: 9999},
+    blobOne: {width: 280, height: 280, top: -130, right: -100, backgroundColor: theme.colors.primary[400]},
+    blobTwo: {width: 220, height: 220, bottom: -110, left: -70, backgroundColor: theme.colors.accent[500]},
+    dotGrid: {position: 'absolute', top: 50, right: 18, width: 90, flexDirection: 'row', flexWrap: 'wrap', gap: 10, opacity: 0.18},
+    dot: {width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.white},
+    heroBody: {zIndex: 2},
+    heroTopRow: {flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.md},
+    heroEyebrow: {letterSpacing: 1.4, marginBottom: 4},
+    heroTitle: {letterSpacing: -0.4, marginBottom: 2},
+    heroIconBtn: {
+      width: 36, height: 36, borderRadius: 12,
+      backgroundColor: 'rgba(255,255,255,0.14)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    statusChip: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      paddingHorizontal: theme.spacing.sm + 2, paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      marginBottom: theme.spacing.lg,
+    },
+    statusDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.success[400]},
+    heroMetricsRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.10)',
+      borderRadius: 14,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      paddingVertical: theme.spacing.md - 2, paddingHorizontal: theme.spacing.sm,
+    },
+    heroMetric: {flex: 1, alignItems: 'center', gap: 2},
+    heroMetricLabel: {letterSpacing: 1.2},
+    heroMetricDivider: {width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.18)'},
+
+    searchWrap: {paddingHorizontal: theme.spacing.lg, marginTop: -22, zIndex: 3},
+    searchCard: {
+      flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
+      backgroundColor: theme.colors.white, borderRadius: 14,
+      paddingHorizontal: theme.spacing.md, paddingVertical: 10,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      ...theme.shadows.md,
+    },
+    searchInput: {flex: 1, fontSize: 14, color: theme.colors.gray[900], paddingVertical: 0},
+    searchClear: {
+      width: 22, height: 22, borderRadius: 11,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: theme.colors.gray[100],
+    },
+
+    tabsWrap: {paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md},
+    tabsCard: {
+      flexDirection: 'row', gap: 6,
+      backgroundColor: theme.colors.white, borderRadius: 12,
+      padding: 6,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+    },
+    tab: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      alignItems: 'center', backgroundColor: theme.colors.gray[50],
+    },
+    tabActive: {backgroundColor: theme.colors.primary[600]},
+
+    mappingsSectionWrap: {paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md},
+    mappingsCard: {overflow: 'hidden'},
+    mappingsHeader: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      padding: theme.spacing.md,
+    },
+    mappingsHeaderLeft: {flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1},
+    mappingsHeaderIcon: {width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center'},
+    countPill: {paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999},
+    mappingsBody: {borderTopWidth: 1, borderTopColor: theme.colors.gray[100]},
+    mappingItem: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      padding: theme.spacing.md,
+    },
+    mappingItemBorder: {borderTopWidth: 1, borderTopColor: theme.colors.gray[100]},
+    mappingItemContent: {flex: 1, gap: 4},
+    aliasChipsRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 4, alignItems: 'center'},
+    aliasChip: {
+      paddingHorizontal: 8, paddingVertical: 3,
+      borderRadius: 999,
+      backgroundColor: theme.colors.primary[50],
+    },
+    editBadge: {
+      width: 28, height: 28, borderRadius: 9,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+
+    sectionEyebrow: {
+      flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.lg, marginBottom: theme.spacing.md,
+    },
+    eyebrowLine: {width: 24, height: 2, borderRadius: 1, backgroundColor: theme.colors.primary[600]},
+
+    errorCard: {
+      marginHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.md,
+      backgroundColor: theme.colors.error[50],
+      borderColor: theme.colors.error[200],
+    },
+    errorContent: {flexDirection: 'row', alignItems: 'center', gap: 12},
+    errorIconWrap: {
+      width: 40, height: 40, borderRadius: 12,
+      backgroundColor: theme.colors.error[100],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    errorText: {flex: 1},
+
+    emptyCard: {
+      marginHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.md,
+      alignItems: 'center',
+      paddingVertical: theme.spacing.xl,
+    },
+    emptyIconWrap: {
+      width: 56, height: 56, borderRadius: 16,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    emptyTitle: {marginBottom: theme.spacing.xs},
+
+    itemsList: {paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md},
+    itemCard: {overflow: 'hidden', position: 'relative'},
+    itemStripe: {position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: theme.colors.primary[500]},
+    itemHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: theme.spacing.md,
+      paddingTop: theme.spacing.md + 4,
+    },
+    itemIconWrap: {width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center'},
+    itemInfo: {flex: 1, gap: 2},
+    canonicalHint: {flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2},
+    statusPill: {paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999},
+    chevronCircle: {
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: theme.colors.gray[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    itemMeta: {
+      borderTopWidth: 1, borderTopColor: theme.colors.gray[100],
+      padding: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    metaRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+
+    expandedContent: {
+      borderTopWidth: 1, borderTopColor: theme.colors.gray[100],
+      backgroundColor: theme.colors.background.secondary,
+      padding: theme.spacing.md,
+    },
+
+    subModalContainer: {flex: 1, backgroundColor: theme.colors.background.secondary},
+    subModalHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.md,
+      backgroundColor: theme.colors.white,
+      borderBottomWidth: 1, borderBottomColor: theme.colors.gray[200],
+    },
+    subModalCloseBtn: {
+      width: 32, height: 32, borderRadius: 16,
+      backgroundColor: theme.colors.gray[100],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    subModalContent: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingTop: theme.spacing.lg,
+      paddingBottom: theme.spacing.xxxl,
+    },
+
+    mainItemCard: {
+      backgroundColor: theme.colors.primary[50],
+      borderRadius: 12,
+      padding: theme.spacing.md,
+      borderWidth: 1, borderColor: theme.colors.primary[100],
+      marginBottom: theme.spacing.md,
+    },
+
+    inputSection: {marginBottom: theme.spacing.md},
+    inputLabel: {letterSpacing: 1, marginBottom: 6},
+    textInput: {
+      backgroundColor: theme.colors.white,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: theme.colors.gray[900],
+      borderWidth: 1,
+      borderColor: theme.colors.gray[200],
+    },
+    searchInputRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: theme.colors.white,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.gray[200],
+    },
+    searchInputField: {flex: 1, fontSize: 14, color: theme.colors.gray[900], paddingVertical: 0},
+
+    selectedItemsCard: {
+      backgroundColor: theme.colors.success[50],
+      borderRadius: 12,
+      padding: theme.spacing.md,
+      borderWidth: 1, borderColor: theme.colors.success[100],
+      marginBottom: theme.spacing.md,
+    },
+    selectedItemsHeader: {flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8},
+    selectedItemsContainer: {flexDirection: 'row', flexWrap: 'wrap', gap: 6},
+    selectedItemChip: {
+      paddingHorizontal: 10, paddingVertical: 4,
+      borderRadius: 999,
+      backgroundColor: theme.colors.white,
+      borderWidth: 1,
+      borderColor: theme.colors.success[200],
+    },
+    editAliasChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingHorizontal: 10, paddingVertical: 4,
+      borderRadius: 999,
+      backgroundColor: theme.colors.white,
+      borderWidth: 1,
+      borderColor: theme.colors.success[200],
+    },
+
+    itemsListCard: {
+      backgroundColor: theme.colors.white,
+      borderRadius: 12,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      overflow: 'hidden',
+      marginBottom: theme.spacing.md,
+    },
+    selectableItem: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: theme.spacing.md,
+    },
+    selectableItemSelected: {backgroundColor: theme.colors.primary[50]},
+    selectableItemBorder: {borderTopWidth: 1, borderTopColor: theme.colors.gray[100]},
+    checkbox: {
+      width: 22, height: 22, borderRadius: 7,
+      borderWidth: 2, borderColor: theme.colors.gray[300],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.colors.primary[600],
+      borderColor: theme.colors.primary[600],
+    },
+    selectableItemContent: {flex: 1, gap: 2},
+
+    actionButtons: {marginTop: theme.spacing.md},
+  });

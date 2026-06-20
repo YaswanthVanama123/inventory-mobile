@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   ScrollView,
@@ -9,6 +9,8 @@ import {
   TextInput as RNTextInput,
   RefreshControl,
   Switch,
+  Animated,
+  Easing,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -22,10 +24,14 @@ import {
   AlertCircleIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  BoxIcon,
   CheckCircleIcon,
   ClockIcon,
   FileTextIcon,
+  CloseIcon,
+  RefreshIcon,
+  SearchIcon,
+  ClipboardIcon,
+  ArrowRightIcon,
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 
@@ -34,10 +40,7 @@ interface OrdersScreenProps {
   onClose: () => void;
 }
 
-export const OrdersScreen: React.FC<OrdersScreenProps> = ({
-  visible,
-  onClose,
-}) => {
+export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) => {
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const {token} = useAuth();
@@ -56,13 +59,14 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    processed: 0,
-    pending: 0,
-  });
+  const [stats, setStats] = useState({totalOrders: 0, processed: 0, pending: 0});
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
-  const [autoSyncInterval, setAutoSyncInterval] = useState(30);
+  const [autoSyncInterval] = useState(30);
+
+  const heroFade = useRef(new Animated.Value(1)).current;
+  const heroSlide = useRef(new Animated.Value(0)).current;
+  const blobPulse = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     if (visible && token) {
       setCurrentPage(1);
@@ -70,168 +74,149 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
       loadData(1);
     }
   }, [visible, token]);
+
   useEffect(() => {
     if (searchQuery) {
       const filtered = orders.filter(
         order =>
           order.orderNumber?.toString().includes(searchQuery) ||
-          order.vendor?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+          order.vendor?.name?.toLowerCase().includes(searchQuery.toLowerCase()),
       );
       setFilteredOrders(filtered);
     } else {
       setFilteredOrders(orders);
     }
   }, [searchQuery, orders]);
+
   useEffect(() => {
     if (!autoSyncEnabled || !visible || !token) return;
     const intervalMs = autoSyncInterval * 60 * 1000;
     const autoSyncTimer = setInterval(async () => {
       if (!syncing) {
         try {
-          console.log('Running auto-sync for orders...');
           const response = await ordersService.syncOrders(token, 0, 'new');
           if (response.success && (response.data.created > 0 || response.data.updated > 0)) {
             loadData(currentPage);
           }
-        } catch (error) {
-          console.error('Auto-sync error:', error);
+        } catch (err) {
+          console.error('Auto-sync error:', err);
         }
       }
     }, intervalMs);
     return () => clearInterval(autoSyncTimer);
   }, [autoSyncEnabled, autoSyncInterval, syncing, visible, token, currentPage]);
+
+  useEffect(() => {
+    if (visible) {
+      heroFade.setValue(0.6);
+      heroSlide.setValue(16);
+      Animated.parallel([
+        Animated.timing(heroFade, {toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true}),
+        Animated.timing(heroSlide, {toValue: 0, duration: 360, easing: Easing.out(Easing.cubic), useNativeDriver: true}),
+      ]).start();
+    }
+  }, [visible, heroFade, heroSlide]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(blobPulse, {toValue: 1, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true}),
+        Animated.timing(blobPulse, {toValue: 0, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true}),
+      ]),
+    ).start();
+  }, [blobPulse]);
+
   const loadData = async (page: number = 1) => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
-      const response = await ordersService.getOrders(token, {
-        page,
-        limit: 20,
-      });
+      const response = await ordersService.getOrders(token, {page, limit: 20});
       const ordersData = response.orders || [];
       setOrders(ordersData);
       setFilteredOrders(ordersData);
-
       if (response.pagination) {
         setCurrentPage(response.pagination.page);
         setTotalPages(response.pagination.pages);
         setTotalOrders(response.pagination.total);
       }
-
       const processed = ordersData.filter((o: any) => o.stockProcessed).length;
       setStats({
         totalOrders: response.pagination?.total || ordersData.length,
         processed,
         pending: (response.pagination?.total || ordersData.length) - processed,
       });
-    } catch (error: any) {
-      console.error('Failed to fetch orders:', error);
-      const wasHandled = await handleApiError(error);
+    } catch (err: any) {
+      console.error('Failed to fetch orders:', err);
+      const wasHandled = await handleApiError(err);
       if (wasHandled) return;
-      setError(error.message || 'Failed to load orders');
+      setError(err.message || 'Failed to load orders');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
+
   const onRefresh = () => {
     setRefreshing(true);
     setCurrentPage(1);
     setOrders([]);
     loadData(1);
   };
-  const handleSyncNew = async () => {
+
+  const runSync = async (
+    direction: 'new' | 'old' | 'all',
+    setFlag: (value: boolean) => void,
+  ) => {
     if (!token) return;
-    setSyncingNew(true);
+    setFlag(true);
     setSyncing(true);
     try {
-      const response = await ordersService.syncOrders(token, 0, 'new');
-      if (response.success) {
-        const { created = 0, updated = 0, skipped = 0 } = response.data;
-        setCurrentPage(1);
-        setOrders([]);
-        loadData(1);
-      }
-    } catch (error: any) {
-      console.error('Failed to sync new orders:', error);
-      const wasHandled = await handleApiError(error);
-      if (!wasHandled) {
-        setError(error.message || 'Failed to sync new orders');
-      }
-    } finally {
-      setSyncingNew(false);
-      setSyncing(false);
-    }
-  };
-  const handleSyncOld = async () => {
-    if (!token) return;
-    setSyncingOld(true);
-    setSyncing(true);
-    try {
-      const response = await ordersService.syncOrders(token, 0, 'old');
-      if (response.success) {
-        const { created = 0, updated = 0, skipped = 0 } = response.data;
-        setCurrentPage(1);
-        setOrders([]);
-        loadData(1);
-      }
-    } catch (error: any) {
-      console.error('Failed to sync old orders:', error);
-      const wasHandled = await handleApiError(error);
-      if (!wasHandled) {
-        setError(error.message || 'Failed to sync old orders');
-      }
-    } finally {
-      setSyncingOld(false);
-      setSyncing(false);
-    }
-  };
-  const handleSyncAll = async () => {
-    if (!token) return;
-    setSyncingAll(true);
-    setSyncing(true);
-    try {
-      const ordersResponse = await ordersService.syncOrders(token, 0, 'new');
-      if (ordersResponse.success) {
-        const { created = 0, updated = 0, skipped = 0 } = ordersResponse.data;
-        let detailsSynced = 0;
-        try {
-          const detailsResponse = await ordersService.syncAllOrderDetails(token, 0);
-          if (detailsResponse.success) {
-            detailsSynced = detailsResponse.data.synced || 0;
+      if (direction === 'all') {
+        const ordersResponse = await ordersService.syncOrders(token, 0, 'new');
+        if (ordersResponse.success) {
+          try {
+            await ordersService.syncAllOrderDetails(token, 0);
+          } catch (detailsError) {
+            console.error('Error syncing details:', detailsError);
           }
-        } catch (detailsError) {
-          console.error('Error syncing details:', detailsError);
+          setCurrentPage(1);
+          setOrders([]);
+          loadData(1);
         }
-        setCurrentPage(1);
-        setOrders([]);
-        loadData(1);
+      } else {
+        const response = await ordersService.syncOrders(token, 0, direction);
+        if (response.success) {
+          setCurrentPage(1);
+          setOrders([]);
+          loadData(1);
+        }
       }
-    } catch (error: any) {
-      console.error('Failed to sync all orders:', error);
-      const wasHandled = await handleApiError(error);
-      if (!wasHandled) {
-        setError(error.message || 'Failed to sync all orders');
-      }
+    } catch (err: any) {
+      console.error(`Failed to sync ${direction} orders:`, err);
+      const wasHandled = await handleApiError(err);
+      if (!wasHandled) setError(err.message || `Failed to sync ${direction} orders`);
     } finally {
-      setSyncingAll(false);
+      setFlag(false);
       setSyncing(false);
     }
   };
+
+  const handleSyncNew = () => runSync('new', setSyncingNew);
+  const handleSyncOld = () => runSync('old', setSyncingOld);
+  const handleSyncAll = () => runSync('all', setSyncingAll);
+
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages && page !== currentPage && !loading) {
       loadData(page);
     }
   };
+
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
-
     if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       if (currentPage <= 3) {
         for (let i = 1; i <= 4; i++) pages.push(i);
@@ -249,71 +234,43 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
         pages.push(totalPages);
       }
     }
-
     return pages;
   };
+
   const handleOrderPress = (orderNumber: string) => {
     const newExpanded = new Set(expandedOrders);
-    if (newExpanded.has(orderNumber)) {
-      newExpanded.delete(orderNumber);
-    } else {
-      newExpanded.add(orderNumber);
-    }
+    if (newExpanded.has(orderNumber)) newExpanded.delete(orderNumber);
+    else newExpanded.add(orderNumber);
     setExpandedOrders(newExpanded);
   };
-  const formatCurrency = (amount: number) => {
-    return `$${(amount || 0).toFixed(2)}`;
+
+  const formatCurrency = (amount: number) => `$${(amount || 0).toFixed(2)}`;
+
+  type StatusTone = 'success' | 'primary' | 'error' | 'gray';
+  const getStatusTone = (status: string): StatusTone => {
+    if (status === 'Complete') return 'success';
+    if (status === 'Processing' || status === 'Shipped') return 'primary';
+    if (status === 'Cancelled') return 'error';
+    return 'gray';
   };
-  const getStatusColor = (status: string) => {
-    const statusMap: {[key: string]: string} = {
-      Complete: theme.colors.success[600],
-      Processing: theme.colors.primary[600],
-      Shipped: theme.colors.primary[600],
-      Cancelled: theme.colors.error[600],
-      Pending: theme.colors.gray[500],
-    };
-    return statusMap[status] || theme.colors.gray[500];
+  const tonePalette = (tone: StatusTone) => {
+    if (tone === 'gray') return {bg: theme.colors.gray[100], fg: theme.colors.gray[700], strong: theme.colors.gray[400]};
+    return {bg: theme.colors[tone][50], fg: theme.colors[tone][700], strong: theme.colors[tone][500]};
   };
-  const getStatusBgColor = (status: string) => {
-    const statusMap: {[key: string]: string} = {
-      Complete: theme.colors.success[100],
-      Processing: theme.colors.primary[100],
-      Shipped: theme.colors.primary[100],
-      Cancelled: theme.colors.error[100],
-      Pending: theme.colors.gray[100],
-    };
-    return statusMap[status] || theme.colors.gray[100];
-  };
+
+  const blobScale = blobPulse.interpolate({inputRange: [0, 1], outputRange: [1, 1.08]});
+  const blobOpacity = blobPulse.interpolate({inputRange: [0, 1], outputRange: [0.18, 0.28]});
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
-              Close
-            </Typography>
-          </TouchableOpacity>
-          <Typography variant="h3" weight="bold" style={styles.modalTitle}>
-            Purchase Orders
-          </Typography>
-          <TouchableOpacity onPress={loadData} style={styles.refreshButton}>
-            <Typography variant="small" color={theme.colors.primary[600]} weight="semibold">
-              Refresh
-            </Typography>
-          </TouchableOpacity>
-        </View>
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
+            <View style={styles.loadingMark}>
+              <FileTextIcon size={22} color={theme.colors.primary[600]} />
+            </View>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-            <Typography
-              variant="body"
-              color={theme.colors.gray[600]}
-              style={{marginTop: 16}}>
+            <Typography variant="body" color={theme.colors.gray[600]} style={{marginTop: 16}}>
               Loading orders...
             </Typography>
           </View>
@@ -322,136 +279,78 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
-            stickyHeaderIndices={[3]}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.white} />
             }>
-            {/* Stats Cards - Scrollable */}
-            <View style={styles.statsGrid}>
-              <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.gray[600]}]}>
-                  <FileTextIcon size={20} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Total Orders
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.totalOrders}
-                  </Typography>
-                  <Typography variant="caption" style={styles.statSubtitle}>
-                    All orders
+            <View style={styles.hero}>
+              <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+              <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+              <View style={styles.dotGrid} pointerEvents="none">
+                {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
+              </View>
+
+              <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
+                <View style={styles.heroTopRow}>
+                  <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
+                    <CloseIcon size={16} color={theme.colors.white} />
+                  </TouchableOpacity>
+                  <View style={{flex: 1}}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[200]} style={styles.heroEyebrow}>
+                      ORDERS
+                    </Typography>
+                    <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroTitle}>
+                      Purchase Orders
+                    </Typography>
+                    <Typography variant="small" color={theme.colors.primary[100]}>
+                      CustomerConnect orders · live sync
+                    </Typography>
+                  </View>
+                  <TouchableOpacity onPress={() => loadData(currentPage)} style={styles.heroIconBtn} activeOpacity={0.85}>
+                    <RefreshIcon size={18} color={theme.colors.white} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.statusChip}>
+                  <View style={[styles.statusDot, autoSyncEnabled ? null : {backgroundColor: theme.colors.gray[400]}]} />
+                  <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                    {autoSyncEnabled ? `Auto-sync · every ${autoSyncInterval} min` : 'Auto-sync off'}
                   </Typography>
                 </View>
-              </View>
-              <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
-                  <CheckCircleIcon size={20} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Processed
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.processed}
-                  </Typography>
-                  <Typography variant="caption" style={styles.statSubtitle}>
-                    Stock processed
-                  </Typography>
+
+                <View style={styles.heroMetricsRow}>
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      TOTAL
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.totalOrders}
+                    </Typography>
+                  </View>
+                  <View style={styles.heroMetricDivider} />
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      PROCESSED
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.processed}
+                    </Typography>
+                  </View>
+                  <View style={styles.heroMetricDivider} />
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      PENDING
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.pending}
+                    </Typography>
+                  </View>
                 </View>
-              </View>
-              <View style={styles.statCardWrapper}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
-                  <ClockIcon size={20} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Pending
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.pending}
-                  </Typography>
-                  <Typography variant="caption" style={styles.statSubtitle}>
-                    Not processed
-                  </Typography>
-                </View>
-              </View>
+              </Animated.View>
             </View>
 
-            {/* Sync Buttons */}
-            <View style={styles.syncButtonsContainer}>
-              <TouchableOpacity
-                onPress={handleSyncNew}
-                disabled={syncing}
-                style={[
-                  styles.syncActionButton,
-                  styles.syncNewButton,
-                  syncing && styles.syncButtonDisabled
-                ]}
-              >
-                {syncingNew ? (
-                  <ActivityIndicator size="small" color={theme.colors.white} />
-                ) : (
-                  <Typography variant="small" weight="semibold" color={theme.colors.white}>
-                    ↑ New Sync
-                  </Typography>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleSyncOld}
-                disabled={syncing}
-                style={[
-                  styles.syncActionButton,
-                  styles.syncOldButton,
-                  syncing && styles.syncButtonDisabled
-                ]}
-              >
-                {syncingOld ? (
-                  <ActivityIndicator size="small" color={theme.colors.primary[600]} />
-                ) : (
-                  <Typography variant="small" weight="semibold" color={theme.colors.primary[600]}>
-                    ↓ Old Sync
-                  </Typography>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleSyncAll}
-                disabled={syncing}
-                style={[
-                  styles.syncActionButton,
-                  styles.syncAllButton,
-                  syncing && styles.syncButtonDisabled
-                ]}
-              >
-                {syncingAll ? (
-                  <ActivityIndicator size="small" color={theme.colors.white} />
-                ) : (
-                  <Typography variant="small" weight="semibold" color={theme.colors.white}>
-                    ⟳ Sync All
-                  </Typography>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            {/* Automation Settings */}
-            <View style={styles.automationContainer}>
-              <View style={styles.automationRow}>
-                <View style={styles.automationLabel}>
-                  <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
-                    Auto-Sync
-                  </Typography>
-                  <Typography variant="caption" color={theme.colors.gray[500]}>
-                    Every {autoSyncInterval} min
-                  </Typography>
-                </View>
-                <Switch
-                  value={autoSyncEnabled}
-                  onValueChange={setAutoSyncEnabled}
-                  trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[400] }}
-                  thumbColor={autoSyncEnabled ? theme.colors.primary[600] : theme.colors.gray[50]}
-                />
-              </View>
-            </View>
-
-            {/* Sticky Header: Search Bar */}
-            <View style={styles.stickySearchContainer}>
-              <View style={styles.searchContainer}>
+            <View style={styles.searchWrap}>
+              <View style={styles.searchCard}>
+                <SearchIcon size={18} color={theme.colors.gray[500]} />
                 <RNTextInput
                   style={styles.searchInput}
                   placeholder="Search by order # or vendor..."
@@ -459,229 +358,246 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                   onChangeText={setSearchQuery}
                   placeholderTextColor={theme.colors.gray[400]}
                 />
+                {searchQuery ? (
+                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear} activeOpacity={0.7}>
+                    <CloseIcon size={14} color={theme.colors.gray[500]} />
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
 
-            {/* Scrollable Content */}
-            <View>
-            {/* Error State */}
+            <View style={styles.syncRow}>
+              <TouchableOpacity
+                onPress={handleSyncNew}
+                disabled={syncing}
+                style={[styles.syncBtn, styles.syncBtnPrimary, syncing && styles.syncBtnDisabled]}
+                activeOpacity={0.85}>
+                {syncingNew ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <>
+                    <ArrowRightIcon size={14} color={theme.colors.white} />
+                    <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                      New
+                    </Typography>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSyncOld}
+                disabled={syncing}
+                style={[styles.syncBtn, styles.syncBtnGhost, syncing && styles.syncBtnDisabled]}
+                activeOpacity={0.85}>
+                {syncingOld ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+                ) : (
+                  <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                    Old
+                  </Typography>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSyncAll}
+                disabled={syncing}
+                style={[styles.syncBtn, styles.syncBtnSuccess, syncing && styles.syncBtnDisabled]}
+                activeOpacity={0.85}>
+                {syncingAll ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <>
+                    <RefreshIcon size={14} color={theme.colors.white} />
+                    <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                      Sync all
+                    </Typography>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.automationWrap}>
+              <View style={styles.automationCard}>
+                <View style={styles.automationLeft}>
+                  <View style={styles.automationIconWrap}>
+                    <ClockIcon size={14} color={theme.colors.primary[600]} />
+                  </View>
+                  <View style={{flex: 1}}>
+                    <Typography variant="small" weight="semibold">
+                      Auto-sync new orders
+                    </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                      Every {autoSyncInterval} minutes when this screen is open
+                    </Typography>
+                  </View>
+                </View>
+                <Switch
+                  value={autoSyncEnabled}
+                  onValueChange={setAutoSyncEnabled}
+                  trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
+                  thumbColor={theme.colors.white}
+                />
+              </View>
+            </View>
+
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
                 <View style={styles.errorContent}>
-                  <AlertCircleIcon size={24} color={theme.colors.error[500]} />
-                  <Typography
-                    variant="body"
-                    color={theme.colors.error[700]}
-                    style={styles.errorText}>
+                  <View style={styles.errorIconWrap}>
+                    <AlertCircleIcon size={22} color={theme.colors.error[600]} />
+                  </View>
+                  <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
                     {error}
                   </Typography>
                 </View>
               </Card>
             )}
-            {/* Empty State */}
+
             {!error && filteredOrders.length === 0 && (
-              <Card variant="outlined" padding="lg" style={styles.emptyCard}>
-                <FileTextIcon size={48} color={theme.colors.gray[400]} />
-                <Typography
-                  variant="h3"
-                  weight="semibold"
-                  color={theme.colors.gray[700]}
-                  style={styles.emptyTitle}>
+              <Card variant="elevated" padding="lg" style={styles.emptyCard}>
+                <View style={styles.emptyIconWrap}>
+                  <FileTextIcon size={32} color={theme.colors.primary[600]} />
+                </View>
+                <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
                   No orders found
                 </Typography>
-                <Typography
-                  variant="body"
-                  color={theme.colors.gray[500]}
-                  align="center">
-                  {searchQuery
-                    ? 'Try adjusting your search'
-                    : 'No orders available'}
+                <Typography variant="small" color={theme.colors.gray[500]} align="center">
+                  {searchQuery ? 'Try adjusting your search.' : 'No orders available yet — try syncing.'}
                 </Typography>
               </Card>
             )}
-            {/* Orders List */}
+
+            {!error && filteredOrders.length > 0 && (
+              <View style={styles.sectionEyebrow}>
+                <View style={styles.eyebrowLine} />
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+                  ORDERS · {totalOrders}
+                </Typography>
+              </View>
+            )}
+
             <View style={styles.ordersList}>
               {filteredOrders.map((order, index) => {
                 const isExpanded = expandedOrders.has(order.orderNumber);
+                const tone = getStatusTone(order.status);
+                const palette = tonePalette(tone);
                 return (
-                  <Card
-                    key={order._id || index}
-                    variant="elevated"
-                    padding="none"
-                    style={styles.orderCard}>
-                    <TouchableOpacity
-                      onPress={() => handleOrderPress(order.orderNumber)}
-                      style={styles.orderHeader}>
-                      <View style={styles.orderHeaderLeft}>
-                        <View style={styles.chevronContainer}>
-                          {isExpanded ? (
-                            <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
-                          ) : (
-                            <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
-                          )}
-                        </View>
-                        <View style={styles.orderInfo}>
-                          <Typography variant="body" weight="bold">
-                            #{order.orderNumber}
-                          </Typography>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            {order.vendor?.name || 'N/A'}
-                          </Typography>
-                        </View>
+                  <Card key={order._id || index} variant="elevated" padding="none" style={styles.orderCard}>
+                    <View style={[styles.orderStripe, {backgroundColor: palette.strong}]} />
+                    <TouchableOpacity onPress={() => handleOrderPress(order.orderNumber)} style={styles.orderHeader} activeOpacity={0.85}>
+                      <View style={[styles.orderIconWrap, {backgroundColor: palette.bg}]}>
+                        <FileTextIcon size={18} color={palette.fg} />
                       </View>
-                      <View style={styles.orderHeaderRight}>
-                        <Typography
-                          variant="body"
-                          weight="bold"
-                          color={theme.colors.success[600]}>
+                      <View style={styles.orderInfo}>
+                        <Typography variant="body" weight="bold" numberOfLines={1}>
+                          #{order.orderNumber}
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                          {order.vendor?.name || 'N/A'} · {formatDate(order.orderDate)}
+                        </Typography>
+                      </View>
+                      <View style={styles.orderTotalCol}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Total
+                        </Typography>
+                        <Typography variant="body" weight="bold" color={theme.colors.success[700]}>
                           {formatCurrency(order.total)}
                         </Typography>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          {formatDate(order.orderDate)}
-                        </Typography>
                       </View>
-                    </TouchableOpacity>
-                    {/* Order Details */}
-                    <View style={styles.orderMeta}>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Status
-                        </Typography>
-                        <View
-                          style={[
-                            styles.statusBadge,
-                            {backgroundColor: getStatusBgColor(order.status)},
-                          ]}>
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={getStatusColor(order.status)}>
-                            {order.status || 'Pending'}
-                          </Typography>
-                        </View>
-                      </View>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Stock
-                        </Typography>
-                        {order.stockProcessed ? (
-                          <View style={[styles.statusBadge, {backgroundColor: theme.colors.success[100]}]}>
-                            <Typography
-                              variant="caption"
-                              weight="semibold"
-                              color={theme.colors.success[600]}>
-                              Processed
-                            </Typography>
-                          </View>
+                      <View style={styles.chevronCircle}>
+                        {isExpanded ? (
+                          <ChevronDownIcon size={14} color={theme.colors.gray[700]} />
                         ) : (
-                          <View style={[styles.statusBadge, {backgroundColor: theme.colors.primary[100]}]}>
-                            <Typography
-                              variant="caption"
-                              weight="semibold"
-                              color={theme.colors.primary[600]}>
-                              Pending
-                            </Typography>
-                          </View>
+                          <ChevronRightIcon size={14} color={theme.colors.gray[700]} />
                         )}
                       </View>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Items
+                    </TouchableOpacity>
+
+                    <View style={styles.orderMeta}>
+                      <View style={[styles.metaPill, {backgroundColor: palette.bg}]}>
+                        <Typography variant="caption" weight="semibold" color={palette.fg}>
+                          {order.status || 'Pending'}
                         </Typography>
-                        <Typography variant="small" weight="medium">
+                      </View>
+                      {order.stockProcessed ? (
+                        <View style={[styles.metaPill, {backgroundColor: theme.colors.success[50]}]}>
+                          <CheckCircleIcon size={11} color={theme.colors.success[600]} />
+                          <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                            Stock processed
+                          </Typography>
+                        </View>
+                      ) : (
+                        <View style={[styles.metaPill, {backgroundColor: theme.colors.warning[50]}]}>
+                          <ClockIcon size={11} color={theme.colors.warning[600]} />
+                          <Typography variant="caption" weight="semibold" color={theme.colors.warning[700]}>
+                            Pending stock
+                          </Typography>
+                        </View>
+                      )}
+                      <View style={[styles.metaPill, {backgroundColor: theme.colors.gray[100]}]}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>
                           {order.itemCount || 0} items
                         </Typography>
                       </View>
                     </View>
-                    {/* Expanded Items */}
+
                     {isExpanded && order.items && order.items.length > 0 && (
                       <View style={styles.expandedContent}>
-                        <Typography variant="small" weight="semibold" style={styles.itemsTitle}>
-                          Order Items ({order.items.length})
-                        </Typography>
+                        <View style={styles.expandedHeader}>
+                          <View style={[styles.expandedHeaderIcon, {backgroundColor: theme.colors.primary[50]}]}>
+                            <ClipboardIcon size={14} color={theme.colors.primary[600]} />
+                          </View>
+                          <Typography variant="small" weight="semibold" color={theme.colors.gray[800]}>
+                            Order items
+                          </Typography>
+                          <View style={[styles.countPill, {backgroundColor: theme.colors.primary[50]}]}>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                              {order.items.length}
+                            </Typography>
+                          </View>
+                        </View>
                         {order.items.map((item: any, itemIndex: number) => (
                           <View key={itemIndex} style={styles.itemCard}>
-                            <View style={styles.itemHeader}>
+                            <View style={styles.itemHeaderRow}>
                               <Typography variant="small" weight="bold" numberOfLines={1} style={{flex: 1}}>
                                 {item.name || 'N/A'}
                               </Typography>
-                            </View>
-                            <View style={styles.itemRow}>
-                              <Typography variant="caption" color={theme.colors.gray[500]}>
-                                SKU
-                              </Typography>
-                              <Typography variant="small" weight="medium">
-                                {item.sku || 'N/A'}
-                              </Typography>
-                            </View>
-                            <View style={styles.itemRow}>
-                              <Typography variant="caption" color={theme.colors.gray[500]}>
-                                Quantity
-                              </Typography>
-                              <Typography variant="small" weight="bold">
-                                {item.qty || 0}
-                              </Typography>
-                            </View>
-                            <View style={styles.itemRow}>
-                              <Typography variant="caption" color={theme.colors.gray[500]}>
-                                Unit Price
-                              </Typography>
-                              <Typography variant="small">
-                                {formatCurrency(item.unitPrice || 0)}
-                              </Typography>
-                            </View>
-                            <View style={styles.itemRow}>
-                              <Typography variant="caption" color={theme.colors.gray[500]}>
-                                Line Total
-                              </Typography>
-                              <Typography variant="small" weight="bold" color={theme.colors.success[600]}>
-                                {formatCurrency(item.lineTotal || (item.qty || 0) * (item.unitPrice || 0))}
-                              </Typography>
-                            </View>
-                            <View style={styles.itemRow}>
-                              <Typography variant="caption" color={theme.colors.gray[500]}>
-                                Item Status
-                              </Typography>
                               {item.itemVerified === true ? (
-                                <View style={{alignItems: 'flex-end', gap: 2}}>
-                                  <View style={[styles.statusBadge, {backgroundColor: theme.colors.success[100]}]}>
-                                    <Typography
-                                      variant="caption"
-                                      weight="semibold"
-                                      color={theme.colors.success[600]}>
-                                      Verified
-                                    </Typography>
-                                  </View>
-                                  {item.itemVerifiedAt && (
-                                    <Typography variant="caption" color={theme.colors.gray[500]} style={{fontSize: 10}}>
-                                      {formatDate(item.itemVerifiedAt)}
-                                    </Typography>
-                                  )}
+                                <View style={[styles.statusPill, {backgroundColor: theme.colors.success[50]}]}>
+                                  <CheckCircleIcon size={11} color={theme.colors.success[600]} />
+                                  <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                                    Verified
+                                  </Typography>
                                 </View>
                               ) : item.receivedQuantity > 0 ? (
-                                <View style={{alignItems: 'flex-end', gap: 2}}>
-                                  <View style={[styles.statusBadge, {backgroundColor: theme.colors.primary[100]}]}>
-                                    <Typography
-                                      variant="caption"
-                                      weight="semibold"
-                                      color={theme.colors.primary[600]}>
-                                      Partially Verified
-                                    </Typography>
-                                  </View>
-                                  <Typography variant="caption" color={theme.colors.gray[500]} style={{fontSize: 10}}>
-                                    {item.receivedQuantity} of {item.qty} received
+                                <View style={[styles.statusPill, {backgroundColor: theme.colors.warning[50]}]}>
+                                  <Typography variant="caption" weight="semibold" color={theme.colors.warning[700]}>
+                                    Partial {item.receivedQuantity}/{item.qty}
                                   </Typography>
                                 </View>
                               ) : (
-                                <View style={[styles.statusBadge, {backgroundColor: theme.colors.primary[100]}]}>
-                                  <Typography
-                                    variant="caption"
-                                    weight="semibold"
-                                    color={theme.colors.primary[600]}>
-                                    Not Verified
+                                <View style={[styles.statusPill, {backgroundColor: theme.colors.gray[100]}]}>
+                                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>
+                                    Pending
                                   </Typography>
                                 </View>
                               )}
+                            </View>
+                            <View style={styles.itemDetailRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>SKU</Typography>
+                              <Typography variant="small" weight="semibold">{item.sku || 'N/A'}</Typography>
+                            </View>
+                            <View style={styles.itemDetailRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>Quantity</Typography>
+                              <Typography variant="small" weight="bold">{item.qty || 0}</Typography>
+                            </View>
+                            <View style={styles.itemDetailRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>Unit price</Typography>
+                              <Typography variant="small">{formatCurrency(item.unitPrice || 0)}</Typography>
+                            </View>
+                            <View style={styles.itemDetailRow}>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>Line total</Typography>
+                              <Typography variant="small" weight="bold" color={theme.colors.success[700]}>
+                                {formatCurrency(item.lineTotal || (item.qty || 0) * (item.unitPrice || 0))}
+                              </Typography>
                             </View>
                           </View>
                         ))}
@@ -691,32 +607,25 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                 );
               })}
             </View>
-            {/* Pagination Info and Page Numbers */}
+
             {!error && filteredOrders.length > 0 && totalPages > 0 && (
               <View style={styles.paginationContainer}>
-                <Typography variant="small" color={theme.colors.gray[600]} align="center" style={{marginBottom: 16}}>
-                  Showing {(currentPage - 1) * 20 + 1}-{Math.min(currentPage * 20, totalOrders)} of {totalOrders} orders
+                <Typography variant="caption" color={theme.colors.gray[500]} align="center" style={{marginBottom: 12}}>
+                  Showing {(currentPage - 1) * 20 + 1}–{Math.min(currentPage * 20, totalOrders)} of {totalOrders}
                 </Typography>
-
                 <View style={styles.paginationControls}>
-                  {/* Previous Button */}
                   <TouchableOpacity
-                    style={[
-                      styles.pageButton,
-                      styles.navButton,
-                      currentPage === 1 && styles.pageButtonDisabled,
-                    ]}
+                    style={[styles.pageButton, styles.navButton, currentPage === 1 && styles.pageButtonDisabled]}
                     onPress={() => goToPage(currentPage - 1)}
-                    disabled={currentPage === 1 || loading}>
+                    disabled={currentPage === 1 || loading}
+                    activeOpacity={0.85}>
                     <Typography
                       variant="small"
                       weight="semibold"
-                      color={currentPage === 1 ? theme.colors.gray[400] : theme.colors.primary[600]}>
+                      color={currentPage === 1 ? theme.colors.gray[400] : theme.colors.primary[700]}>
                       Prev
                     </Typography>
                   </TouchableOpacity>
-
-                  {/* Page Numbers */}
                   <View style={styles.pageNumbersContainer}>
                     {getPageNumbers().map((page, index) => {
                       if (page === '...') {
@@ -733,15 +642,13 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                       return (
                         <TouchableOpacity
                           key={pageNum}
-                          style={[
-                            styles.pageButton,
-                            isActive && styles.pageButtonActive,
-                          ]}
+                          style={[styles.pageButton, isActive && styles.pageButtonActive]}
                           onPress={() => goToPage(pageNum)}
-                          disabled={loading}>
+                          disabled={loading}
+                          activeOpacity={0.85}>
                           <Typography
                             variant="small"
-                            weight={isActive ? 'bold' : 'medium'}
+                            weight={isActive ? 'bold' : 'semibold'}
                             color={isActive ? theme.colors.white : theme.colors.gray[700]}>
                             {pageNum}
                           </Typography>
@@ -749,312 +656,232 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({
                       );
                     })}
                   </View>
-
-                  {/* Next Button */}
                   <TouchableOpacity
-                    style={[
-                      styles.pageButton,
-                      styles.navButton,
-                      currentPage === totalPages && styles.pageButtonDisabled,
-                    ]}
+                    style={[styles.pageButton, styles.navButton, currentPage === totalPages && styles.pageButtonDisabled]}
                     onPress={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages || loading}>
+                    disabled={currentPage === totalPages || loading}
+                    activeOpacity={0.85}>
                     <Typography
                       variant="small"
                       weight="semibold"
-                      color={currentPage === totalPages ? theme.colors.gray[400] : theme.colors.primary[600]}>
+                      color={currentPage === totalPages ? theme.colors.gray[400] : theme.colors.primary[700]}>
                       Next
                     </Typography>
                   </TouchableOpacity>
                 </View>
               </View>
             )}
-          </View>
           </ScrollView>
         )}
       </SafeAreaView>
     </Modal>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.gray[50],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray[200],
-    backgroundColor: theme.colors.white,
-  },
-  closeButton: {
-    paddingVertical: 4,
-    width: 60,
-  },
-  refreshButton: {
-    paddingVertical: 4,
-    width: 60,
-    alignItems: 'flex-end',
-  },
-  modalTitle: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: theme.spacing.lg,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
-    marginBottom: theme.spacing.md,
-  },
-  stickySearchContainer: {
-    backgroundColor: theme.colors.gray[50],
-    paddingHorizontal: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
-  },
-  automationContainer: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.primary[50],
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: theme.colors.primary[200],
-    marginBottom: theme.spacing.sm,
-  },
-  automationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  automationLabel: {
-    flex: 1,
-  },
-  syncButtonsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    justifyContent: 'space-between',
-  },
-  syncActionButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 44,
-    marginHorizontal: 4,
-  },
-  syncNewButton: {
-    backgroundColor: theme.colors.primary[600],
-  },
-  syncOldButton: {
-    backgroundColor: theme.colors.white,
-    borderWidth: 1,
-    borderColor: theme.colors.primary[600],
-  },
-  syncAllButton: {
-    backgroundColor: theme.colors.success[600],
-  },
-  syncButtonDisabled: {
-    opacity: 0.5,
-  },
-  statCardWrapper: {
-    width: '33.33%',
-    padding: 4,
-  },
-  statCard: {
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 120,
-  },
-  statLabel: {
-    color: '#ffffff',
-    fontSize: 11,
-    opacity: 0.9,
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statValue: {
-    color: '#ffffff',
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  statSubtitle: {
-    color: '#ffffff',
-    fontSize: 10,
-    opacity: 0.85,
-  },
-  searchContainer: {
-    marginBottom: 0,
-  },
-  searchInput: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[200],
-    color: theme.colors.gray[900],
-  },
-  errorCard: {
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
-    backgroundColor: theme.colors.error[50],
-  },
-  errorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  errorText: {
-    flex: 1,
-  },
-  emptyCard: {
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.md,
-    alignItems: 'center',
-    paddingVertical: theme.spacing.xl * 2,
-  },
-  emptyTitle: {
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
-  },
-  ordersList: {
-    gap: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.md,
-  },
-  orderCard: {
-    marginBottom: 0,
-    overflow: 'hidden',
-  },
-  orderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: theme.spacing.md,
-  },
-  orderHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  chevronContainer: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orderInfo: {
-    flex: 1,
-  },
-  orderHeaderRight: {
-    alignItems: 'flex-end',
-  },
-  orderMeta: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  expandedContent: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.gray[50],
-  },
-  itemsTitle: {
-    marginBottom: theme.spacing.md,
-    color: theme.colors.gray[700],
-  },
-  itemCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 8,
-    padding: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
-    gap: 4,
-  },
-  itemHeader: {
-    marginBottom: 4,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  paginationContainer: {
-    marginHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    alignItems: 'center',
-  },
-  paginationControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  pageNumbersContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  pageButton: {
-    minWidth: 36,
-    height: 36,
-    backgroundColor: theme.colors.white,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[300],
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  navButton: {
-    minWidth: 60,
-    paddingHorizontal: 12,
-  },
-  pageButtonActive: {
-    backgroundColor: theme.colors.primary[600],
-    borderColor: theme.colors.primary[600],
-  },
-  pageButtonDisabled: {
-    backgroundColor: theme.colors.gray[100],
-    borderColor: theme.colors.gray[200],
-  },
-  ellipsis: {
-    minWidth: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {flex: 1, backgroundColor: theme.colors.primary[700]},
+    loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.gray[50]},
+    loadingMark: {
+      width: 56, height: 56, borderRadius: 16,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    scrollView: {flex: 1, backgroundColor: theme.colors.background.secondary},
+    scrollContent: {paddingBottom: theme.spacing.xxxl},
+
+    hero: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingTop: theme.spacing.md,
+      paddingBottom: theme.spacing.xl + theme.spacing.md,
+      backgroundColor: theme.colors.primary[700],
+      borderBottomLeftRadius: 28,
+      borderBottomRightRadius: 28,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    blob: {position: 'absolute', borderRadius: 9999},
+    blobOne: {width: 280, height: 280, top: -130, right: -100, backgroundColor: theme.colors.primary[400]},
+    blobTwo: {width: 220, height: 220, bottom: -110, left: -70, backgroundColor: theme.colors.accent[500]},
+    dotGrid: {position: 'absolute', top: 50, right: 18, width: 90, flexDirection: 'row', flexWrap: 'wrap', gap: 10, opacity: 0.18},
+    dot: {width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.white},
+    heroBody: {zIndex: 2},
+    heroTopRow: {flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.md},
+    heroEyebrow: {letterSpacing: 1.4, marginBottom: 4},
+    heroTitle: {letterSpacing: -0.4, marginBottom: 2},
+    heroIconBtn: {
+      width: 36, height: 36, borderRadius: 12,
+      backgroundColor: 'rgba(255,255,255,0.14)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    statusChip: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      paddingHorizontal: theme.spacing.sm + 2, paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      marginBottom: theme.spacing.lg,
+    },
+    statusDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.success[400]},
+    heroMetricsRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.10)',
+      borderRadius: 14,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      paddingVertical: theme.spacing.md - 2, paddingHorizontal: theme.spacing.sm,
+    },
+    heroMetric: {flex: 1, alignItems: 'center', gap: 2},
+    heroMetricLabel: {letterSpacing: 1.2},
+    heroMetricDivider: {width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.18)'},
+
+    searchWrap: {paddingHorizontal: theme.spacing.lg, marginTop: -22, zIndex: 3},
+    searchCard: {
+      flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
+      backgroundColor: theme.colors.white, borderRadius: 14,
+      paddingHorizontal: theme.spacing.md, paddingVertical: 10,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      ...theme.shadows.md,
+    },
+    searchInput: {flex: 1, fontSize: 14, color: theme.colors.gray[900], paddingVertical: 0},
+    searchClear: {
+      width: 22, height: 22, borderRadius: 11,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: theme.colors.gray[100],
+    },
+
+    syncRow: {
+      flexDirection: 'row', gap: 8,
+      paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md,
+    },
+    syncBtn: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      paddingVertical: 12,
+      borderRadius: 12,
+    },
+    syncBtnPrimary: {backgroundColor: theme.colors.primary[600]},
+    syncBtnGhost: {
+      backgroundColor: theme.colors.white,
+      borderWidth: 1, borderColor: theme.colors.primary[200],
+    },
+    syncBtnSuccess: {backgroundColor: theme.colors.success[600]},
+    syncBtnDisabled: {opacity: 0.5},
+
+    automationWrap: {paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md},
+    automationCard: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: theme.colors.white,
+      borderRadius: 12,
+      paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 4,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+    },
+    automationLeft: {flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1},
+    automationIconWrap: {
+      width: 28, height: 28, borderRadius: 9,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+
+    sectionEyebrow: {
+      flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.lg, marginBottom: theme.spacing.md,
+    },
+    eyebrowLine: {width: 24, height: 2, borderRadius: 1, backgroundColor: theme.colors.primary[600]},
+
+    errorCard: {
+      marginHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.md,
+      backgroundColor: theme.colors.error[50],
+      borderColor: theme.colors.error[200],
+    },
+    errorContent: {flexDirection: 'row', alignItems: 'center', gap: 12},
+    errorIconWrap: {
+      width: 40, height: 40, borderRadius: 12,
+      backgroundColor: theme.colors.error[100],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    errorText: {flex: 1},
+
+    emptyCard: {
+      marginHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.md,
+      alignItems: 'center',
+      paddingVertical: theme.spacing.xl,
+    },
+    emptyIconWrap: {
+      width: 56, height: 56, borderRadius: 16,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    emptyTitle: {marginBottom: theme.spacing.xs},
+
+    ordersList: {paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md},
+    orderCard: {overflow: 'hidden', position: 'relative'},
+    orderStripe: {position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: theme.colors.primary[500]},
+    orderHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: theme.spacing.md,
+      paddingTop: theme.spacing.md + 4,
+    },
+    orderIconWrap: {width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center'},
+    orderInfo: {flex: 1, gap: 2},
+    orderTotalCol: {alignItems: 'flex-end'},
+    chevronCircle: {
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: theme.colors.gray[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    orderMeta: {
+      borderTopWidth: 1, borderTopColor: theme.colors.gray[100],
+      paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 4,
+      flexDirection: 'row', flexWrap: 'wrap', gap: 6,
+    },
+    metaPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 10, paddingVertical: 4,
+      borderRadius: 999,
+    },
+
+    expandedContent: {
+      borderTopWidth: 1, borderTopColor: theme.colors.gray[100],
+      backgroundColor: theme.colors.background.secondary,
+      padding: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    expandedHeader: {flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4},
+    expandedHeaderIcon: {width: 26, height: 26, borderRadius: 8, alignItems: 'center', justifyContent: 'center'},
+    countPill: {paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999},
+    itemCard: {
+      backgroundColor: theme.colors.white, borderRadius: 12,
+      padding: theme.spacing.md,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      gap: 6,
+    },
+    itemHeaderRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4},
+    statusPill: {flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999},
+    itemDetailRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+
+    paginationContainer: {
+      marginHorizontal: theme.spacing.lg, marginTop: theme.spacing.lg,
+      paddingVertical: theme.spacing.md,
+      alignItems: 'center',
+    },
+    paginationControls: {flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8},
+    pageNumbersContainer: {flexDirection: 'row', alignItems: 'center', gap: 6},
+    pageButton: {
+      minWidth: 36, height: 36,
+      backgroundColor: theme.colors.white,
+      borderRadius: 10,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      alignItems: 'center', justifyContent: 'center',
+      paddingHorizontal: 8,
+    },
+    navButton: {minWidth: 60, paddingHorizontal: 12},
+    pageButtonActive: {backgroundColor: theme.colors.primary[600], borderColor: theme.colors.primary[600]},
+    pageButtonDisabled: {backgroundColor: theme.colors.gray[100], borderColor: theme.colors.gray[200]},
+    ellipsis: {minWidth: 28, alignItems: 'center', justifyContent: 'center'},
+  });

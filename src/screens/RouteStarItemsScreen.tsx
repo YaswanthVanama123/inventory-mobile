@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   ScrollView,
@@ -10,12 +10,13 @@ import {
   RefreshControl,
   Alert,
   Switch,
+  Animated,
+  Easing,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
-import {PickerModal} from '../components/molecules/PickerModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -29,6 +30,9 @@ import {
   CheckCircleIcon,
   WarningIcon,
   TagIcon,
+  CloseIcon,
+  RefreshIcon,
+  SearchIcon,
 } from '../components/icons';
 
 interface RouteStarItemsScreenProps {
@@ -54,69 +58,79 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
   const [filterMapped, setFilterMapped] = useState('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    total: 0,
-    forUse: 0,
-    forSell: 0,
-    both: 0,
-    unmarked: 0,
-  });
+  const [stats, setStats] = useState({total: 0, forUse: 0, forSell: 0, both: 0, unmarked: 0});
+
+  const heroFade = useRef(new Animated.Value(1)).current;
+  const heroSlide = useRef(new Animated.Value(0)).current;
+  const blobPulse = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
+    if (visible && token) loadData();
   }, [visible, token, filterForUse, filterForSell, filterMapped]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (visible && token) {
-        loadData();
-      }
+      if (visible && token) loadData();
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (visible) {
+      heroFade.setValue(0.6);
+      heroSlide.setValue(16);
+      Animated.parallel([
+        Animated.timing(heroFade, {toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true}),
+        Animated.timing(heroSlide, {toValue: 0, duration: 360, easing: Easing.out(Easing.cubic), useNativeDriver: true}),
+      ]).start();
+    }
+  }, [visible, heroFade, heroSlide]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(blobPulse, {toValue: 1, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true}),
+        Animated.timing(blobPulse, {toValue: 0, duration: 1800, easing: Easing.inOut(Easing.quad), useNativeDriver: true}),
+      ]),
+    ).start();
+  }, [blobPulse]);
+
   const loadData = async () => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
-      const params: any = {
-        page: 1,
-        limit: 100,
-      };
+      const params: any = {page: 1, limit: 100};
       if (searchQuery) params.search = searchQuery;
       if (filterForUse) params.forUse = true;
       if (filterForSell) params.forSell = true;
       if (filterMapped !== 'all') params.mapped = filterMapped;
       const data = await routeStarItemsService.getItemsWithStats(token, params);
-      console.log('[RouteStarItemsScreen] Page data loaded:', {
-        items: data.items?.length || 0,
-        stats: data.stats,
-      });
       setItems(data.items || []);
       setStats(data.stats || {total: 0, forUse: 0, forSell: 0, both: 0, unmarked: 0});
-    } catch (error: any) {
-      console.error('Failed to fetch RouteStar items:', error);
-      const wasHandled = await handleApiError(error);
+    } catch (err: any) {
+      console.error('Failed to fetch RouteStar items:', err);
+      const wasHandled = await handleApiError(err);
       if (wasHandled) return;
-      setError(error.message || 'Failed to load data');
+      setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
   };
+
   const handleItemPress = (itemId: string) => {
     const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(itemId)) {
-      newExpanded.delete(itemId);
-    } else {
-      newExpanded.add(itemId);
-    }
+    if (newExpanded.has(itemId)) newExpanded.delete(itemId);
+    else newExpanded.add(itemId);
     setExpandedItems(newExpanded);
   };
+
   const handleFlagChange = async (itemId: string, flagType: 'forUse' | 'forSell', currentValue: boolean) => {
     try {
       const updatedItem = await routeStarItemsService.updateItemFlags(token!, itemId, {
@@ -124,31 +138,16 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
       });
       setItems(prevItems =>
         prevItems.map(item =>
-          item._id === itemId ? {...item, [flagType]: updatedItem[flagType]} : item
-        )
+          item._id === itemId ? {...item, [flagType]: updatedItem[flagType]} : item,
+        ),
       );
       const statsData = await routeStarItemsService.getStats(token!);
       setStats(statsData);
-      Alert.alert('Success', 'Item updated successfully');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update item');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to update item');
     }
   };
-  const handleCategoryChange = async (itemId: string, newCategory: string) => {
-    try {
-      const updatedItem = await routeStarItemsService.updateItemFlags(token!, itemId, {
-        itemCategory: newCategory,
-      });
-      setItems(prevItems =>
-        prevItems.map(item =>
-          item._id === itemId ? {...item, itemCategory: updatedItem.itemCategory} : item
-        )
-      );
-      Alert.alert('Success', 'Item category updated');
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update category');
-    }
-  };
+
   const handleSync = async () => {
     Alert.alert(
       'Sync Items',
@@ -163,73 +162,30 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
               const result = await routeStarItemsService.syncItems(token!);
               Alert.alert('Success', result.message || 'Items synced successfully');
               loadData();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to sync items');
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to sync items');
             } finally {
               setSyncing(false);
             }
           },
         },
-      ]
+      ],
     );
   };
-  const getItemStatus = (item: any) => {
-    return item.isMapped ? 'mapped' : 'unmapped';
-  };
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'mapped':
-        return theme.colors.success[600];
-      default:
-        return theme.colors.primary[600];
-    }
-  };
-  const getStatusBgColor = (status: string) => {
-    switch (status) {
-      case 'mapped':
-        return theme.colors.success[100];
-      default:
-        return theme.colors.primary[100];
-    }
-  };
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'mapped':
-        return 'Mapped';
-      default:
-        return 'Unmapped';
-    }
-  };
+
+  const blobScale = blobPulse.interpolate({inputRange: [0, 1], outputRange: [1, 1.08]});
+  const blobOpacity = blobPulse.interpolate({inputRange: [0, 1], outputRange: [0.18, 0.28]});
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
-              Close
-            </Typography>
-          </TouchableOpacity>
-          <Typography variant="h3" weight="bold" style={styles.modalTitle}>
-            RouteStar Items
-          </Typography>
-          <TouchableOpacity onPress={loadData} style={styles.refreshButton}>
-            <Typography variant="small" color={theme.colors.primary[600]} weight="semibold">
-              Refresh
-            </Typography>
-          </TouchableOpacity>
-        </View>
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
+            <View style={styles.loadingMark}>
+              <BoxIcon size={22} color={theme.colors.primary[600]} />
+            </View>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-            <Typography
-              variant="body"
-              color={theme.colors.gray[600]}
-              style={{marginTop: 16}}>
+            <Typography variant="body" color={theme.colors.gray[600]} style={{marginTop: 16}}>
               Loading items...
             </Typography>
           </View>
@@ -239,222 +195,283 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.white} />
             }>
-            {/* Stats Cards */}
-            <View style={styles.statsGrid}>
-              <View style={[styles.statCardWrapper, {width: '50%'}]}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.gray[600]}]}>
-                  <BoxIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Total Items
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.total}
-                  </Typography>
-                </View>
+            <View style={styles.hero}>
+              <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+              <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+              <View style={styles.dotGrid} pointerEvents="none">
+                {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
               </View>
-              <View style={[styles.statCardWrapper, {width: '50%'}]}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
-                  <CheckCircleIcon size={18} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    For Use
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.forUse}
+
+              <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
+                <View style={styles.heroTopRow}>
+                  <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
+                    <CloseIcon size={16} color={theme.colors.white} />
+                  </TouchableOpacity>
+                  <View style={{flex: 1}}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[200]} style={styles.heroEyebrow}>
+                      ROUTESTAR
+                    </Typography>
+                    <Typography variant="h2" weight="bold" color={theme.colors.white} style={styles.heroTitle}>
+                      Items Catalog
+                    </Typography>
+                    <Typography variant="small" color={theme.colors.primary[100]}>
+                      Synced from RouteStar · use vs sell flags
+                    </Typography>
+                  </View>
+                  <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
+                    <RefreshIcon size={18} color={theme.colors.white} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.statusChip}>
+                  <View style={styles.statusDot} />
+                  <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                    {stats.total} items · {stats.both} both · {stats.unmarked} unmarked
                   </Typography>
                 </View>
-              </View>
-              <View style={[styles.statCardWrapper, {width: '33.33%'}]}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.success[600]}]}>
-                  <TagIcon size={16} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    For Sell
-                  </Typography>
-                  <Typography variant="h3" weight="bold" style={styles.statValue}>
-                    {stats.forSell}
-                  </Typography>
+
+                <View style={styles.heroMetricsRow}>
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      TOTAL
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.total}
+                    </Typography>
+                  </View>
+                  <View style={styles.heroMetricDivider} />
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      FOR USE
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.forUse}
+                    </Typography>
+                  </View>
+                  <View style={styles.heroMetricDivider} />
+                  <View style={styles.heroMetric}>
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[100]} style={styles.heroMetricLabel}>
+                      FOR SELL
+                    </Typography>
+                    <Typography variant="h3" weight="bold" color={theme.colors.white}>
+                      {stats.forSell}
+                    </Typography>
+                  </View>
                 </View>
-              </View>
-              <View style={[styles.statCardWrapper, {width: '33.33%'}]}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[700]}]}>
-                  <CheckCircleIcon size={16} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Both
-                  </Typography>
-                  <Typography variant="h3" weight="bold" style={styles.statValue}>
-                    {stats.both}
-                  </Typography>
-                </View>
-              </View>
-              <View style={[styles.statCardWrapper, {width: '33.33%'}]}>
-                <View style={[styles.statCard, {backgroundColor: theme.colors.primary[600]}]}>
-                  <WarningIcon size={16} color={theme.colors.white} />
-                  <Typography variant="caption" style={styles.statLabel}>
-                    Unmarked
-                  </Typography>
-                  <Typography variant="h3" weight="bold" style={styles.statValue}>
-                    {stats.unmarked}
-                  </Typography>
-                </View>
+              </Animated.View>
+            </View>
+
+            <View style={styles.searchWrap}>
+              <View style={styles.searchCard}>
+                <SearchIcon size={18} color={theme.colors.gray[500]} />
+                <RNTextInput
+                  style={styles.searchInput}
+                  placeholder="Search items..."
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+                {searchQuery ? (
+                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear} activeOpacity={0.7}>
+                    <CloseIcon size={14} color={theme.colors.gray[500]} />
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
-            {/* Sync Button */}
-            <View style={styles.syncButtonContainer}>
+
+            <View style={styles.actionWrap}>
               <Button
-                title={syncing ? 'Syncing...' : 'Sync Items'}
+                title={syncing ? 'Syncing items...' : 'Sync items from RouteStar'}
                 variant="primary"
                 onPress={handleSync}
                 disabled={syncing}
                 fullWidth
+                leftIcon={<RefreshIcon size={16} color={theme.colors.white} />}
               />
             </View>
-            {/* Filters */}
-            <Card variant="elevated" padding="md" style={styles.filterCard}>
-              <View style={styles.filterRow}>
-                <Typography variant="small" weight="medium">
-                  Show only "For Use"
-                </Typography>
-                <Switch
-                  value={filterForUse}
-                  onValueChange={setFilterForUse}
-                  trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
-                  thumbColor={theme.colors.white}
-                />
-              </View>
-              <View style={styles.filterRow}>
-                <Typography variant="small" weight="medium">
-                  Show only "For Sell"
-                </Typography>
-                <Switch
-                  value={filterForSell}
-                  onValueChange={setFilterForSell}
-                  trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
-                  thumbColor={theme.colors.white}
-                />
-              </View>
-              <View style={styles.filterRow}>
-                <Typography variant="small" weight="medium">
-                  Status Filter
-                </Typography>
-                <View style={{flexDirection: 'row', gap: 6}}>
-                  {['all', 'mapped', 'unmapped'].map((option) => (
-                    <TouchableOpacity
-                      key={option}
-                      onPress={() => setFilterMapped(option)}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 16,
-                        backgroundColor: filterMapped === option
-                          ? (option === 'mapped' ? theme.colors.success[600] : option === 'unmapped' ? theme.colors.primary[600] : theme.colors.primary[600])
-                          : theme.colors.gray[200],
-                      }}>
-                      <Typography
-                        variant="caption"
-                        weight="semibold"
-                        color={filterMapped === option ? theme.colors.white : theme.colors.gray[700]}>
-                        {option === 'all' ? 'All' : option === 'mapped' ? 'Mapped' : 'Unmapped'}
-                      </Typography>
-                    </TouchableOpacity>
-                  ))}
+
+            <View style={styles.filtersWrap}>
+              <View style={styles.filterCard}>
+                <View style={styles.filterRow}>
+                  <View style={styles.filterRowLeft}>
+                    <View style={[styles.filterIconWrap, {backgroundColor: theme.colors.primary[50]}]}>
+                      <CheckCircleIcon size={14} color={theme.colors.primary[600]} />
+                    </View>
+                    <Typography variant="small" weight="semibold">
+                      Show only "For Use"
+                    </Typography>
+                  </View>
+                  <Switch
+                    value={filterForUse}
+                    onValueChange={setFilterForUse}
+                    trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
+                    thumbColor={theme.colors.white}
+                  />
+                </View>
+                <View style={styles.filterDivider} />
+                <View style={styles.filterRow}>
+                  <View style={styles.filterRowLeft}>
+                    <View style={[styles.filterIconWrap, {backgroundColor: theme.colors.success[50]}]}>
+                      <TagIcon size={14} color={theme.colors.success[600]} />
+                    </View>
+                    <Typography variant="small" weight="semibold">
+                      Show only "For Sell"
+                    </Typography>
+                  </View>
+                  <Switch
+                    value={filterForSell}
+                    onValueChange={setFilterForSell}
+                    trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
+                    thumbColor={theme.colors.white}
+                  />
+                </View>
+                <View style={styles.filterDivider} />
+                <View style={styles.filterRowVertical}>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.filterLabel}>
+                    STATUS
+                  </Typography>
+                  <View style={styles.statusFiltersRow}>
+                    {(['all', 'mapped', 'unmapped'] as const).map(opt => {
+                      const active = filterMapped === opt;
+                      return (
+                        <TouchableOpacity
+                          key={opt}
+                          onPress={() => setFilterMapped(opt)}
+                          style={[styles.statusFilterPill, active && styles.statusFilterPillActive]}
+                          activeOpacity={0.85}>
+                          <Typography
+                            variant="caption"
+                            weight="semibold"
+                            color={active ? theme.colors.white : theme.colors.gray[700]}>
+                            {opt === 'all' ? 'All' : opt === 'mapped' ? 'Mapped' : 'Unmapped'}
+                          </Typography>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
               </View>
-            </Card>
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-              <RNTextInput
-                style={styles.searchInput}
-                placeholder="Search items..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor={theme.colors.gray[400]}
-              />
             </View>
-            {/* Error State */}
+
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
                 <View style={styles.errorContent}>
-                  <AlertCircleIcon size={24} color={theme.colors.error[500]} />
-                  <Typography
-                    variant="body"
-                    color={theme.colors.error[700]}
-                    style={styles.errorText}>
+                  <View style={styles.errorIconWrap}>
+                    <AlertCircleIcon size={22} color={theme.colors.error[600]} />
+                  </View>
+                  <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
                     {error}
                   </Typography>
                 </View>
               </Card>
             )}
-            {/* Empty State */}
+
             {!error && items.length === 0 && (
-              <Card variant="outlined" padding="lg" style={styles.emptyCard}>
-                <BoxIcon size={48} color={theme.colors.gray[400]} />
-                <Typography
-                  variant="h3"
-                  weight="semibold"
-                  color={theme.colors.gray[700]}
-                  style={styles.emptyTitle}>
+              <Card variant="elevated" padding="lg" style={styles.emptyCard}>
+                <View style={styles.emptyIconWrap}>
+                  <BoxIcon size={32} color={theme.colors.primary[600]} />
+                </View>
+                <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
                   No items found
                 </Typography>
-                <Typography
-                  variant="body"
-                  color={theme.colors.gray[500]}
-                  align="center">
-                  {searchQuery
-                    ? 'Try adjusting your search'
-                    : 'Sync items to get started'}
+                <Typography variant="small" color={theme.colors.gray[500]} align="center">
+                  {searchQuery ? 'Try adjusting your search.' : 'Sync items to get started.'}
                 </Typography>
               </Card>
             )}
-            {/* Items List */}
+
+            {!error && items.length > 0 && (
+              <View style={styles.sectionEyebrow}>
+                <View style={styles.eyebrowLine} />
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+                  ITEMS · {items.length}
+                </Typography>
+              </View>
+            )}
+
             <View style={styles.itemsList}>
               {items.map((item, index) => {
                 const isExpanded = expandedItems.has(item._id);
-                const status = getItemStatus(item);
+                const isMapped = !!item.isMapped;
+                const stripeColor = isMapped ? theme.colors.success[500] : theme.colors.warning[500];
                 return (
-                  <Card
-                    key={item._id || index}
-                    variant="elevated"
-                    padding="none"
-                    style={styles.itemCard}>
-                    <TouchableOpacity
-                      onPress={() => handleItemPress(item._id)}
-                      style={styles.itemHeader}>
-                      <View style={styles.itemHeaderLeft}>
-                        <View style={styles.chevronContainer}>
-                          {isExpanded ? (
-                            <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
-                          ) : (
-                            <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
-                          )}
-                        </View>
-                        <View style={styles.itemInfo}>
-                          <Typography variant="body" weight="bold" numberOfLines={1}>
-                            {item.itemName}
-                          </Typography>
-                          <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                            {item.itemParent || 'No parent'}
-                          </Typography>
-                        </View>
+                  <Card key={item._id || index} variant="elevated" padding="none" style={styles.itemCard}>
+                    <View style={[styles.itemStripe, {backgroundColor: stripeColor}]} />
+                    <TouchableOpacity onPress={() => handleItemPress(item._id)} style={styles.itemHeader} activeOpacity={0.85}>
+                      <View
+                        style={[
+                          styles.itemIconWrap,
+                          {backgroundColor: isMapped ? theme.colors.success[50] : theme.colors.warning[50]},
+                        ]}>
+                        <BoxIcon size={20} color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]} />
                       </View>
-                      <View style={styles.itemHeaderRight}>
-                        <View style={[styles.statusBadge, {backgroundColor: getStatusBgColor(status)}]}>
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={getStatusColor(status)}>
-                            {getStatusLabel(status)}
-                          </Typography>
-                        </View>
+                      <View style={styles.itemInfo}>
+                        <Typography variant="body" weight="bold" numberOfLines={1}>
+                          {item.itemName}
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                          {item.itemParent || 'No parent'}
+                        </Typography>
+                      </View>
+                      <View
+                        style={[
+                          styles.statusPill,
+                          {
+                            backgroundColor: isMapped
+                              ? theme.colors.success[50]
+                              : theme.colors.warning[50],
+                          },
+                        ]}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={isMapped ? theme.colors.success[700] : theme.colors.warning[700]}>
+                          {isMapped ? 'Mapped' : 'Unmapped'}
+                        </Typography>
+                      </View>
+                      <View style={styles.chevronCircle}>
+                        {isExpanded ? (
+                          <ChevronDownIcon size={14} color={theme.colors.gray[700]} />
+                        ) : (
+                          <ChevronRightIcon size={14} color={theme.colors.gray[700]} />
+                        )}
                       </View>
                     </TouchableOpacity>
-                    {/* Item Meta */}
+
                     <View style={styles.itemMeta}>
+                      <View style={styles.metaTagsRow}>
+                        {item.forUse ? (
+                          <View style={[styles.tagPill, {backgroundColor: theme.colors.primary[50]}]}>
+                            <CheckCircleIcon size={11} color={theme.colors.primary[600]} />
+                            <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                              For Use
+                            </Typography>
+                          </View>
+                        ) : null}
+                        {item.forSell ? (
+                          <View style={[styles.tagPill, {backgroundColor: theme.colors.success[50]}]}>
+                            <TagIcon size={11} color={theme.colors.success[600]} />
+                            <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                              For Sell
+                            </Typography>
+                          </View>
+                        ) : null}
+                        {!item.forUse && !item.forSell ? (
+                          <View style={[styles.tagPill, {backgroundColor: theme.colors.gray[100]}]}>
+                            <WarningIcon size={11} color={theme.colors.gray[600]} />
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>
+                              Unmarked
+                            </Typography>
+                          </View>
+                        ) : null}
+                      </View>
                       <View style={styles.metaRow}>
                         <Typography variant="caption" color={theme.colors.gray[500]}>
                           Category
                         </Typography>
-                        <Typography variant="small" weight="medium">
+                        <Typography variant="small" weight="semibold">
                           {item.itemCategory || 'Item'}
                         </Typography>
                       </View>
@@ -462,26 +479,36 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                         <Typography variant="caption" color={theme.colors.gray[500]}>
                           Qty on Hand
                         </Typography>
-                        <Typography variant="small" weight="medium">
+                        <Typography variant="small" weight="bold">
                           {item.qtyOnHand !== undefined ? item.qtyOnHand.toFixed(2) : '0'}
                         </Typography>
                       </View>
-                      {item.description && (
-                        <View style={styles.metaRow}>
-                          <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={2} style={{flex: 1}}>
-                            {item.description}
-                          </Typography>
-                        </View>
-                      )}
+                      {item.description ? (
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={2}>
+                          {item.description}
+                        </Typography>
+                      ) : null}
                     </View>
-                    {/* Expanded Content */}
+
                     {isExpanded && (
                       <View style={styles.expandedContent}>
-                        <View style={styles.flagSection}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={theme.colors.gray[600]}
+                          style={styles.expandedLabel}>
+                          FLAGS
+                        </Typography>
+                        <View style={styles.flagCard}>
                           <View style={styles.flagRow}>
-                            <Typography variant="small" weight="medium">
-                              For Use
-                            </Typography>
+                            <View style={styles.flagRowLeft}>
+                              <View style={[styles.flagIconWrap, {backgroundColor: theme.colors.primary[50]}]}>
+                                <CheckCircleIcon size={14} color={theme.colors.primary[600]} />
+                              </View>
+                              <Typography variant="small" weight="semibold">
+                                For Use
+                              </Typography>
+                            </View>
                             <Switch
                               value={item.forUse || false}
                               onValueChange={() => handleFlagChange(item._id, 'forUse', item.forUse)}
@@ -489,10 +516,16 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                               thumbColor={theme.colors.white}
                             />
                           </View>
+                          <View style={styles.flagDivider} />
                           <View style={styles.flagRow}>
-                            <Typography variant="small" weight="medium">
-                              For Sell
-                            </Typography>
+                            <View style={styles.flagRowLeft}>
+                              <View style={[styles.flagIconWrap, {backgroundColor: theme.colors.success[50]}]}>
+                                <TagIcon size={14} color={theme.colors.success[600]} />
+                              </View>
+                              <Typography variant="small" weight="semibold">
+                                For Sell
+                              </Typography>
+                            </View>
                             <Switch
                               value={item.forSell || false}
                               onValueChange={() => handleFlagChange(item._id, 'forSell', item.forSell)}
@@ -513,175 +546,193 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
     </Modal>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.gray[50],
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray[200],
-    backgroundColor: theme.colors.white,
-  },
-  closeButton: {
-    paddingVertical: 4,
-    width: 60,
-  },
-  refreshButton: {
-    paddingVertical: 4,
-    width: 60,
-    alignItems: 'flex-end',
-  },
-  modalTitle: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: theme.spacing.lg,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-    marginBottom: theme.spacing.lg,
-  },
-  statCardWrapper: {
-    padding: 4,
-  },
-  statCard: {
-    borderRadius: 12,
-    padding: 12,
-    minHeight: 100,
-  },
-  statLabel: {
-    color: '#ffffff',
-    fontSize: 11,
-    opacity: 0.9,
-    marginTop: 6,
-    marginBottom: 4,
-  },
-  statValue: {
-    color: '#ffffff',
-    fontSize: 22,
-  },
-  syncButtonContainer: {
-    marginBottom: theme.spacing.md,
-  },
-  filterCard: {
-    marginBottom: theme.spacing.md,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: theme.spacing.sm,
-  },
-  searchContainer: {
-    marginBottom: theme.spacing.md,
-  },
-  searchInput: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.gray[200],
-    color: theme.colors.gray[900],
-  },
-  errorCard: {
-    marginBottom: theme.spacing.lg,
-    backgroundColor: theme.colors.error[50],
-  },
-  errorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  errorText: {
-    flex: 1,
-  },
-  emptyCard: {
-    alignItems: 'center',
-    paddingVertical: theme.spacing.xl * 2,
-  },
-  emptyTitle: {
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.xs,
-  },
-  itemsList: {
-    gap: theme.spacing.md,
-  },
-  itemCard: {
-    marginBottom: 0,
-    overflow: 'hidden',
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: theme.spacing.md,
-  },
-  itemHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  chevronContainer: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemHeaderRight: {
-    marginLeft: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  itemMeta: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  expandedContent: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray[200],
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.gray[50],
-  },
-  flagSection: {
-    gap: theme.spacing.md,
-  },
-  flagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: theme.spacing.sm,
-  },
-});
+
+const makeStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: {flex: 1, backgroundColor: theme.colors.primary[700]},
+    loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.gray[50]},
+    loadingMark: {
+      width: 56, height: 56, borderRadius: 16,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    scrollView: {flex: 1, backgroundColor: theme.colors.background.secondary},
+    scrollContent: {paddingBottom: theme.spacing.xxxl},
+
+    hero: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingTop: theme.spacing.md,
+      paddingBottom: theme.spacing.xl + theme.spacing.md,
+      backgroundColor: theme.colors.primary[700],
+      borderBottomLeftRadius: 28,
+      borderBottomRightRadius: 28,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    blob: {position: 'absolute', borderRadius: 9999},
+    blobOne: {width: 280, height: 280, top: -130, right: -100, backgroundColor: theme.colors.primary[400]},
+    blobTwo: {width: 220, height: 220, bottom: -110, left: -70, backgroundColor: theme.colors.accent[500]},
+    dotGrid: {position: 'absolute', top: 50, right: 18, width: 90, flexDirection: 'row', flexWrap: 'wrap', gap: 10, opacity: 0.18},
+    dot: {width: 4, height: 4, borderRadius: 2, backgroundColor: theme.colors.white},
+    heroBody: {zIndex: 2},
+    heroTopRow: {flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginBottom: theme.spacing.md},
+    heroEyebrow: {letterSpacing: 1.4, marginBottom: 4},
+    heroTitle: {letterSpacing: -0.4, marginBottom: 2},
+    heroIconBtn: {
+      width: 36, height: 36, borderRadius: 12,
+      backgroundColor: 'rgba(255,255,255,0.14)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+      alignItems: 'center', justifyContent: 'center',
+    },
+    statusChip: {
+      alignSelf: 'flex-start',
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      paddingHorizontal: theme.spacing.sm + 2, paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      marginBottom: theme.spacing.lg,
+    },
+    statusDot: {width: 8, height: 8, borderRadius: 4, backgroundColor: theme.colors.success[400]},
+    heroMetricsRow: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: 'rgba(255,255,255,0.10)',
+      borderRadius: 14,
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
+      paddingVertical: theme.spacing.md - 2, paddingHorizontal: theme.spacing.sm,
+    },
+    heroMetric: {flex: 1, alignItems: 'center', gap: 2},
+    heroMetricLabel: {letterSpacing: 1.2},
+    heroMetricDivider: {width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.18)'},
+
+    searchWrap: {paddingHorizontal: theme.spacing.lg, marginTop: -22, zIndex: 3},
+    searchCard: {
+      flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
+      backgroundColor: theme.colors.white, borderRadius: 14,
+      paddingHorizontal: theme.spacing.md, paddingVertical: 10,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      ...theme.shadows.md,
+    },
+    searchInput: {flex: 1, fontSize: 14, color: theme.colors.gray[900], paddingVertical: 0},
+    searchClear: {
+      width: 22, height: 22, borderRadius: 11,
+      alignItems: 'center', justifyContent: 'center',
+      backgroundColor: theme.colors.gray[100],
+    },
+
+    actionWrap: {paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md},
+
+    filtersWrap: {paddingHorizontal: theme.spacing.lg, marginTop: theme.spacing.md},
+    filterCard: {
+      backgroundColor: theme.colors.white, borderRadius: 14,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      overflow: 'hidden',
+    },
+    filterRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 4,
+    },
+    filterRowLeft: {flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1},
+    filterIconWrap: {
+      width: 28, height: 28, borderRadius: 9,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    filterDivider: {height: 1, backgroundColor: theme.colors.gray[100], marginHorizontal: theme.spacing.md},
+    filterRowVertical: {paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 4},
+    filterLabel: {letterSpacing: 1, marginBottom: 8},
+    statusFiltersRow: {flexDirection: 'row', gap: 6},
+    statusFilterPill: {
+      paddingHorizontal: 12, paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: theme.colors.gray[100],
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+    },
+    statusFilterPillActive: {
+      backgroundColor: theme.colors.primary[600],
+      borderColor: theme.colors.primary[600],
+    },
+
+    sectionEyebrow: {
+      flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.lg, marginBottom: theme.spacing.md,
+    },
+    eyebrowLine: {width: 24, height: 2, borderRadius: 1, backgroundColor: theme.colors.primary[600]},
+
+    errorCard: {
+      marginHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.md,
+      backgroundColor: theme.colors.error[50],
+      borderColor: theme.colors.error[200],
+    },
+    errorContent: {flexDirection: 'row', alignItems: 'center', gap: 12},
+    errorIconWrap: {
+      width: 40, height: 40, borderRadius: 12,
+      backgroundColor: theme.colors.error[100],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    errorText: {flex: 1},
+
+    emptyCard: {
+      marginHorizontal: theme.spacing.lg,
+      marginTop: theme.spacing.md,
+      alignItems: 'center',
+      paddingVertical: theme.spacing.xl,
+    },
+    emptyIconWrap: {
+      width: 56, height: 56, borderRadius: 16,
+      backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    emptyTitle: {marginBottom: theme.spacing.xs},
+
+    itemsList: {paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md},
+    itemCard: {overflow: 'hidden', position: 'relative'},
+    itemStripe: {position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: theme.colors.primary[500]},
+    itemHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      padding: theme.spacing.md,
+      paddingTop: theme.spacing.md + 4,
+    },
+    itemIconWrap: {width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center'},
+    itemInfo: {flex: 1, gap: 2},
+    statusPill: {paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999},
+    chevronCircle: {
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: theme.colors.gray[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    itemMeta: {
+      borderTopWidth: 1, borderTopColor: theme.colors.gray[100],
+      padding: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    metaTagsRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 4},
+    tagPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 10, paddingVertical: 4,
+      borderRadius: 999,
+    },
+    metaRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+
+    expandedContent: {
+      borderTopWidth: 1, borderTopColor: theme.colors.gray[100],
+      backgroundColor: theme.colors.background.secondary,
+      padding: theme.spacing.md,
+    },
+    expandedLabel: {letterSpacing: 1, marginBottom: 8},
+    flagCard: {
+      backgroundColor: theme.colors.white, borderRadius: 12,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      overflow: 'hidden',
+    },
+    flagRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 4,
+    },
+    flagRowLeft: {flexDirection: 'row', alignItems: 'center', gap: 10},
+    flagIconWrap: {width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center'},
+    flagDivider: {height: 1, backgroundColor: theme.colors.gray[100], marginHorizontal: theme.spacing.md},
+  });
