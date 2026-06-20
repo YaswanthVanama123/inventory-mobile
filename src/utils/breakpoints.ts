@@ -43,7 +43,7 @@ export const useBreakpoint = (): BreakpointInfo => {
   const isMacOrPad = !isMobile;
 
   const scale = isWide ? 1.4 : isDesktop ? 1.25 : isTablet ? 1.1 : 1;
-  const fontScale = isWide ? 1.18 : isDesktop ? 1.12 : isTablet ? 1.06 : 1;
+  const fontScale = isWide ? 1.36 : isDesktop ? 1.24 : isTablet ? 1.12 : 1;
   const contentMaxWidth = isWide ? 1240 : isDesktop ? 1080 : isTablet ? 760 : width;
   const gutter = isWide ? 48 : isDesktop ? 36 : isTablet ? 28 : 16;
 

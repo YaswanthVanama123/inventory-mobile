@@ -136,7 +136,6 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
   };
 
   const wide = !breakpoint.isMobile;
-  const headlineFont = breakpoint.isWide ? 56 : breakpoint.isDesktop ? 46 : breakpoint.isTablet ? 38 : 32;
 
   const renderPreviewCard = (style?: any) => (
     <Card style={[styles.previewCard, style]} padding="none">
@@ -233,13 +232,13 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
         variant="h1"
         weight="bold"
         color={theme.colors.white}
-        style={[styles.heroTitle, {fontSize: headlineFont, lineHeight: headlineFont * 1.08}]}>
+        style={styles.heroTitle}>
         Run your inventory{'\n'}with confidence.
       </Typography>
       <Typography
         variant="body"
         color={theme.colors.primary[100]}
-        style={[styles.heroSubtitle, {fontSize: breakpoint.isWide ? 18 : 16}]}>
+        style={styles.heroSubtitle}>
         One workspace for stock, orders, invoices, RouteStar sync and truck checkouts. Same data on web, iPad and mobile.
       </Typography>
 
@@ -349,13 +348,13 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
             <Typography
               variant="h2"
               weight="bold"
-              style={[styles.sectionTitle, {fontSize: breakpoint.isWide ? 36 : breakpoint.isDesktop ? 32 : 28}]}>
+              style={styles.sectionTitle}>
               Everything your team needs
             </Typography>
             <Typography
               variant="body"
               color={theme.colors.gray[600]}
-              style={[styles.sectionSubtitle, {fontSize: breakpoint.isWide ? 17 : 15}]}>
+              style={styles.sectionSubtitle}>
               Designed for the way real inventory work happens.
             </Typography>
 
@@ -384,7 +383,7 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
             <Typography
               variant="h3"
               weight="bold"
-              style={[styles.sectionTitle, {fontSize: breakpoint.isWide ? 28 : 22}]}>
+              style={styles.sectionTitle}>
               Built for operations teams
             </Typography>
             <View style={styles.highlightsGrid}>
@@ -410,7 +409,7 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
             <Typography
               variant="h3"
               weight="bold"
-              style={[styles.sectionTitle, {fontSize: breakpoint.isWide ? 28 : 22}]}>
+              style={styles.sectionTitle}>
               How it works
             </Typography>
             <View style={styles.stepsList}>
@@ -462,7 +461,7 @@ export const WelcomeScreen: React.FC<Props> = ({navigation}) => {
               weight="bold"
               color={theme.colors.white}
               align="center"
-              style={[styles.ctaTitle, {fontSize: breakpoint.isWide ? 40 : 28}]}>
+              style={styles.ctaTitle}>
               Get back to work.
             </Typography>
             <Typography

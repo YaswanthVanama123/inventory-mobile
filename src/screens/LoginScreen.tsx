@@ -187,13 +187,13 @@ export const LoginScreen = () => {
           variant="h1"
           weight="bold"
           color={theme.colors.white}
-          style={[styles.brandTitle, {fontSize: breakpoint.isWide ? 44 : breakpoint.isDesktop ? 38 : 32}]}>
+          style={styles.brandTitle}>
           Run your inventory{'\n'}with confidence.
         </Typography>
         <Typography
           variant="body"
           color={theme.colors.primary[100]}
-          style={[styles.brandSubtitle, {fontSize: breakpoint.isWide ? 17 : 15}]}>
+          style={styles.brandSubtitle}>
           One workspace for stock, orders, invoices, RouteStar sync, and truck checkouts.
           Same data on web, iPad, and Mac.
         </Typography>
@@ -256,7 +256,7 @@ export const LoginScreen = () => {
             variant="h1"
             weight="bold"
             align={isSplit ? 'left' : 'center'}
-            style={[styles.formTitle, {fontSize: breakpoint.isWide ? 36 : breakpoint.isDesktop ? 30 : breakpoint.isTablet ? 28 : 26}]}>
+            style={styles.formTitle}>
             Welcome back
           </Typography>
           <Typography
