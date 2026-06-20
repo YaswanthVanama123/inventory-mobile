@@ -749,7 +749,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingVertical: 4,
       paddingHorizontal: 8,
       color: theme.colors.gray[900],
-      fontSize: 16,
+      fontSize: theme.typography.roles.sideheading.fontSize,
       fontWeight: '600',
     },
     notesCard: {

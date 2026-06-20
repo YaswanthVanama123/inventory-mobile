@@ -16,7 +16,7 @@ export const CheckoutStackNavigator = () => {
   const theme = useTheme();
   const headerStyle = {backgroundColor: theme.colors.white};
   const headerTitleStyle = {
-    fontSize: 18,
+    fontSize: theme.typography.roles.sideheading.fontSize,
     fontWeight: '600' as const,
     color: theme.colors.gray[900],
   };

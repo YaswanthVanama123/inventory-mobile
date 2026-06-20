@@ -958,7 +958,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       borderWidth: 1, borderColor: theme.colors.gray[200],
       ...theme.shadows.md,
     },
-    searchInput: {flex: 1, fontSize: 14, color: theme.colors.gray[900], paddingVertical: 0},
+    searchInput: {flex: 1, fontSize: theme.typography.roles.body.fontSize, color: theme.colors.gray[900], paddingVertical: 0},
     searchClear: {
       width: 22, height: 22, borderRadius: 11,
       alignItems: 'center', justifyContent: 'center',
@@ -1108,7 +1108,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       borderRadius: 12,
       paddingHorizontal: 14,
       paddingVertical: 12,
-      fontSize: 15,
+      fontSize: theme.typography.roles.body.fontSize,
       color: theme.colors.gray[900],
       borderWidth: 1,
       borderColor: theme.colors.gray[200],
@@ -1122,7 +1122,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       borderWidth: 1,
       borderColor: theme.colors.gray[200],
     },
-    searchInputField: {flex: 1, fontSize: 14, color: theme.colors.gray[900], paddingVertical: 0},
+    searchInputField: {flex: 1, fontSize: theme.typography.roles.body.fontSize, color: theme.colors.gray[900], paddingVertical: 0},
 
     selectedItemsCard: {
       backgroundColor: theme.colors.success[50],

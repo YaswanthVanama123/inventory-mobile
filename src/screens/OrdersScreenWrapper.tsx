@@ -640,7 +640,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     backgroundColor: theme.colors.white,
     borderRadius: 8,
     padding: 12,
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
     color: theme.colors.gray[900],
     borderWidth: 1,
     borderColor: theme.colors.gray[200],

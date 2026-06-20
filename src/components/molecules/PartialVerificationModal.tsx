@@ -389,7 +389,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    fontSize: 16,
+    fontSize: theme.typography.roles.sideheading.fontSize,
     color: theme.colors.gray[900],
   },
   textArea: {

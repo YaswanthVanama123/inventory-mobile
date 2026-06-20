@@ -908,7 +908,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   },
   endpointText: {
     fontFamily: 'monospace',
-    fontSize: 11,
+    fontSize: theme.typography.roles.caption.fontSize,
     flex: 1,
     textAlign: 'right',
   },
@@ -973,7 +973,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     borderRadius: theme.borderRadius.lg,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
     color: theme.colors.gray[900],
     backgroundColor: theme.colors.white,
   },

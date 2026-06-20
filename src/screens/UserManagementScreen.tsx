@@ -675,12 +675,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     marginBottom: theme.spacing.sm,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: theme.typography.roles.caption.fontSize,
     letterSpacing: 0.6,
     marginBottom: 4,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: theme.typography.roles.heading.fontSize,
     color: theme.colors.gray[900],
   },
   tabsContainer: {
@@ -706,7 +706,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: theme.typography.roles.sideheading.fontSize,
     borderWidth: 1,
     borderColor: theme.colors.gray[200],
     color: theme.colors.gray[900],

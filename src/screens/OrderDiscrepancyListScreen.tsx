@@ -569,7 +569,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   statLabel: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: theme.typography.roles.caption.fontSize,
     fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -588,7 +588,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
     color: '#0f172a',
   },
   filterContainer: {
@@ -613,7 +613,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   filterButtonText: {
     color: '#334155',
     fontWeight: '600',
-    fontSize: 13,
+    fontSize: theme.typography.roles.body.fontSize,
   },
   filterButtonTextActive: {
     color: '#ffffff',
@@ -669,7 +669,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   itemName: {
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
     color: '#0f172a',
     flexShrink: 1,
   },
@@ -680,7 +680,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     borderRadius: 4,
   },
   skuText: {
-    fontSize: 11,
+    fontSize: theme.typography.roles.caption.fontSize,
     color: '#64748b',
   },
   rowMeta: {
@@ -689,12 +689,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     marginTop: 3,
   },
   orderNum: {
-    fontSize: 12,
+    fontSize: theme.typography.roles.caption.fontSize,
     color: '#475569',
     fontWeight: '500',
   },
   rowDate: {
-    fontSize: 12,
+    fontSize: theme.typography.roles.caption.fontSize,
     color: '#94a3b8',
   },
   rowRight: {
@@ -709,7 +709,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   diffText: {
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: theme.typography.roles.body.fontSize,
   },
   typeBadge: {
     paddingHorizontal: 8,
@@ -717,7 +717,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     borderRadius: 10,
   },
   typeText: {
-    fontSize: 11,
+    fontSize: theme.typography.roles.caption.fontSize,
     fontWeight: '600',
   },
   expandedPanel: {
@@ -744,7 +744,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     alignItems: 'center',
   },
   quantityLabel: {
-    fontSize: 11,
+    fontSize: theme.typography.roles.caption.fontSize,
     color: '#64748b',
   },
   quantityValue: {
@@ -756,7 +756,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   arrowText: {
     color: '#94a3b8',
-    fontSize: 16,
+    fontSize: theme.typography.roles.sideheading.fontSize,
   },
   detailSection: {
     marginTop: 12,
@@ -773,11 +773,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     paddingVertical: 6,
   },
   detailLabel: {
-    fontSize: 12,
+    fontSize: theme.typography.roles.caption.fontSize,
     color: '#64748b',
   },
   detailValue: {
-    fontSize: 13,
+    fontSize: theme.typography.roles.body.fontSize,
     fontWeight: '600',
     color: '#0f172a',
     maxWidth: '60%',
@@ -799,13 +799,13 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     borderColor: '#a7f3d0',
   },
   noteLabel: {
-    fontSize: 11,
+    fontSize: theme.typography.roles.caption.fontSize,
     fontWeight: '600',
     color: '#475569',
     marginBottom: 4,
   },
   noteText: {
-    fontSize: 13,
+    fontSize: theme.typography.roles.body.fontSize,
     color: '#1e293b',
   },
   deleteButton: {
@@ -820,6 +820,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   deleteButtonText: {
     color: '#dc2626',
     fontWeight: '600',
-    fontSize: 13,
+    fontSize: theme.typography.roles.body.fontSize,
   },
 });

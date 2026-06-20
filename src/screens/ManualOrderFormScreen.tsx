@@ -540,7 +540,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     borderColor: theme.colors.gray[300],
     borderRadius: 8,
     padding: 12,
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
     color: theme.colors.gray[900],
   },
   disabledInput: {

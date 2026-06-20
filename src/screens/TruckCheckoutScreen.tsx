@@ -649,7 +649,7 @@ export const TruckCheckoutScreen = () => {
                             variant="caption"
                             weight="bold"
                             color={item.itemType === 'use' ? theme.colors.primary[700] : theme.colors.success[700]}
-                            style={{fontSize: 10}}>
+                            style={{fontSize: theme.typography.roles.caption.fontSize}}>
                             {item.itemType === 'use' ? 'USE' : 'SELL'}
                           </Typography>
                         </View>
@@ -818,7 +818,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     flex: 1,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
   },
   formCard: {
     marginBottom: theme.spacing.xl,
@@ -835,7 +835,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     borderRadius: 12,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    fontSize: 16,
+    fontSize: theme.typography.roles.sideheading.fontSize,
     color: theme.colors.gray[900],
     backgroundColor: theme.colors.white,
   },
@@ -919,7 +919,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: theme.typography.roles.sideheading.fontSize,
     color: theme.colors.gray[900],
     paddingVertical: 8,
   },

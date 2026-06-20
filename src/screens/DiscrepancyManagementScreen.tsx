@@ -845,7 +845,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
     color: theme.colors.gray[900],
   },
   filterContainer: {

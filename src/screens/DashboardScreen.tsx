@@ -283,7 +283,7 @@ export const DashboardScreen = () => {
     color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(71, 85, 105, ${opacity})`,
     style: {borderRadius: 16},
-    propsForLabels: {fontSize: 11, fontWeight: '600'},
+    propsForLabels: {fontSize: theme.typography.roles.caption.fontSize, fontWeight: '600'},
     propsForBackgroundLines: {
       strokeDasharray: '3 3',
       stroke: '#e2e8f0',
@@ -639,7 +639,7 @@ export const DashboardScreen = () => {
                   fillShadowGradientFrom: theme.colors.primary[500],
                   fillShadowGradientTo: theme.colors.primary[600],
                   fillShadowGradientOpacity: 1,
-                  propsForLabels: {fontSize: 9, fontWeight: '500', rotation: 0},
+                  propsForLabels: {fontSize: theme.typography.roles.caption.fontSize, fontWeight: '500', rotation: 0},
                 }}
                 style={styles.chart}
                 withInnerLines={false}
@@ -1030,7 +1030,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingLeft: 6,
     },
     statTileValue: {
-      fontSize: 22,
+      fontSize: theme.typography.roles.subheading.fontSize,
       color: theme.colors.gray[900],
       paddingLeft: 6,
     },
@@ -1067,7 +1067,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       transform: [{rotate: '-45deg'}],
     },
     chartTitle: {
-      fontSize: 17,
+      fontSize: theme.typography.roles.sideheading.fontSize,
       color: theme.colors.gray[900],
     },
     chart: {
@@ -1094,7 +1094,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     },
     activityHeaderTitle: {
       flex: 1,
-      fontSize: 17,
+      fontSize: theme.typography.roles.sideheading.fontSize,
       color: theme.colors.gray[900],
     },
     activityHeaderPill: {

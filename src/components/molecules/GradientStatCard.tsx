@@ -162,7 +162,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
   },
   title: {
     color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 10,
+    fontSize: theme.typography.roles.caption.fontSize,
     fontWeight: '600',
     letterSpacing: 0.8,
   },
@@ -185,7 +185,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     fontWeight: '600',
   },
   trendIcon: {
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
     fontWeight: 'bold',
   },
   trendUp: {

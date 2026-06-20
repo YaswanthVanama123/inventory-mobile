@@ -769,7 +769,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: theme.typography.roles.sideheading.fontSize,
     color: theme.colors.gray[900],
     borderWidth: 1,
     borderColor: theme.colors.gray[300],
@@ -797,7 +797,7 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: theme.typography.roles.sideheading.fontSize,
     color: theme.colors.gray[900],
   },
   eyeButton: {

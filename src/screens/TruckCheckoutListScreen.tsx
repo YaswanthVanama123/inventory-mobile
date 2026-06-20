@@ -1713,7 +1713,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     },
     filterInput: {
       flex: 1,
-      fontSize: 14,
+      fontSize: theme.typography.roles.body.fontSize,
       color: theme.colors.gray[900],
       paddingVertical: 0,
     },

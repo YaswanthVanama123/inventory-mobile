@@ -631,7 +631,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: theme.typography.roles.body.fontSize,
     color: theme.colors.gray[900],
     padding: 0,
   },
@@ -795,7 +795,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    fontSize: 14,
+    fontSize: theme.typography.roles.body.fontSize,
     color: theme.colors.gray[900],
     backgroundColor: theme.colors.white,
   },

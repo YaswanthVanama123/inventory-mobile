@@ -1898,7 +1898,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       borderRadius: 10,
       paddingHorizontal: theme.spacing.sm + 4,
       paddingVertical: theme.spacing.sm + 2,
-      fontSize: 14,
+      fontSize: theme.typography.roles.body.fontSize,
       color: theme.colors.gray[900],
       backgroundColor: theme.colors.white,
     },

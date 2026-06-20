@@ -626,7 +626,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: theme.typography.roles.sideheading.fontSize,
     borderWidth: 1,
     borderColor: theme.colors.gray[200],
     color: theme.colors.gray[900],
@@ -758,7 +758,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     marginBottom: 6,
   },
   formInput: {
-    fontSize: 15,
+    fontSize: theme.typography.roles.body.fontSize,
   },
   formHint: {
     marginTop: 4,
