@@ -783,7 +783,11 @@ export const TruckCheckoutScreen = () => {
     </SafeAreaView>
   );
 };
-const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -883,9 +887,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   submitButton: {
     backgroundColor: theme.colors.primary[600],
     borderRadius: 12,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: rb(theme.spacing.md * btnPadScale),
     alignItems: 'center',
     marginTop: theme.spacing.md,
+    maxWidth: actionBtnMaxWidth,
+    alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+    width: '100%',
   },
   submitButtonDisabled: {
     opacity: 0.5,
@@ -995,16 +1002,19 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray[200],
+    maxWidth: actionBtnMaxWidth,
+    alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+    width: '100%',
   },
   cancelButton: {
-    paddingVertical: 12,
+    paddingVertical: rb(12 * btnPadScale),
     paddingHorizontal: 24,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: theme.colors.gray[300],
   },
   acceptButton: {
-    paddingVertical: 12,
+    paddingVertical: rb(12 * btnPadScale),
     paddingHorizontal: 24,
     borderRadius: 8,
     backgroundColor: theme.colors.error[600],
@@ -1012,3 +1022,4 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     alignItems: 'center',
   },
 });
+};

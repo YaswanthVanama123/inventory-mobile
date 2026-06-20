@@ -679,6 +679,9 @@ export const AccountScreen = () => {
 
 const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   const wide = !bp.isMobile;
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
   return StyleSheet.create({
     container: {
       flex: 1,
@@ -946,11 +949,13 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       alignItems: 'center',
       gap: theme.spacing.md,
       backgroundColor: theme.colors.primary[600],
-      paddingVertical: theme.spacing.md,
+      paddingVertical: rb(theme.spacing.md * btnPadScale),
       paddingHorizontal: theme.spacing.md,
       borderRadius: 14,
       marginTop: theme.spacing.sm,
       ...theme.shadows.md,
+      maxWidth: actionBtnMaxWidth,
+      alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
     },
     logoutIconWrap: {
       width: 38,
@@ -968,12 +973,14 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       alignItems: 'center',
       gap: theme.spacing.md,
       backgroundColor: theme.colors.white,
-      paddingVertical: theme.spacing.md,
+      paddingVertical: rb(theme.spacing.md * btnPadScale),
       paddingHorizontal: theme.spacing.md,
       borderRadius: 14,
       marginTop: theme.spacing.sm,
       borderWidth: 1,
       borderColor: theme.colors.error[100],
+      maxWidth: actionBtnMaxWidth,
+      alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
     },
     deleteIconWrap: {
       width: 38,

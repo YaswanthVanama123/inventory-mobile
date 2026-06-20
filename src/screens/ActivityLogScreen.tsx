@@ -759,7 +759,11 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   );
 };
 
-const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -996,19 +1000,25 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     padding: theme.spacing.lg,
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray[200],
+    maxWidth: actionBtnMaxWidth,
+    alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+    width: '100%',
   },
   clearButton: {
     flex: 1,
-    padding: theme.spacing.md,
+    paddingVertical: rb(theme.spacing.md * btnPadScale),
+    paddingHorizontal: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
     backgroundColor: theme.colors.gray[100],
   },
   applyButton: {
     flex: 2,
-    padding: theme.spacing.md,
+    paddingVertical: rb(theme.spacing.md * btnPadScale),
+    paddingHorizontal: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
     backgroundColor: theme.colors.primary[600],
   },
-});
+  });
+};

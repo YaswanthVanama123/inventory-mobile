@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {useTheme} from '../../contexts/ThemeContext';
 import {Theme} from '../../theme';
+import {useBreakpoint, BreakpointInfo} from '../../utils/breakpoints';
 
 export interface ButtonProps extends Omit<TouchableOpacityProps, 'style'> {
   title: string;
@@ -37,7 +38,8 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const bp = useBreakpoint();
+  const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const buttonStyles = [
     styles.button,
     styles[`button_${variant}`],
@@ -72,79 +74,93 @@ export const Button: React.FC<ButtonProps> = ({
     </TouchableOpacity>
   );
 };
-const makeStyles = (theme: Theme) => StyleSheet.create({
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: theme.borderRadius.md,
-    gap: theme.spacing.sm,
-  },
-  button_primary: {
-    backgroundColor: theme.colors.primary[600],
-    ...theme.shadows.sm,
-  },
-  button_secondary: {
-    backgroundColor: theme.colors.accent[50],
-    borderWidth: 1,
-    borderColor: theme.colors.accent[200],
-  },
-  button_outline: {
-    backgroundColor: theme.colors.transparent,
-    borderWidth: 1.5,
-    borderColor: theme.colors.primary[600],
-  },
-  button_ghost: {
-    backgroundColor: theme.colors.transparent,
-  },
-  button_danger: {
-    backgroundColor: theme.colors.error[600],
-    ...theme.shadows.sm,
-  },
-  button_sm: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  button_md: {
-    paddingVertical: 13,
-    paddingHorizontal: theme.spacing.lg,
-  },
-  button_lg: {
-    paddingVertical: 16,
-    paddingHorizontal: theme.spacing.xl,
-  },
-  fullWidth: {
-    width: '100%',
-  },
-  disabled: {
-    opacity: 0.4,
-  },
-  text: {
-    fontWeight: theme.typography.fontWeights.semibold,
-    letterSpacing: 0.1,
-  },
-  text_primary: {
-    color: theme.colors.white,
-  },
-  text_secondary: {
-    color: theme.colors.accent[700],
-  },
-  text_outline: {
-    color: theme.colors.primary[600],
-  },
-  text_ghost: {
-    color: theme.colors.primary[600],
-  },
-  text_danger: {
-    color: theme.colors.white,
-  },
-  text_sm: {
-    fontSize: theme.typography.fontSizes.sm,
-  },
-  text_md: {
-    fontSize: theme.typography.fontSizes.md,
-  },
-  text_lg: {
-    fontSize: theme.typography.fontSizes.lg,
-  },
-});
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  // Scale buttons up a little on big screens so they don't look tiny, but
+  // CAP full-width buttons so they stop stretching edge-to-edge on Mac/iPad.
+  const padScale = bp.isWide ? 1.35 : bp.isDesktop ? 1.18 : 1;
+  const fontScale = bp.isWide ? 1.22 : bp.isDesktop ? 1.12 : 1;
+  // Largest a "full width" button is allowed to grow to on big screens; it
+  // fills its container on phones (undefined cap) and centers when capped.
+  const fullMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const sz = theme.typography.fontSizes;
+  const r = (n: number) => Math.round(n);
+
+  return StyleSheet.create({
+    button: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: bp.isMobile ? theme.borderRadius.md : theme.borderRadius.lg,
+      gap: theme.spacing.sm,
+    },
+    button_primary: {
+      backgroundColor: theme.colors.primary[600],
+      ...theme.shadows.sm,
+    },
+    button_secondary: {
+      backgroundColor: theme.colors.accent[50],
+      borderWidth: 1,
+      borderColor: theme.colors.accent[200],
+    },
+    button_outline: {
+      backgroundColor: theme.colors.transparent,
+      borderWidth: 1.5,
+      borderColor: theme.colors.primary[600],
+    },
+    button_ghost: {
+      backgroundColor: theme.colors.transparent,
+    },
+    button_danger: {
+      backgroundColor: theme.colors.error[600],
+      ...theme.shadows.sm,
+    },
+    button_sm: {
+      paddingVertical: r(10 * padScale),
+      paddingHorizontal: r(16 * padScale),
+    },
+    button_md: {
+      paddingVertical: r(13 * padScale),
+      paddingHorizontal: r(theme.spacing.lg * padScale),
+    },
+    button_lg: {
+      paddingVertical: r(16 * padScale),
+      paddingHorizontal: r(theme.spacing.xl * padScale),
+    },
+    fullWidth: {
+      width: '100%',
+      maxWidth: fullMaxWidth,
+      alignSelf: fullMaxWidth ? 'center' : 'auto',
+    },
+    disabled: {
+      opacity: 0.4,
+    },
+    text: {
+      fontWeight: theme.typography.fontWeights.semibold,
+      letterSpacing: 0.1,
+    },
+    text_primary: {
+      color: theme.colors.white,
+    },
+    text_secondary: {
+      color: theme.colors.accent[700],
+    },
+    text_outline: {
+      color: theme.colors.primary[600],
+    },
+    text_ghost: {
+      color: theme.colors.primary[600],
+    },
+    text_danger: {
+      color: theme.colors.white,
+    },
+    text_sm: {
+      fontSize: r(sz.sm * fontScale),
+    },
+    text_md: {
+      fontSize: r(sz.md * fontScale),
+    },
+    text_lg: {
+      fontSize: r(sz.lg * fontScale),
+    },
+  });
+};

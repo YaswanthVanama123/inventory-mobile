@@ -684,6 +684,9 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
 
 const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   const wide = !bp.isMobile;
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
   return StyleSheet.create({
     container: {flex: 1, backgroundColor: theme.colors.brand.bg},
     loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.gray[50]},
@@ -781,10 +784,13 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     syncRow: {
       flexDirection: 'row', gap: 8,
       marginTop: theme.spacing.md,
+      maxWidth: actionBtnMaxWidth,
+      alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+      width: '100%',
     },
     syncBtn: {
       flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-      paddingVertical: 12,
+      paddingVertical: rb(12 * btnPadScale),
       borderRadius: 12,
     },
     syncBtnPrimary: {backgroundColor: theme.colors.primary[600]},

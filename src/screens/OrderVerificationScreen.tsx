@@ -580,8 +580,11 @@ const styles_summaryPill = StyleSheet.create({
   },
 });
 
-const makeStyles = (theme: Theme, bp: BreakpointInfo) =>
-  StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
+  return StyleSheet.create({
     flex: {flex: 1},
     container: {
       flex: 1,
@@ -641,9 +644,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) =>
     },
     primaryActionBtn: {
       paddingHorizontal: 24,
-      paddingVertical: 12,
+      paddingVertical: rb(12 * btnPadScale),
       backgroundColor: theme.colors.primary[600],
       borderRadius: 10,
+      maxWidth: actionBtnMaxWidth,
+      alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
     },
     scrollContent: {
       padding: 16,
@@ -789,13 +794,13 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) =>
       paddingHorizontal: 16,
       paddingTop: 10,
       paddingBottom: 10,
-      maxWidth: bp.contentMaxWidth,
+      maxWidth: actionBtnMaxWidth ?? bp.contentMaxWidth,
       alignSelf: 'center',
       width: '100%',
     },
     cancelBtn: {
       paddingHorizontal: 16,
-      paddingVertical: 12,
+      paddingVertical: rb(12 * btnPadScale),
       borderRadius: 10,
       borderWidth: 1,
       borderColor: theme.colors.gray[200],
@@ -809,10 +814,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) =>
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      paddingVertical: 12,
+      paddingVertical: rb(12 * btnPadScale),
       borderRadius: 10,
     },
     btnDisabled: {
       opacity: 0.5,
     },
   });
+};

@@ -590,7 +590,11 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     </SafeAreaView>
   );
 };
-const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -698,9 +702,13 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.success[600],
-    padding: 12,
+    paddingVertical: rb(12 * btnPadScale),
+    paddingHorizontal: 12,
     borderRadius: 8,
     gap: 8,
+    maxWidth: actionBtnMaxWidth,
+    alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+    width: actionBtnMaxWidth ? undefined : '100%',
   },
   verifyButtonText: {
     color: theme.colors.white,
@@ -795,3 +803,4 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     justifyContent: 'center',
   },
 });
+};

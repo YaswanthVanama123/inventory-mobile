@@ -488,7 +488,11 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
   );
 };
 
-const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -616,10 +620,13 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginTop: 8,
+    maxWidth: actionBtnMaxWidth,
+    alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+    width: '100%',
   },
   button: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: rb(14 * btnPadScale),
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -633,3 +640,4 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     backgroundColor: theme.colors.primary[600],
   },
 });
+};

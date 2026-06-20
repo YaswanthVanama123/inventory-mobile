@@ -512,6 +512,9 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   const wide = !bp.isMobile;
   const isWide = bp.isWide;
   const isDesktop = bp.isDesktop;
+  const actionBtnMaxWidth = isWide ? 560 : isDesktop ? 480 : undefined;
+  const btnPadScale = isWide ? 1.3 : isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
 
   const containerH = bp.gutter;
   const tileColumns = isWide ? 4 : isDesktop ? 4 : bp.isTablet ? 3 : 2;
@@ -624,6 +627,8 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       alignItems: 'center',
       gap: theme.spacing.sm,
       marginBottom: theme.spacing.xl,
+      maxWidth: actionBtnMaxWidth,
+      alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
     },
     primaryCta: {flex: 1, backgroundColor: theme.colors.brand.text},
     secondaryCta: {
@@ -848,10 +853,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       gap: theme.spacing.sm,
       backgroundColor: theme.colors.brand.text,
       paddingHorizontal: theme.spacing.lg,
-      paddingVertical: theme.spacing.md,
+      paddingVertical: rb(theme.spacing.md * btnPadScale),
       borderRadius: 12,
       ...theme.shadows.md,
       zIndex: 2,
+      maxWidth: actionBtnMaxWidth,
+      alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
     },
 
     footer: {

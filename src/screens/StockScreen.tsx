@@ -1327,6 +1327,9 @@ export const StockScreen = () => {
 const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   const wide = !bp.isMobile;
   const tileGap = bp.isMobile ? TILE_GAP : 16;
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
 
   return StyleSheet.create({
     container: {
@@ -1868,6 +1871,9 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       borderTopWidth: 1,
       borderTopColor: theme.colors.gray[200],
       backgroundColor: theme.colors.background.secondary,
+      maxWidth: actionBtnMaxWidth,
+      alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+      width: '100%',
     },
     itemDetailsCard: {
       backgroundColor: theme.colors.primary[50],
@@ -1916,7 +1922,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       alignItems: 'center',
     },
     cancelButton: {
-      paddingVertical: 10,
+      paddingVertical: rb(10 * btnPadScale),
       paddingHorizontal: 16,
       borderRadius: 10,
       borderWidth: 1,
@@ -1928,7 +1934,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      paddingVertical: 10,
+      paddingVertical: rb(10 * btnPadScale),
       paddingHorizontal: 16,
       borderRadius: 10,
       backgroundColor: theme.colors.primary[600],

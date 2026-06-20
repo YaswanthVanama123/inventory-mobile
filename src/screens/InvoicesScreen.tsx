@@ -611,7 +611,11 @@ export const InvoicesScreen = () => {
     </SafeAreaView>
   );
 };
-const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
+const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
+  const actionBtnMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
+  const btnPadScale = bp.isWide ? 1.3 : bp.isDesktop ? 1.15 : 1;
+  const rb = (n: number) => Math.round(n);
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.gray[50],
@@ -666,10 +670,13 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     flexDirection: 'row',
     marginBottom: theme.spacing.md,
     justifyContent: 'space-between',
+    maxWidth: actionBtnMaxWidth,
+    alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
+    width: '100%',
   },
   syncActionButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: rb(12 * btnPadScale),
     paddingHorizontal: 8,
     borderRadius: 8,
     alignItems: 'center',
@@ -826,4 +833,5 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     paddingVertical: 6,
     borderRadius: theme.borderRadius.full,
   },
-});
+  });
+};
