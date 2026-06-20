@@ -13,6 +13,7 @@ import {HomeIcon, InventoryIcon, BoxIcon, FileTextIcon, TruckIcon, UserIcon, Cli
 import {useTheme} from '../contexts/ThemeContext';
 import {useAuth} from '../contexts/AuthContext';
 import {useUserScreens} from '../hooks/useUserScreens';
+import {useBreakpoint} from '../utils/breakpoints';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -45,6 +46,7 @@ export const MainTabNavigator = () => {
   const theme = useTheme();
   const {user} = useAuth();
   const {hasAccessToAnyScreen, loading} = useUserScreens();
+  const breakpoint = useBreakpoint();
   const isAdmin = user?.role === 'admin';
 
   if (loading) {
@@ -57,6 +59,16 @@ export const MainTabNavigator = () => {
 
   const visibleTabs = TABS.filter(t => isAdmin || hasAccessToAnyScreen(t.paths));
 
+  const labelFontSize = breakpoint.isWide ? 16 : breakpoint.isDesktop ? 15 : breakpoint.isTablet ? 13 : 11;
+  const labelMarginBottom = breakpoint.isWide ? 8 : breakpoint.isDesktop ? 7 : breakpoint.isTablet ? 6 : 4;
+  const iconSize = breakpoint.isWide ? 30 : breakpoint.isDesktop ? 28 : breakpoint.isTablet ? 26 : 24;
+  const barPaddingTop = breakpoint.isWide ? 14 : breakpoint.isDesktop ? 12 : breakpoint.isTablet ? 10 : 8;
+  const barPaddingBottom = insets.bottom > 0 ? insets.bottom : barPaddingTop;
+  const barBaseHeight = breakpoint.isWide ? 80 : breakpoint.isDesktop ? 72 : breakpoint.isTablet ? 66 : 56;
+  const barHeight = barBaseHeight + (insets.bottom > 0 ? insets.bottom : 0);
+  const itemPaddingVertical = breakpoint.isWide ? 6 : breakpoint.isDesktop ? 5 : breakpoint.isTablet ? 4 : 0;
+  const labelLetterSpacing = breakpoint.isMobile ? 0.1 : 0.2;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -67,14 +79,21 @@ export const MainTabNavigator = () => {
           backgroundColor: theme.colors.white,
           borderTopColor: theme.colors.gray[200],
           borderTopWidth: 1,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
-          paddingTop: 8,
-          height: 56 + (insets.bottom > 0 ? insets.bottom : 0),
+          paddingBottom: barPaddingBottom,
+          paddingTop: barPaddingTop,
+          height: barHeight,
+        },
+        tabBarItemStyle: {
+          paddingVertical: itemPaddingVertical,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500',
-          marginBottom: 4,
+          fontSize: labelFontSize,
+          fontWeight: '600',
+          marginBottom: labelMarginBottom,
+          letterSpacing: labelLetterSpacing,
+        },
+        tabBarIconStyle: {
+          marginTop: breakpoint.isMobile ? 0 : 2,
         },
       }}>
       {visibleTabs.map(t => {
@@ -85,7 +104,7 @@ export const MainTabNavigator = () => {
             name={t.name}
             component={t.component}
             options={{
-              tabBarIcon: ({color, size}) => <Icon size={size} color={color} />,
+              tabBarIcon: ({color}) => <Icon size={iconSize} color={color} />,
             }}
           />
         );
@@ -94,9 +113,7 @@ export const MainTabNavigator = () => {
         name="Account"
         component={AccountScreen}
         options={{
-          tabBarIcon: ({color, size}) => (
-            <UserIcon size={size} color={color} />
-          ),
+          tabBarIcon: ({color}) => <UserIcon size={iconSize} color={color} />,
         }}
       />
     </Tab.Navigator>
