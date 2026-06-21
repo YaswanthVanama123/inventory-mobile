@@ -45,6 +45,9 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
+  // Mac / desktop-class width gets a dedicated table layout instead of the
+  // stacked phone cards (which look sparse on a wide window).
+  const isWideLayout = bp.isDesktop || bp.isWide;
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
@@ -477,6 +480,116 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
               </View>
             )}
 
+            {isWideLayout && !error && filteredOrders.length > 0 ? (
+              <View style={styles.table}>
+                <View style={styles.tableHeadRow}>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colOrder]}>ORDER</Typography>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colVendor]}>VENDOR</Typography>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colDate]}>DATE</Typography>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colStatus]}>STATUS</Typography>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colStock]}>STOCK</Typography>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colItems, styles.tdRight]}>ITEMS</Typography>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colTotal, styles.tdRight]}>TOTAL</Typography>
+                  <View style={styles.colChevron} />
+                </View>
+                {filteredOrders.map((order, index) => {
+                  const isExpanded = expandedOrders.has(order.orderNumber);
+                  const tone = getStatusTone(order.status);
+                  const palette = tonePalette(tone);
+                  return (
+                    <View key={order._id || index} style={[styles.tableRowWrap, isExpanded && styles.tableRowWrapActive]}>
+                      <TouchableOpacity onPress={() => handleOrderPress(order.orderNumber)} style={styles.tableRow} activeOpacity={0.7}>
+                        <View style={[styles.colOrder, styles.orderCell]}>
+                          <View style={[styles.rowStripe, {backgroundColor: palette.strong}]} />
+                          <Typography variant="body" weight="bold" numberOfLines={1}>#{order.orderNumber}</Typography>
+                        </View>
+                        <Typography variant="small" numberOfLines={1} style={styles.colVendor}>
+                          {order.vendor?.name || 'N/A'}
+                        </Typography>
+                        <Typography variant="small" color={theme.colors.gray[600]} numberOfLines={1} style={styles.colDate}>
+                          {formatDate(order.orderDate)}
+                        </Typography>
+                        <View style={styles.colStatus}>
+                          <View style={[styles.metaPill, {backgroundColor: palette.bg, alignSelf: 'flex-start'}]}>
+                            <Typography variant="caption" weight="semibold" color={palette.fg}>
+                              {order.status || 'Pending'}
+                            </Typography>
+                          </View>
+                        </View>
+                        <View style={styles.colStock}>
+                          {order.stockProcessed ? (
+                            <View style={[styles.metaPill, {backgroundColor: theme.colors.success[50], alignSelf: 'flex-start'}]}>
+                              <CheckCircleIcon size={11} color={theme.colors.success[600]} />
+                              <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>Done</Typography>
+                            </View>
+                          ) : (
+                            <View style={[styles.metaPill, {backgroundColor: theme.colors.warning[50], alignSelf: 'flex-start'}]}>
+                              <ClockIcon size={11} color={theme.colors.warning[600]} />
+                              <Typography variant="caption" weight="semibold" color={theme.colors.warning[700]}>Pending</Typography>
+                            </View>
+                          )}
+                        </View>
+                        <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={[styles.colItems, styles.tdRight]}>
+                          {order.itemCount || 0}
+                        </Typography>
+                        <Typography variant="body" weight="bold" color={theme.colors.success[700]} style={[styles.colTotal, styles.tdRight]}>
+                          {formatCurrency(order.total)}
+                        </Typography>
+                        <View style={styles.colChevron}>
+                          <View style={styles.chevronCircle}>
+                            {isExpanded ? (
+                              <ChevronDownIcon size={14} color={theme.colors.gray[700]} />
+                            ) : (
+                              <ChevronRightIcon size={14} color={theme.colors.gray[700]} />
+                            )}
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+
+                      {isExpanded && order.items && order.items.length > 0 && (
+                        <View style={styles.tableExpanded}>
+                          <View style={styles.itemsHeadRow}>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.itemColName}>ITEM</Typography>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.itemColSku}>SKU</Typography>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.itemColQty, styles.tdRight]}>QTY</Typography>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.itemColPrice, styles.tdRight]}>UNIT</Typography>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.itemColTotal, styles.tdRight]}>LINE TOTAL</Typography>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.itemColStatus}>STATUS</Typography>
+                          </View>
+                          {order.items.map((item: any, itemIndex: number) => (
+                            <View key={itemIndex} style={styles.itemsRow}>
+                              <Typography variant="small" weight="semibold" numberOfLines={1} style={styles.itemColName}>{item.name || 'N/A'}</Typography>
+                              <Typography variant="small" color={theme.colors.gray[600]} numberOfLines={1} style={styles.itemColSku}>{item.sku || 'N/A'}</Typography>
+                              <Typography variant="small" weight="bold" style={[styles.itemColQty, styles.tdRight]}>{item.qty || 0}</Typography>
+                              <Typography variant="small" style={[styles.itemColPrice, styles.tdRight]}>{formatCurrency(item.unitPrice || 0)}</Typography>
+                              <Typography variant="small" weight="bold" color={theme.colors.success[700]} style={[styles.itemColTotal, styles.tdRight]}>
+                                {formatCurrency(item.lineTotal || (item.qty || 0) * (item.unitPrice || 0))}
+                              </Typography>
+                              <View style={styles.itemColStatus}>
+                                {item.itemVerified === true ? (
+                                  <View style={[styles.statusPill, {backgroundColor: theme.colors.success[50], alignSelf: 'flex-start'}]}>
+                                    <CheckCircleIcon size={11} color={theme.colors.success[600]} />
+                                    <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>Verified</Typography>
+                                  </View>
+                                ) : item.receivedQuantity > 0 ? (
+                                  <View style={[styles.statusPill, {backgroundColor: theme.colors.warning[50], alignSelf: 'flex-start'}]}>
+                                    <Typography variant="caption" weight="semibold" color={theme.colors.warning[700]}>Partial {item.receivedQuantity}/{item.qty}</Typography>
+                                  </View>
+                                ) : (
+                                  <View style={[styles.statusPill, {backgroundColor: theme.colors.gray[100], alignSelf: 'flex-start'}]}>
+                                    <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>Pending</Typography>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
             <View style={styles.ordersList}>
               {filteredOrders.map((order, index) => {
                 const isExpanded = expandedOrders.has(order.orderNumber);
@@ -610,6 +723,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
                 );
               })}
             </View>
+            )}
 
             {!error && filteredOrders.length > 0 && totalPages > 0 && (
               <View style={styles.paginationContainer}>
@@ -849,6 +963,70 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     emptyTitle: {marginBottom: theme.spacing.xs},
 
     ordersList: {gap: theme.spacing.md},
+
+    // ── Mac / desktop table layout ──────────────────────────────────────
+    table: {
+      backgroundColor: theme.colors.white,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.gray[200],
+      overflow: 'hidden',
+      ...theme.shadows.xs,
+    },
+    tableHeadRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.sm + 2,
+      backgroundColor: theme.colors.gray[50],
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.gray[200],
+    },
+    th: {letterSpacing: 0.5},
+    tableRowWrap: {borderBottomWidth: 1, borderBottomColor: theme.colors.gray[100]},
+    tableRowWrapActive: {backgroundColor: theme.colors.primary[50]},
+    tableRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.md,
+    },
+    orderCell: {flexDirection: 'row', alignItems: 'center', gap: 8},
+    rowStripe: {width: 3, height: 22, borderRadius: 2},
+    colOrder: {flex: 1.4, paddingRight: 8},
+    colVendor: {flex: 2, paddingRight: 8},
+    colDate: {flex: 1.3, paddingRight: 8},
+    colStatus: {flex: 1.3, paddingRight: 8},
+    colStock: {flex: 1.3, paddingRight: 8},
+    colItems: {flex: 0.7, paddingRight: 8},
+    colTotal: {flex: 1.2, paddingRight: 8},
+    colChevron: {width: 36, alignItems: 'flex-end'},
+    tdRight: {textAlign: 'right'},
+    tableExpanded: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingBottom: theme.spacing.md,
+      backgroundColor: theme.colors.gray[50],
+    },
+    itemsHeadRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.gray[200],
+    },
+    itemsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.colors.gray[200],
+    },
+    itemColName: {flex: 2, paddingRight: 8},
+    itemColSku: {flex: 1.3, paddingRight: 8},
+    itemColQty: {flex: 0.7, paddingRight: 8},
+    itemColPrice: {flex: 1, paddingRight: 8},
+    itemColTotal: {flex: 1.3, paddingRight: 8},
+    itemColStatus: {flex: 1.3, paddingLeft: 8},
     orderCard: {overflow: 'hidden', position: 'relative'},
     orderStripe: {position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: theme.colors.primary[500]},
     orderHeader: {
