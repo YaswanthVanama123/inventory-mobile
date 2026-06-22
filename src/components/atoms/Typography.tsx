@@ -69,6 +69,7 @@ export const Typography: React.FC<TypographyProps> = ({
   const resolvedWeight = weight ? theme.typography.fontWeights[weight] : undefined;
   return (
     <RNText
+      allowFontScaling={false}
       {...props}
       style={[
         styles[role],

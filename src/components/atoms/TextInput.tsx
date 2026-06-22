@@ -36,11 +36,12 @@ export const TextInput: React.FC<TextInputProps> = ({
   const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={[styles.container, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? <Text allowFontScaling={false} style={styles.label}>{label}</Text> : null}
       <View
         style={[styles.inputWrapper, error && styles.inputWrapperError]}>
         {leftIcon ? <View style={styles.leftIconWrapper}>{leftIcon}</View> : null}
         <RNTextInput
+          allowFontScaling={false}
           {...props}
           style={[
             styles.input,
@@ -62,7 +63,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           )
         ) : null}
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? <Text allowFontScaling={false} style={styles.error}>{error}</Text> : null}
     </View>
   );
 };
