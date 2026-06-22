@@ -5,6 +5,7 @@ import {OrderVerificationScreen} from '../screens/OrderVerificationScreen';
 import {OrderDiscrepancyListScreen} from '../screens/OrderDiscrepancyListScreen';
 import {ManualOrderFormScreen} from '../screens/ManualOrderFormScreen';
 import {useTheme} from '../contexts/ThemeContext';
+import {ScreenHeader} from '../components/molecules/ScreenHeader';
 
 export type OrderStackParamList = {
   OrdersList: undefined;
@@ -23,7 +24,18 @@ export const OrderStackNavigator = () => {
     color: theme.colors.gray[900],
   };
   return (
-    <Stack.Navigator screenOptions={{headerShadowVisible: false, headerTitleAlign: 'center'}}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShadowVisible: false,
+        headerTitleAlign: 'center',
+        header: ({navigation, options, back}) => (
+          <ScreenHeader
+            title={options.title}
+            canGoBack={!!back}
+            onBack={() => navigation.goBack()}
+          />
+        ),
+      }}>
       <Stack.Screen
         name="OrdersList"
         component={OrdersScreenWrapper}

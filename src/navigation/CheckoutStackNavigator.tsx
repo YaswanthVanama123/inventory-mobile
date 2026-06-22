@@ -4,6 +4,7 @@ import {TruckCheckoutListScreen} from '../screens/TruckCheckoutListScreen';
 import {TruckCheckoutScreen} from '../screens/TruckCheckoutScreen';
 import {TruckCheckoutDetailScreen} from '../screens/TruckCheckoutDetailScreen';
 import {useTheme} from '../contexts/ThemeContext';
+import {ScreenHeader} from '../components/molecules/ScreenHeader';
 
 export type CheckoutStackParamList = {
   CheckoutList: undefined;
@@ -21,7 +22,18 @@ export const CheckoutStackNavigator = () => {
     color: theme.colors.gray[900],
   };
   return (
-    <Stack.Navigator screenOptions={{headerShadowVisible: false, headerTitleAlign: 'center'}}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShadowVisible: false,
+        headerTitleAlign: 'center',
+        header: ({navigation, options, back}) => (
+          <ScreenHeader
+            title={options.title}
+            canGoBack={!!back}
+            onBack={() => navigation.goBack()}
+          />
+        ),
+      }}>
       <Stack.Screen
         name="CheckoutList"
         component={TruckCheckoutListScreen}
