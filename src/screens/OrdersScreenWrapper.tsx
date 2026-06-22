@@ -921,11 +921,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     paddingVertical: 12,
     borderRadius: 24,
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
   },
   createOrderButton: {
     backgroundColor: theme.colors.success[600],

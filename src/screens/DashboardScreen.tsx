@@ -9,7 +9,7 @@ import {
   Easing,
   TouchableOpacity,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LineChart, BarChart, PieChart} from 'react-native-chart-kit';
 import {useNavigation} from '@react-navigation/native';
 import {Typography} from '../components/atoms/Typography';
@@ -105,6 +105,7 @@ interface QuickAction {
 export const DashboardScreen = () => {
   const theme = useTheme();
   const bp = useBreakpoint();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
@@ -334,13 +335,15 @@ export const DashboardScreen = () => {
 
   // Responsive layout: cap content width on large/XL screens and grow the
   // grid from 2 columns (phone) up to 6 (XL), mirroring the webapp dashboard.
-  const contentWidth = Math.min(bp.width, bp.contentMaxWidth);
+  // Subtract the real left/right safe-area insets and floor the tile width so
+  // exactly 2 cards always fit per row on phones (no overflow → no 1-per-row).
+  const contentWidth = Math.min(bp.width, bp.contentMaxWidth) - insets.left - insets.right;
   const innerWidth = contentWidth - bp.gutter * 2;
   const tileGap = bp.isMobile ? TILE_GAP : 16;
   const statCols = bp.isWide ? 6 : bp.isDesktop ? 4 : bp.isTablet ? 3 : 2;
-  const tileWidth = (innerWidth - tileGap * (statCols - 1)) / statCols;
+  const tileWidth = Math.floor((innerWidth - tileGap * (statCols - 1)) / statCols);
   const quickCols = 4;
-  const quickWidth = (innerWidth - tileGap * (quickCols - 1)) / quickCols;
+  const quickWidth = Math.floor((innerWidth - tileGap * (quickCols - 1)) / quickCols);
   // Charts live inside an elevated Card with `lg` padding (spacing.xl on each side).
   const chartWidth = innerWidth - theme.spacing.xl * 2;
 

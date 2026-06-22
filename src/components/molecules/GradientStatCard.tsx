@@ -170,9 +170,6 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     color: '#ffffff',
     lineHeight: undefined,
     marginBottom: theme.spacing.xs,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: {width: 0, height: 1},
-    textShadowRadius: 2,
   },
   subtitleRow: {
     flexDirection: 'row',

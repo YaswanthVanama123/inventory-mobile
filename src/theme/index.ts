@@ -27,89 +27,27 @@ const baseTokens = {
   },
 };
 
-const lightShadows = {
-  none: {
-    shadowColor: 'transparent',
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    elevation: 0,
-  },
-  xs: {
-    shadowColor: '#0f172a',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  sm: {
-    shadowColor: '#0f172a',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: '#0f172a',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  lg: {
-    shadowColor: '#0f172a',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  xl: {
-    shadowColor: '#0f172a',
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.14,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+// Shadows are intentionally disabled app-wide (flat UI). Every token resolves
+// to a no-op so existing `...theme.shadows.X` spreads keep working but render
+// flat. To re-enable shadows, restore real values here.
+const noShadow = {
+  shadowColor: 'transparent',
+  shadowOffset: {width: 0, height: 0},
+  shadowOpacity: 0,
+  shadowRadius: 0,
+  elevation: 0,
 };
 
-const darkShadows = {
-  none: lightShadows.none,
-  xs: {
-    shadowColor: '#000000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  sm: {
-    shadowColor: '#000000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.4,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  md: {
-    shadowColor: '#000000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  lg: {
-    shadowColor: '#000000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.55,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  xl: {
-    shadowColor: '#000000',
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 10,
-  },
+const lightShadows = {
+  none: noShadow,
+  xs: noShadow,
+  sm: noShadow,
+  md: noShadow,
+  lg: noShadow,
+  xl: noShadow,
 };
+
+const darkShadows = lightShadows;
 
 export const lightTheme = {
   mode: 'light' as ThemeMode,

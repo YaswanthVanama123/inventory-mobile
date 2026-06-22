@@ -1,4 +1,4 @@
-import React, {useState, useMemo, useEffect, useRef} from 'react';
+import React, {useMemo, useEffect, useRef} from 'react';
 import {
   View,
   StyleSheet,
@@ -16,9 +16,9 @@ import {useUserScreens} from '../hooks/useUserScreens';
 import {useTheme, useThemeContext} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
+import {useExtraScreens} from '../contexts/ExtraScreensContext';
 import {
   LogoutIcon,
-  UserIcon,
   ChevronRightIcon,
   FileTextIcon,
   ClipboardIcon,
@@ -37,20 +37,6 @@ import {
   ArrowRightIcon,
   TrashIcon,
 } from '../components/icons';
-import {SalesReportScreen} from './SalesReportScreen';
-import {OrdersScreen} from './OrdersScreen';
-import {ModelCategoryMappingScreen} from './ModelCategoryMappingScreen';
-import {ItemAliasMappingScreen} from './ItemAliasMappingScreen';
-import {RouteStarItemsScreen} from './RouteStarItemsScreen';
-import {UserManagementScreen} from './UserManagementScreen';
-import {FetchHistoryScreen} from './FetchHistoryScreen';
-import {DiscrepancyManagementScreen} from './DiscrepancyManagementScreen';
-import {ManualPOItemsScreen} from './ManualPOItemsScreen';
-import {VendorManagementScreen} from './VendorManagementScreen';
-import {ActivityLogScreen} from './ActivityLogScreen';
-import {ScreenPermissionsManagementScreen} from './ScreenPermissionsManagementScreen';
-import {ScreenManagementScreen} from './ScreenManagementScreen';
-import {ItemsInvoiceUsageScreen} from './ItemsInvoiceUsageScreen';
 import userService from '../services/userService';
 
 type Tone = 'primary' | 'accent' | 'success' | 'warning' | 'info' | 'error';
@@ -129,21 +115,11 @@ export const AccountScreen = () => {
   const {preference, setPreference, mode} = useThemeContext();
   const isAdmin = user?.role === 'admin';
   const canSee = (path: string) => isAdmin || hasAccessToScreen(path);
-
-  const [salesReportVisible, setSalesReportVisible] = useState(false);
-  const [ordersVisible, setOrdersVisible] = useState(false);
-  const [modelMappingVisible, setModelMappingVisible] = useState(false);
-  const [itemAliasVisible, setItemAliasVisible] = useState(false);
-  const [routeStarItemsVisible, setRouteStarItemsVisible] = useState(false);
-  const [userManagementVisible, setUserManagementVisible] = useState(false);
-  const [fetchHistoryVisible, setFetchHistoryVisible] = useState(false);
-  const [discrepancyManagementVisible, setDiscrepancyManagementVisible] = useState(false);
-  const [manualPOItemsVisible, setManualPOItemsVisible] = useState(false);
-  const [vendorManagementVisible, setVendorManagementVisible] = useState(false);
-  const [activityLogVisible, setActivityLogVisible] = useState(false);
-  const [screenPermissionsVisible, setScreenPermissionsVisible] = useState(false);
-  const [screenManagementVisible, setScreenManagementVisible] = useState(false);
-  const [itemsInvoiceUsageVisible, setItemsInvoiceUsageVisible] = useState(false);
+  const {openScreen} = useExtraScreens();
+  // On Mac / desktop the left sidebar already lists these destinations, so the
+  // Account screen hides its navigation menu there and just keeps profile,
+  // appearance and account actions.
+  const sidebarActive = bp.isDesktop || bp.isWide;
 
   const heroFade = useRef(new Animated.Value(0)).current;
   const heroSlide = useRef(new Animated.Value(20)).current;
@@ -262,7 +238,7 @@ export const AccountScreen = () => {
       title: 'User Management',
       subtitle: 'Manage users and permissions',
       tone: 'accent',
-      onPress: () => setUserManagementVisible(true),
+      onPress: () => openScreen('userManagement'),
       visible: !!isAdmin && canSee('/users'),
     },
     {
@@ -270,7 +246,7 @@ export const AccountScreen = () => {
       title: 'Activity Logs',
       subtitle: 'View all system activities',
       tone: 'accent',
-      onPress: () => setActivityLogVisible(true),
+      onPress: () => openScreen('activityLog'),
       visible: !!isAdmin && canSee('/activities'),
     },
     {
@@ -278,7 +254,7 @@ export const AccountScreen = () => {
       title: 'Screen Permissions',
       subtitle: 'Manage user screen access',
       tone: 'accent',
-      onPress: () => setScreenPermissionsVisible(true),
+      onPress: () => openScreen('screenPermissions'),
       visible: !!isAdmin && canSee('/admin/screen-permissions'),
     },
     {
@@ -286,7 +262,7 @@ export const AccountScreen = () => {
       title: 'Screen Management',
       subtitle: 'Manage app screens',
       tone: 'accent',
-      onPress: () => setScreenManagementVisible(true),
+      onPress: () => openScreen('screenManagement'),
       visible: !!isAdmin && canSee('/admin/screens'),
     },
   ];
@@ -297,7 +273,7 @@ export const AccountScreen = () => {
       title: 'Model Mapping',
       subtitle: 'Link SKUs to canonical models',
       tone: 'info',
-      onPress: () => setModelMappingVisible(true),
+      onPress: () => openScreen('modelMapping'),
       visible: canSee('/routestar/model-mapping'),
     },
     {
@@ -305,7 +281,7 @@ export const AccountScreen = () => {
       title: 'Item Alias Mapping',
       subtitle: 'Resolve external item names',
       tone: 'info',
-      onPress: () => setItemAliasVisible(true),
+      onPress: () => openScreen('itemAlias'),
       visible: canSee('/routestar/item-alias-mapping'),
     },
     {
@@ -313,7 +289,7 @@ export const AccountScreen = () => {
       title: 'RouteStar Items',
       subtitle: 'Synced items from RouteStar',
       tone: 'info',
-      onPress: () => setRouteStarItemsVisible(true),
+      onPress: () => openScreen('routeStarItems'),
       visible: canSee('/routestar/items'),
     },
     {
@@ -321,7 +297,7 @@ export const AccountScreen = () => {
       title: 'Manual PO Items',
       subtitle: 'Items captured from manual orders',
       tone: 'info',
-      onPress: () => setManualPOItemsVisible(true),
+      onPress: () => openScreen('manualPOItems'),
       visible: canSee('/manual-po-items'),
     },
   ];
@@ -332,7 +308,7 @@ export const AccountScreen = () => {
       title: 'Purchase Orders',
       subtitle: 'Browse and review purchase orders',
       tone: 'success',
-      onPress: () => setOrdersVisible(true),
+      onPress: () => openScreen('orders'),
       visible: canSee('/orders'),
     },
     {
@@ -340,7 +316,7 @@ export const AccountScreen = () => {
       title: 'Vendors',
       subtitle: 'Vendor records and contacts',
       tone: 'success',
-      onPress: () => setVendorManagementVisible(true),
+      onPress: () => openScreen('vendors'),
       visible: canSee('/vendors'),
     },
     {
@@ -348,7 +324,7 @@ export const AccountScreen = () => {
       title: 'Fetch History',
       subtitle: 'External sync run history',
       tone: 'success',
-      onPress: () => setFetchHistoryVisible(true),
+      onPress: () => openScreen('fetchHistory'),
       visible: canSee('/system/fetch-history'),
     },
     {
@@ -356,7 +332,7 @@ export const AccountScreen = () => {
       title: 'Discrepancy Management',
       subtitle: 'Reconcile stock differences',
       tone: 'warning',
-      onPress: () => setDiscrepancyManagementVisible(true),
+      onPress: () => openScreen('discrepancyManagement'),
       visible: canSee('/discrepancies'),
     },
   ];
@@ -367,7 +343,7 @@ export const AccountScreen = () => {
       title: 'Sales Report',
       subtitle: 'Sales by item, customer, period',
       tone: 'primary',
-      onPress: () => setSalesReportVisible(true),
+      onPress: () => openScreen('salesReport'),
       visible: canSee('/routestar/sales-report'),
     },
     {
@@ -375,7 +351,7 @@ export const AccountScreen = () => {
       title: 'Items Invoice Usage',
       subtitle: 'Invoice usage breakdown by item',
       tone: 'primary',
-      onPress: () => setItemsInvoiceUsageVisible(true),
+      onPress: () => openScreen('itemsInvoiceUsage'),
       visible: canSee('/routestar/items-invoice-usage'),
     },
   ];
@@ -504,10 +480,14 @@ export const AccountScreen = () => {
         </View>
 
         <View style={styles.body}>
-          <MenuSection theme={theme} bp={bp} eyebrow="ADMINISTRATION" rows={adminRows} />
-          <MenuSection theme={theme} bp={bp} eyebrow="INVENTORY MANAGEMENT" rows={inventoryRows} />
-          <MenuSection theme={theme} bp={bp} eyebrow="ORDERS & VENDORS" rows={ordersRows} />
-          <MenuSection theme={theme} bp={bp} eyebrow="REPORTS" rows={reportsRows} />
+          {!sidebarActive && (
+            <>
+              <MenuSection theme={theme} bp={bp} eyebrow="ADMINISTRATION" rows={adminRows} />
+              <MenuSection theme={theme} bp={bp} eyebrow="INVENTORY MANAGEMENT" rows={inventoryRows} />
+              <MenuSection theme={theme} bp={bp} eyebrow="ORDERS & VENDORS" rows={ordersRows} />
+              <MenuSection theme={theme} bp={bp} eyebrow="REPORTS" rows={reportsRows} />
+            </>
+          )}
 
           <View style={styles.sectionEyebrow}>
             <View style={styles.eyebrowLine} />
@@ -617,68 +597,6 @@ export const AccountScreen = () => {
           </View>
         </View>
       </ScrollView>
-
-      <SalesReportScreen
-        visible={salesReportVisible}
-        onClose={() => setSalesReportVisible(false)}
-      />
-      <OrdersScreen visible={ordersVisible} onClose={() => setOrdersVisible(false)} />
-      <ModelCategoryMappingScreen
-        visible={modelMappingVisible}
-        onClose={() => setModelMappingVisible(false)}
-      />
-      <ItemAliasMappingScreen
-        visible={itemAliasVisible}
-        onClose={() => setItemAliasVisible(false)}
-      />
-      <RouteStarItemsScreen
-        visible={routeStarItemsVisible}
-        onClose={() => setRouteStarItemsVisible(false)}
-      />
-      {user?.role === 'admin' && (
-        <UserManagementScreen
-          visible={userManagementVisible}
-          onClose={() => setUserManagementVisible(false)}
-        />
-      )}
-      <FetchHistoryScreen
-        visible={fetchHistoryVisible}
-        onClose={() => setFetchHistoryVisible(false)}
-      />
-      <DiscrepancyManagementScreen
-        visible={discrepancyManagementVisible}
-        onClose={() => setDiscrepancyManagementVisible(false)}
-      />
-      <ManualPOItemsScreen
-        visible={manualPOItemsVisible}
-        onClose={() => setManualPOItemsVisible(false)}
-      />
-      <VendorManagementScreen
-        visible={vendorManagementVisible}
-        onClose={() => setVendorManagementVisible(false)}
-      />
-      {user?.role === 'admin' && (
-        <ActivityLogScreen
-          visible={activityLogVisible}
-          onClose={() => setActivityLogVisible(false)}
-        />
-      )}
-      {user?.role === 'admin' && (
-        <ScreenPermissionsManagementScreen
-          visible={screenPermissionsVisible}
-          onClose={() => setScreenPermissionsVisible(false)}
-        />
-      )}
-      {user?.role === 'admin' && (
-        <ScreenManagementScreen
-          visible={screenManagementVisible}
-          onClose={() => setScreenManagementVisible(false)}
-        />
-      )}
-      <ItemsInvoiceUsageScreen
-        visible={itemsInvoiceUsageVisible}
-        onClose={() => setItemsInvoiceUsageVisible(false)}
-      />
     </SafeAreaView>
   );
 };

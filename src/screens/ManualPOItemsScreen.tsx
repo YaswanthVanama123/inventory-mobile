@@ -795,11 +795,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     height: 22,
     borderRadius: 11,
     backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 2,
   },
   formActions: {
     marginTop: theme.spacing.md,

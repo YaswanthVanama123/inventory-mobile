@@ -5,15 +5,16 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {DashboardScreen} from '../screens/DashboardScreen';
 import {InventoryScreen} from '../screens/InventoryScreen';
 import {StockScreen} from '../screens/StockScreen';
-import {InvoicesScreen} from '../screens/InvoicesScreen';
 import {CheckoutStackNavigator} from './CheckoutStackNavigator';
 import {OrderStackNavigator} from './OrderStackNavigator';
 import {AccountScreen} from '../screens/AccountScreen';
-import {HomeIcon, InventoryIcon, BoxIcon, FileTextIcon, TruckIcon, UserIcon, ClipboardIcon} from '../components/icons';
+import {HomeIcon, InventoryIcon, BoxIcon, TruckIcon, UserIcon, ClipboardIcon} from '../components/icons';
 import {useTheme} from '../contexts/ThemeContext';
 import {useAuth} from '../contexts/AuthContext';
 import {useUserScreens} from '../hooks/useUserScreens';
 import {useBreakpoint} from '../utils/breakpoints';
+import {ExtraScreensProvider} from '../contexts/ExtraScreensContext';
+import {Sidebar} from './Sidebar';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -59,6 +60,10 @@ export const MainTabNavigator = () => {
 
   const visibleTabs = TABS.filter(t => isAdmin || hasAccessToAnyScreen(t.paths));
 
+  // On Mac / desktop-width, render a left sidebar (matching the webapp) instead
+  // of the bottom tab bar. Phone & small tablet keep the bottom tabs.
+  const wide = breakpoint.isDesktop || breakpoint.isWide;
+
   const labelFontSize = breakpoint.isWide ? 16 : breakpoint.isDesktop ? 15 : breakpoint.isTablet ? 13 : 11;
   const labelMarginBottom = breakpoint.isWide ? 8 : breakpoint.isDesktop ? 7 : breakpoint.isTablet ? 6 : 4;
   const iconSize = breakpoint.isWide ? 30 : breakpoint.isDesktop ? 28 : breakpoint.isTablet ? 26 : 24;
@@ -70,9 +75,12 @@ export const MainTabNavigator = () => {
   const labelLetterSpacing = breakpoint.isMobile ? 0.1 : 0.2;
 
   return (
+    <ExtraScreensProvider>
     <Tab.Navigator
+      tabBar={wide ? props => <Sidebar {...props} /> : undefined}
       screenOptions={{
         headerShown: false,
+        tabBarPosition: wide ? 'left' : 'bottom',
         tabBarActiveTintColor: theme.colors.primary[600],
         tabBarInactiveTintColor: theme.colors.gray[400],
         tabBarStyle: {
@@ -82,6 +90,8 @@ export const MainTabNavigator = () => {
           paddingBottom: barPaddingBottom,
           paddingTop: barPaddingTop,
           height: barHeight,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarItemStyle: {
           paddingVertical: itemPaddingVertical,
@@ -117,5 +127,6 @@ export const MainTabNavigator = () => {
         }}
       />
     </Tab.Navigator>
+    </ExtraScreensProvider>
   );
 };

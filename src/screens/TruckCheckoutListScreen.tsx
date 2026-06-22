@@ -2005,11 +2005,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingVertical: 12,
       borderRadius: 999,
       gap: 8,
-      shadowColor: theme.colors.primary[700],
-      shadowOffset: {width: 0, height: 6},
-      shadowOpacity: 0.32,
-      shadowRadius: 12,
-      elevation: 8,
     },
     fabIconWrap: {
       width: 24,
