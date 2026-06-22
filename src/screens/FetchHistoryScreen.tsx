@@ -11,7 +11,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {PickerModal} from '../components/molecules/PickerModal';
@@ -240,7 +240,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaProvider style={{flex: 1}}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
@@ -689,7 +688,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
           getValue={(item) => String(item.value)}
         />
       </SafeAreaView>
-      </SafeAreaProvider>
     </Modal>
   );
 };

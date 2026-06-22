@@ -11,7 +11,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
-import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
@@ -222,7 +222,6 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
-      <SafeAreaProvider style={{flex: 1}}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={styles.modalHeader}>
@@ -446,7 +445,6 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
           </ScrollView>
         )}
       </SafeAreaView>
-      </SafeAreaProvider>
 
       {/* Add / Edit Vendor form */}
       <Modal
@@ -454,7 +452,6 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={handleCloseForm}>
-        <SafeAreaProvider style={{flex: 1}}>
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={handleCloseForm} style={styles.closeButton} disabled={submitting}>
@@ -574,7 +571,6 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
             </View>
           </ScrollView>
         </SafeAreaView>
-        </SafeAreaProvider>
       </Modal>
     </Modal>
   );

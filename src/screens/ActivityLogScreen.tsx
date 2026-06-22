@@ -9,7 +9,7 @@ import {
   TextInput as RNTextInput,
   Modal,
 } from 'react-native';
-import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
@@ -643,7 +643,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide">
-      <SafeAreaProvider style={{flex: 1}}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={styles.header}>
@@ -756,7 +755,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
 
         {renderFilters()}
       </SafeAreaView>
-      </SafeAreaProvider>
     </Modal>
   );
 };

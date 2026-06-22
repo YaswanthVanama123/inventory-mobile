@@ -23,7 +23,7 @@ export const OrderStackNavigator = () => {
     color: theme.colors.gray[900],
   };
   return (
-    <Stack.Navigator screenOptions={{headerShadowVisible: false}}>
+    <Stack.Navigator screenOptions={{headerShadowVisible: false, headerTitleAlign: 'center'}}>
       <Stack.Screen
         name="OrdersList"
         component={OrdersScreenWrapper}

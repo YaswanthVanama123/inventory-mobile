@@ -21,7 +21,7 @@ export const CheckoutStackNavigator = () => {
     color: theme.colors.gray[900],
   };
   return (
-    <Stack.Navigator screenOptions={{headerShadowVisible: false}}>
+    <Stack.Navigator screenOptions={{headerShadowVisible: false, headerTitleAlign: 'center'}}>
       <Stack.Screen
         name="CheckoutList"
         component={TruckCheckoutListScreen}

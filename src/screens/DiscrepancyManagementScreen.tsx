@@ -10,7 +10,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
@@ -275,7 +275,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   if (loading && discrepancies.length === 0) {
     return (
       <Modal visible={visible} animationType="slide">
-        <SafeAreaProvider style={{flex: 1}}>
         <SafeAreaView style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary[600]} />
           <Typography
@@ -285,14 +284,12 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
             Loading discrepancies...
           </Typography>
         </SafeAreaView>
-        </SafeAreaProvider>
       </Modal>
     );
   }
 
   return (
     <Modal visible={visible} animationType="slide">
-      <SafeAreaProvider style={{flex: 1}}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={styles.header}>
@@ -766,7 +763,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           )}
         </ScrollView>
       </SafeAreaView>
-      </SafeAreaProvider>
     </Modal>
   );
 };

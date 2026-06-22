@@ -88,6 +88,11 @@ const makeStyles = (theme: Theme, scale: number) => {
     lineHeight: Math.round(roles[r].lineHeight * scale),
     fontWeight: roles[r].fontWeight,
     letterSpacing: roles[r].letterSpacing,
+    // Android adds extra vertical font padding by default, which makes text
+    // boxes taller than iOS and causes adjacent fields/labels to visually
+    // overlap. Disable it so metrics match across platforms.
+    includeFontPadding: false,
+    textAlignVertical: 'center' as const,
   });
   return StyleSheet.create({
     heading: build('heading'),

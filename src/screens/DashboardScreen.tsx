@@ -78,7 +78,7 @@ const StatTile: React.FC<StatTileProps> = ({theme, label, value, change, trend, 
           </View>
           {change ? (
             <View style={[styles.statTileTrend, {backgroundColor: trendBg}]}>
-              <Typography variant="caption" weight="semibold" color={trendColor}>
+              <Typography variant="caption" weight="semibold" color={trendColor} numberOfLines={1}>
                 {change}
               </Typography>
             </View>
@@ -689,11 +689,20 @@ export const DashboardScreen = () => {
                 chartConfig={chartConfig}
                 accessor="population"
                 backgroundColor="transparent"
-                paddingLeft="0"
-                center={[chartWidth / 8, 0]}
+                paddingLeft={`${Math.round(chartWidth / 4)}`}
                 style={styles.chart}
-                hasLegend
+                hasLegend={false}
               />
+              <View style={styles.pieLegend}>
+                {(data.statusDistribution || []).map((s: any, i: number) => (
+                  <View key={i} style={styles.pieLegendItem}>
+                    <View style={[styles.pieLegendDot, {backgroundColor: s.color}]} />
+                    <Typography variant="caption" color={theme.colors.gray[700]} numberOfLines={1}>
+                      {s.name}
+                    </Typography>
+                  </View>
+                ))}
+              </View>
             </Card>
           </Animated.View>
 
@@ -1019,6 +1028,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       alignItems: 'center',
       marginBottom: theme.spacing.md,
       paddingLeft: 6,
+      gap: 6,
     },
     statTileIcon: {
       width: 36,
@@ -1031,6 +1041,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 6,
+      flexShrink: 1,
     },
     statTileLabel: {
       letterSpacing: 0.3,
@@ -1081,6 +1092,23 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     chart: {
       marginVertical: theme.spacing.sm,
       borderRadius: theme.borderRadius.md,
+    },
+    pieLegend: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: theme.spacing.md,
+      marginTop: theme.spacing.sm,
+    },
+    pieLegendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    pieLegendDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
     },
 
     activityCard: {

@@ -560,6 +560,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     borderColor: theme.colors.gray[300],
     borderRadius: 8,
     padding: 12,
+    minHeight: 48,
     fontSize: theme.typography.roles.body.fontSize,
     color: theme.colors.gray[900],
   },
@@ -586,6 +587,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 13,
+    minHeight: 48,
   },
   emptyPicker: {
     padding: 16,
