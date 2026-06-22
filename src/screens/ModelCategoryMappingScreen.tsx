@@ -395,7 +395,7 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                 <SearchIcon size={18} color={theme.colors.gray[500]} />
                 <RNTextInput
                   style={styles.searchInput}
-                  placeholder="Search by model, item, or category..."
+                  placeholder="Search model or item"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholderTextColor={theme.colors.gray[400]}

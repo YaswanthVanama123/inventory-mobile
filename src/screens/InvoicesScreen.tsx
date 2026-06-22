@@ -394,7 +394,7 @@ export const InvoicesScreen = () => {
         <View style={styles.searchContainer}>
           <RNTextInput
             style={styles.searchInput}
-            placeholder="Search by invoice number or customer..."
+            placeholder="Search invoice or customer"
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor={theme.colors.gray[400]}

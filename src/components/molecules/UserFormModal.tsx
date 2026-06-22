@@ -558,7 +558,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 <View style={styles.passwordInputContainer}>
                   <RNTextInput
                     style={styles.passwordInput}
-                    placeholder="Leave blank to keep current password"
+                    placeholder="Leave blank to keep current"
                     value={password}
                     onChangeText={setPassword}
                     placeholderTextColor={theme.colors.gray[400]}
@@ -650,7 +650,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 <View style={styles.passwordInputContainer}>
                   <RNTextInput
                     style={styles.passwordInput}
-                    placeholder="Confirm new password (if changing)"
+                    placeholder="Confirm new password"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     placeholderTextColor={theme.colors.gray[400]}

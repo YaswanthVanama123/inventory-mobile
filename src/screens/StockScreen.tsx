@@ -508,7 +508,7 @@ export const StockScreen = () => {
             <SearchIcon size={18} color={theme.colors.gray[500]} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search category or order item name..."
+              placeholder="Search category or item"
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor={theme.colors.gray[400]}
@@ -1255,7 +1255,7 @@ export const StockScreen = () => {
                     });
                   }}
                   keyboardType="numeric"
-                  placeholder="Enter actual counted quantity"
+                  placeholder="Counted quantity"
                   placeholderTextColor={theme.colors.gray[400]}
                 />
               </View>

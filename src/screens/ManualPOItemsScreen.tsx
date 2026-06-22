@@ -484,7 +484,7 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                 onChangeText={setFormSku}
                 autoCapitalize="characters"
                 autoCorrect={false}
-                placeholder={editingItem ? '' : 'Leave blank to auto-generate (CUSTOM-NNN)'}
+                placeholder={editingItem ? '' : 'Leave blank to auto-generate'}
                 placeholderTextColor={theme.colors.gray[400]}
               />
               <Typography variant="caption" color={theme.colors.gray[500]} style={styles.formHint}>

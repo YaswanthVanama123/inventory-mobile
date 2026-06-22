@@ -386,7 +386,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
               <View style={styles.searchContainer}>
                 <RNTextInput
                   style={styles.searchInput}
-                  placeholder="Search by username, email, or name..."
+                  placeholder="Search by name or email"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholderTextColor={theme.colors.gray[400]}

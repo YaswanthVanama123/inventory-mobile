@@ -396,7 +396,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                 <SearchIcon size={18} color={theme.colors.gray[500]} />
                 <RNTextInput
                   style={styles.searchInput}
-                  placeholder="Search by name or canonical..."
+                  placeholder="Search by name"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholderTextColor={theme.colors.gray[400]}

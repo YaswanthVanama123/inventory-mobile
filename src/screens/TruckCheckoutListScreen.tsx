@@ -757,7 +757,7 @@ export const TruckCheckoutListScreen = () => {
                         style={styles.filterInput}
                         value={searchTerm}
                         onChangeText={setSearchTerm}
-                        placeholder="Search by employee or route name"
+                        placeholder="Search employee or route"
                         placeholderTextColor={theme.colors.gray[400]}
                       />
                     </View>

@@ -391,7 +391,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by item, invoice, or SKU..."
+            placeholder="Search item, invoice or SKU"
             placeholderTextColor={theme.colors.gray[400]}
             value={searchText}
             onChangeText={setSearchText}

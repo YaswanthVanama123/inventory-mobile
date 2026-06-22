@@ -273,7 +273,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
           <View style={styles.searchContainer}>
             <RNTextInput
               style={styles.searchInput}
-              placeholder="Search by order number or vendor..."
+              placeholder="Search order or vendor"
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor={theme.colors.gray[400]}

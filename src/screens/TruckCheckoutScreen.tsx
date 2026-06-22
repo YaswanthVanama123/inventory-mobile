@@ -509,7 +509,7 @@ export const TruckCheckoutScreen = () => {
                 style={styles.input}
                 value={actualTruckInventory}
                 onChangeText={setActualTruckInventory}
-                placeholder="How many do you actually have on truck?"
+                placeholder="Quantity on truck"
                 placeholderTextColor={theme.colors.gray[400]}
                 keyboardType="numeric"
                 editable={!!selectedItem}

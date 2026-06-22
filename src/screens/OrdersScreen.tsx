@@ -359,7 +359,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
                 <SearchIcon size={18} color={theme.colors.gray[500]} />
                 <RNTextInput
                   style={styles.searchInput}
-                  placeholder="Search by order # or vendor..."
+                  placeholder="Search order or vendor"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholderTextColor={theme.colors.gray[400]}

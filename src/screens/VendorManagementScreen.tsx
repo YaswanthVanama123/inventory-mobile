@@ -274,7 +274,7 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
             <View style={styles.searchContainer}>
               <RNTextInput
                 style={styles.searchInput}
-                placeholder="Search by name, email, or phone..."
+                placeholder="Search by name or email"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor={theme.colors.gray[400]}

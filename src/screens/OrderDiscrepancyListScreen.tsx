@@ -213,7 +213,7 @@ export const OrderDiscrepancyListScreen: React.FC<
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by order number or item..."
+          placeholder="Search order or item"
           placeholderTextColor="#94a3b8"
           value={searchText}
           onChangeText={setSearchText}
