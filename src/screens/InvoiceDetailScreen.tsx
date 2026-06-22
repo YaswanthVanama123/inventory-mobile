@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
@@ -135,6 +135,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
+      <SafeAreaProvider style={{flex: 1}}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={styles.modalHeader}>
@@ -489,6 +490,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
           </ScrollView>
         ) : null}
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };

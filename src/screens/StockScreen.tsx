@@ -33,6 +33,7 @@ import {
   RefreshIcon,
   TimelineIcon,
   CloseIcon,
+  SearchIcon,
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
@@ -87,6 +88,10 @@ export const StockScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'use' | 'sell'>('sell');
+  const [searchQuery, setSearchQuery] = useState('');
+  // Canonical category names returned by the backend fuzzy search
+  // (null = no active backend search). Merged with the instant local filter.
+  const [fuzzyMatches, setFuzzyMatches] = useState<Set<string> | null>(null);
   const [useStockData, setUseStockData] = useState<any>({items: [], totals: {}});
   const [sellStockData, setSellStockData] = useState<any>({items: [], totals: {}});
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -131,6 +136,26 @@ export const StockScreen = () => {
       setLoading(false);
     }
   }, [token]);
+
+  // Debounced backend fuzzy/partial search.
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2 || !token) {
+      setFuzzyMatches(null);
+      return;
+    }
+    const handle = setTimeout(async () => {
+      try {
+        const res = await stockService.searchStock(token, q);
+        setFuzzyMatches(
+          new Set((res.matches || []).map((m: any) => (m.categoryName || '').toLowerCase())),
+        );
+      } catch (err) {
+        setFuzzyMatches(null);
+      }
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [searchQuery, token]);
 
   useEffect(() => {
     Animated.parallel([
@@ -279,6 +304,33 @@ export const StockScreen = () => {
   };
 
   const currentData = activeTab === 'use' ? useStockData : sellStockData;
+  // Search across category name, its aliases (Enviromaster / order item names),
+  // and any already-loaded SKU codes / item names for that category.
+  const stockQuery = searchQuery.trim().toLowerCase();
+  const filteredItems = !stockQuery
+    ? currentData.items || []
+    : (currentData.items || []).filter((item: any) => {
+        // Instant local match (substring) for snappy feedback.
+        if (item.categoryName?.toLowerCase().includes(stockQuery)) return true;
+        if (
+          Array.isArray(item.aliases) &&
+          item.aliases.some((a: string) => a?.toLowerCase().includes(stockQuery))
+        ) {
+          return true;
+        }
+        const skus = categorySkuData[item.categoryName] || [];
+        if (
+          skus.some(
+            (s: any) =>
+              s.sku?.toLowerCase().includes(stockQuery) ||
+              s.itemName?.toLowerCase().includes(stockQuery),
+          )
+        ) {
+          return true;
+        }
+        // Backend fuzzy / cross-collection match.
+        return !!fuzzyMatches && fuzzyMatches.has(item.categoryName?.toLowerCase());
+      });
   const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
 
   const handleSubmitDiscrepancy = async () => {
@@ -451,6 +503,23 @@ export const StockScreen = () => {
         </View>
 
         <View style={styles.contentWrap}>
+        <View style={styles.searchWrap}>
+          <View style={styles.searchCard}>
+            <SearchIcon size={18} color={theme.colors.gray[500]} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search category or order item name..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor={theme.colors.gray[400]}
+            />
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear} activeOpacity={0.7}>
+                <CloseIcon size={14} color={theme.colors.gray[500]} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
         <View style={styles.tabsWrap}>
           <View style={styles.tabsCard}>
             <TouchableOpacity
@@ -552,7 +621,7 @@ export const StockScreen = () => {
           </Card>
         )}
 
-        {!error && currentData.items.length === 0 && (
+        {!error && filteredItems.length === 0 && (
           <Card variant="elevated" padding="lg" style={styles.emptyCard}>
             <View style={styles.emptyIconWrap}>
               <BoxIcon size={32} color={theme.colors.primary[600]} />
@@ -562,17 +631,19 @@ export const StockScreen = () => {
               weight="semibold"
               color={theme.colors.gray[800]}
               style={styles.emptyTitle}>
-              No data available
+              {stockQuery ? 'No matches found' : 'No data available'}
             </Typography>
             <Typography variant="small" color={theme.colors.gray[500]} align="center">
-              {activeTab === 'use'
+              {stockQuery
+                ? 'Try a different category, alias or order item name.'
+                : activeTab === 'use'
                 ? 'Orders with mapped categories will appear here.'
                 : 'Invoices with mapped categories will appear here.'}
             </Typography>
           </Card>
         )}
 
-        {!error && currentData.items.length > 0 && (
+        {!error && filteredItems.length > 0 && (
           <View style={styles.sectionEyebrow}>
             <View style={styles.eyebrowLine} />
             <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
@@ -582,7 +653,7 @@ export const StockScreen = () => {
         )}
 
         <View style={styles.categoriesList}>
-          {currentData.items.map((category: any) => {
+          {filteredItems.map((category: any) => {
             const isExpanded = expandedCategories.has(category.categoryName);
             const isLoading = loadingCategories.has(category.categoryName);
             return (
@@ -1482,8 +1553,39 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       backgroundColor: 'rgba(255,255,255,0.18)',
     },
 
-    tabsWrap: {
+    searchWrap: {
       marginTop: -22,
+      zIndex: 3,
+    },
+    searchCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+      backgroundColor: theme.colors.white,
+      borderRadius: 14,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.gray[200],
+      ...theme.shadows.md,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: theme.typography.roles.body.fontSize,
+      color: theme.colors.gray[900],
+      paddingVertical: 0,
+    },
+    searchClear: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.gray[100],
+    },
+
+    tabsWrap: {
+      marginTop: theme.spacing.md,
       zIndex: 3,
     },
     tabsCard: {

@@ -7,7 +7,7 @@ import {
   StyleSheet,
   TextInput,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import {Typography} from '../atoms/Typography';
 import {useTheme} from '../../contexts/ThemeContext';
 import {Theme} from '../../theme';
@@ -51,6 +51,7 @@ export const PickerModal: React.FC<PickerModalProps> = ({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
+      <SafeAreaProvider style={{flex: 1}}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={styles.header}>
@@ -86,7 +87,7 @@ export const PickerModal: React.FC<PickerModalProps> = ({
                 onPress={() => handleSelect(item)}>
                 <Typography
                   variant="body"
-                  weight={isSelected ? 'semibold' : 'regular'}
+                  weight={isSelected ? 'semibold' : 'normal'}
                   color={isSelected ? theme.colors.primary[600] : theme.colors.gray[900]}
                   numberOfLines={2}
                   style={styles.itemText}>
@@ -108,6 +109,7 @@ export const PickerModal: React.FC<PickerModalProps> = ({
           )}
         />
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };

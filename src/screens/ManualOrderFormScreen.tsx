@@ -19,7 +19,8 @@ import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import manualOrderService from '../services/manualOrderService';
 import manualPOItemService from '../services/manualPOItemService';
 import vendorService from '../services/vendorService';
-import {PlusIcon, TrashIcon} from '../components/icons';
+import {PlusIcon, TrashIcon, ChevronDownIcon} from '../components/icons';
+import {PickerModal} from '../components/molecules/PickerModal';
 
 interface ManualOrderFormScreenProps {
   navigation: any;
@@ -55,6 +56,8 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
     {sku: '', name: '', qty: 1, unitPrice: 0, lineTotal: 0},
   ]);
   const [notes, setNotes] = useState('');
+  const [vendorPickerVisible, setVendorPickerVisible] = useState(false);
+  const [activeItemPicker, setActiveItemPicker] = useState<number | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -249,28 +252,21 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
             <Typography variant="body" weight="medium" style={styles.label}>
               Vendor *
             </Typography>
-            <View style={styles.pickerContainer}>
-              {vendors.map(vendor => (
-                <TouchableOpacity
-                  key={vendor._id}
-                  style={[
-                    styles.pickerOption,
-                    selectedVendorId === vendor._id &&
-                      styles.pickerOptionSelected,
-                  ]}
-                  onPress={() => setSelectedVendorId(vendor._id)}>
-                  <Typography
-                    variant="body"
-                    color={
-                      selectedVendorId === vendor._id
-                        ? theme.colors.primary[700]
-                        : theme.colors.gray[700]
-                    }>
-                    {vendor.name}
-                  </Typography>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <TouchableOpacity
+              style={styles.selectField}
+              onPress={() => setVendorPickerVisible(true)}
+              activeOpacity={0.7}>
+              <Typography
+                variant="body"
+                numberOfLines={1}
+                color={selectedVendorId ? theme.colors.gray[900] : theme.colors.gray[400]}
+                style={{flex: 1}}>
+                {selectedVendorId
+                  ? vendors.find(v => v._id === selectedVendorId)?.name || 'Select vendor'
+                  : 'Select vendor'}
+              </Typography>
+              <ChevronDownIcon size={18} color={theme.colors.gray[500]} />
+            </TouchableOpacity>
           </View>
 
           {/* Order Date */}
@@ -325,27 +321,24 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
                       </Typography>
                     </View>
                   ) : (
-                    manualPOItems.map(poItem => (
-                      <TouchableOpacity
-                        key={poItem.sku}
-                        style={[
-                          styles.pickerOption,
-                          item.sku === poItem.sku && styles.pickerOptionSelected,
-                        ]}
-                        onPress={() =>
-                          handleItemChange(index, 'sku', poItem.sku)
-                        }>
-                        <Typography
-                          variant="small"
-                          color={
-                            item.sku === poItem.sku
-                              ? theme.colors.primary[700]
-                              : theme.colors.gray[700]
-                          }>
-                          {poItem.sku} - {poItem.name}
-                        </Typography>
-                      </TouchableOpacity>
-                    ))
+                    <TouchableOpacity
+                      style={styles.selectField}
+                      onPress={() => setActiveItemPicker(index)}
+                      activeOpacity={0.7}>
+                      <Typography
+                        variant="small"
+                        numberOfLines={1}
+                        color={item.sku ? theme.colors.gray[900] : theme.colors.gray[400]}
+                        style={{flex: 1}}>
+                        {item.sku
+                          ? (() => {
+                              const p = manualPOItems.find(x => x.sku === item.sku);
+                              return p ? `${p.sku} - ${p.name}` : item.sku;
+                            })()
+                          : 'Select item'}
+                      </Typography>
+                      <ChevronDownIcon size={16} color={theme.colors.gray[500]} />
+                    </TouchableOpacity>
                   )}
                 </View>
               </View>
@@ -484,6 +477,33 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
         </View>
         </View>{/* contentWrap */}
       </ScrollView>
+
+      <PickerModal
+        visible={vendorPickerVisible}
+        onClose={() => setVendorPickerVisible(false)}
+        items={vendors}
+        selectedValue={selectedVendorId}
+        onValueChange={setSelectedVendorId}
+        placeholder="Select Vendor"
+        getLabel={v => v.name}
+        getValue={v => v._id}
+      />
+      <PickerModal
+        visible={activeItemPicker !== null}
+        onClose={() => setActiveItemPicker(null)}
+        items={manualPOItems}
+        selectedValue={
+          activeItemPicker !== null ? items[activeItemPicker]?.sku || '' : ''
+        }
+        onValueChange={sku => {
+          if (activeItemPicker !== null) {
+            handleItemChange(activeItemPicker, 'sku', sku);
+          }
+        }}
+        placeholder="Select Item"
+        getLabel={p => `${p.sku} - ${p.name}`}
+        getValue={p => p.sku}
+      />
     </SafeAreaView>
   );
 };
@@ -555,6 +575,17 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     borderColor: theme.colors.gray[300],
     borderRadius: 8,
     maxHeight: 200,
+  },
+  selectField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[300],
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
   },
   emptyPicker: {
     padding: 16,

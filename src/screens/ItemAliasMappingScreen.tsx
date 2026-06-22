@@ -12,7 +12,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
@@ -305,6 +305,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaProvider style={{flex: 1}}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
@@ -640,6 +641,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
           animationType="slide"
           presentationStyle="pageSheet"
           onRequestClose={() => setQuickMapVisible(false)}>
+          <SafeAreaProvider style={{flex: 1}}>
           <SafeAreaView style={styles.subModalContainer} edges={['top', 'left', 'right']}>
             <View style={styles.subModalHeader}>
               <TouchableOpacity onPress={() => setQuickMapVisible(false)} style={styles.subModalCloseBtn} activeOpacity={0.7}>
@@ -761,6 +763,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
               </View>
             </ScrollView>
           </SafeAreaView>
+          </SafeAreaProvider>
         </Modal>
 
         <Modal
@@ -768,6 +771,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
           animationType="slide"
           presentationStyle="pageSheet"
           onRequestClose={() => setEditMappingVisible(false)}>
+          <SafeAreaProvider style={{flex: 1}}>
           <SafeAreaView style={styles.subModalContainer} edges={['top', 'left', 'right']}>
             <View style={styles.subModalHeader}>
               <TouchableOpacity onPress={() => setEditMappingVisible(false)} style={styles.subModalCloseBtn} activeOpacity={0.7}>
@@ -878,8 +882,10 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
               </View>
             </ScrollView>
           </SafeAreaView>
+          </SafeAreaProvider>
         </Modal>
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };

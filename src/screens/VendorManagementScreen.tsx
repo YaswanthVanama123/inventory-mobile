@@ -9,8 +9,9 @@ import {
   TextInput as RNTextInput,
   RefreshControl,
   Alert,
+  Switch,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, SafeAreaProvider} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
@@ -51,6 +52,17 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+
+  // Add / edit vendor form
+  const [formVisible, setFormVisible] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formPhone, setFormPhone] = useState('');
+  const [formAddress, setFormAddress] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+  const [formIsActive, setFormIsActive] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (visible && token) {
@@ -117,12 +129,68 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
     setExpandedVendors(newExpanded);
   };
 
+  const resetForm = () => {
+    setEditingVendor(null);
+    setFormName('');
+    setFormEmail('');
+    setFormPhone('');
+    setFormAddress('');
+    setFormNotes('');
+    setFormIsActive(true);
+  };
+
   const handleAddNew = () => {
-    Alert.alert('Add New Vendor', 'This feature will be available in the next update');
+    resetForm();
+    setFormVisible(true);
   };
 
   const handleEdit = (vendor: Vendor) => {
-    Alert.alert('Edit Vendor', `Editing ${vendor.name} will be available in the next update`);
+    setEditingVendor(vendor);
+    setFormName(vendor.name || '');
+    setFormEmail(vendor.email || '');
+    setFormPhone(vendor.phone || '');
+    setFormAddress(vendor.address || '');
+    setFormNotes(vendor.notes || '');
+    setFormIsActive(vendor.isActive !== false);
+    setFormVisible(true);
+  };
+
+  const handleCloseForm = () => {
+    if (submitting) return;
+    setFormVisible(false);
+    resetForm();
+  };
+
+  const handleSubmitForm = async () => {
+    if (!token) return;
+    if (!formName.trim()) {
+      Alert.alert('Validation', 'Vendor name is required');
+      return;
+    }
+    const payload: Partial<Vendor> = {
+      name: formName.trim(),
+      email: formEmail.trim() || undefined,
+      phone: formPhone.trim() || undefined,
+      address: formAddress.trim() || undefined,
+      notes: formNotes.trim() || undefined,
+      isActive: formIsActive,
+    };
+    try {
+      setSubmitting(true);
+      if (editingVendor) {
+        await vendorService.updateVendor(token, editingVendor._id, payload);
+      } else {
+        await vendorService.createVendor(token, payload);
+      }
+      setFormVisible(false);
+      resetForm();
+      await loadData();
+      Alert.alert('Success', `Vendor ${editingVendor ? 'updated' : 'created'} successfully`);
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'Failed to save vendor');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDelete = (vendor: Vendor) => {
@@ -154,6 +222,7 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
+      <SafeAreaProvider style={{flex: 1}}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {/* Header */}
         <View style={styles.modalHeader}>
@@ -377,6 +446,136 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
           </ScrollView>
         )}
       </SafeAreaView>
+      </SafeAreaProvider>
+
+      {/* Add / Edit Vendor form */}
+      <Modal
+        visible={formVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseForm}>
+        <SafeAreaProvider style={{flex: 1}}>
+        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={handleCloseForm} style={styles.closeButton} disabled={submitting}>
+              <Typography
+                variant="body"
+                weight="semibold"
+                color={submitting ? theme.colors.gray[400] : theme.colors.primary[600]}>
+                Cancel
+              </Typography>
+            </TouchableOpacity>
+            <Typography variant="h3" weight="bold" style={styles.modalTitle}>
+              {editingVendor ? 'Edit Vendor' : 'Add New Vendor'}
+            </Typography>
+            <View style={styles.refreshButton} />
+          </View>
+
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}>
+            <View style={styles.contentWrap}>
+              <View style={styles.formField}>
+                <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                  Name *
+                </Typography>
+                <RNTextInput
+                  style={styles.formInput}
+                  placeholder="Vendor name"
+                  value={formName}
+                  onChangeText={setFormName}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                  Email
+                </Typography>
+                <RNTextInput
+                  style={styles.formInput}
+                  placeholder="vendor@example.com"
+                  value={formEmail}
+                  onChangeText={setFormEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                  Phone
+                </Typography>
+                <RNTextInput
+                  style={styles.formInput}
+                  placeholder="Phone number"
+                  value={formPhone}
+                  onChangeText={setFormPhone}
+                  keyboardType="phone-pad"
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                  Address
+                </Typography>
+                <RNTextInput
+                  style={styles.formInput}
+                  placeholder="Address"
+                  value={formAddress}
+                  onChangeText={setFormAddress}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+
+              <View style={styles.formField}>
+                <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                  Notes
+                </Typography>
+                <RNTextInput
+                  style={[styles.formInput, styles.formTextArea]}
+                  placeholder="Notes (optional)"
+                  value={formNotes}
+                  onChangeText={setFormNotes}
+                  multiline
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+
+              <View style={styles.formToggleRow}>
+                <View style={{flex: 1}}>
+                  <Typography variant="body" weight="semibold">
+                    Active
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    Inactive vendors are hidden from order forms
+                  </Typography>
+                </View>
+                <Switch
+                  value={formIsActive}
+                  onValueChange={setFormIsActive}
+                  trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
+                  thumbColor={theme.colors.white}
+                />
+              </View>
+
+              <Button
+                title={submitting ? 'Saving...' : editingVendor ? 'Save Changes' : 'Create Vendor'}
+                variant="primary"
+                onPress={handleSubmitForm}
+                disabled={submitting}
+                loading={submitting}
+                fullWidth
+              />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+        </SafeAreaProvider>
+      </Modal>
     </Modal>
   );
 };
@@ -546,5 +745,39 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   deleteButton: {
     backgroundColor: theme.colors.error[50],
     borderColor: theme.colors.error[200],
+  },
+  formField: {
+    marginBottom: theme.spacing.md,
+  },
+  formLabel: {
+    marginBottom: 6,
+  },
+  formInput: {
+    backgroundColor: theme.colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: theme.typography.roles.body.fontSize,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+    color: theme.colors.gray[900],
+  },
+  formTextArea: {
+    minHeight: 88,
+    paddingTop: 12,
+    textAlignVertical: 'top',
+  },
+  formToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: theme.colors.white,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+    marginBottom: theme.spacing.lg,
+    gap: 12,
   },
 });

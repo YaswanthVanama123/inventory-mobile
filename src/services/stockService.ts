@@ -80,5 +80,33 @@ class StockService {
       throw error;
     }
   }
+  // Fuzzy + partial search across category names, aliases / order item names,
+  // SKUs and item names. Returns { query, total, matches: [{categoryName,...}] }.
+  async searchStock(token: string, q: string) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/stock/search?q=${encodeURIComponent(q)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error('Failed to search stock');
+      }
+      const result = await response.json();
+      const data = result.data || result;
+      return {
+        query: data.query || q,
+        total: data.total || 0,
+        matches: data.matches || [],
+      };
+    } catch (error) {
+      console.error('Stock Search Service Error:', error);
+      throw error;
+    }
+  }
 }
 export default new StockService();
