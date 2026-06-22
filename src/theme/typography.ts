@@ -14,14 +14,14 @@
 
 // Raw graded type scale — every value distinct and increasing.
 const fontSizes = {
-  xs: 12, // tiny meta / overlines
-  sm: 14, // captions, badges, timestamps
-  md: 17, // body / default text, inputs
-  lg: 19, // emphasized body, card titles
-  xl: 22, // small headings
-  xxl: 24, // section headings
-  xxxl: 28, // large headings
-  xxxxl: 32, // page / hero headings
+  xs: 11, // tiny meta / overlines
+  sm: 13, // captions, badges, timestamps
+  md: 15, // body / default text, inputs
+  lg: 16, // emphasized body, card titles
+  xl: 18, // small headings
+  xxl: 20, // section headings
+  xxxl: 24, // large headings
+  xxxxl: 27, // page / hero headings
 };
 
 // Semantic roles — what the rest of the app actually uses.

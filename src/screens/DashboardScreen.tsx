@@ -600,6 +600,7 @@ export const DashboardScreen = () => {
                 withDots
                 withShadow={false}
                 fromZero
+                formatYLabel={y => `$${Math.round(Number(y) / 1000)}k`}
               />
             </Card>
           </Animated.View>
@@ -631,8 +632,12 @@ export const DashboardScreen = () => {
                 data={{
                   ...data.topProducts,
                   labels: data.topProducts.labels.map((label: string) =>
-                    label.length > 8 ? label.substring(0, 8) + '...' : label,
+                    label.length > 6 ? label.substring(0, 6) : label,
                   ),
+                  datasets: (data.topProducts.datasets || []).map((ds: any) => ({
+                    ...ds,
+                    data: (ds.data || []).map((v: number) => Math.round((v || 0) / 1000)),
+                  })),
                 }}
                 width={chartWidth}
                 height={240}
@@ -647,9 +652,8 @@ export const DashboardScreen = () => {
                 style={styles.chart}
                 withInnerLines={false}
                 fromZero
-                showValuesOnTopOfBars
                 yAxisLabel="$"
-                yAxisSuffix=""
+                yAxisSuffix="k"
                 segments={4}
               />
             </Card>
@@ -681,11 +685,12 @@ export const DashboardScreen = () => {
               <PieChart
                 data={data.statusDistribution}
                 width={chartWidth}
-                height={220}
+                height={200}
                 chartConfig={chartConfig}
                 accessor="population"
                 backgroundColor="transparent"
-                paddingLeft="15"
+                paddingLeft="0"
+                center={[chartWidth / 8, 0]}
                 style={styles.chart}
                 hasLegend
               />
