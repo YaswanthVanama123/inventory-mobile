@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -255,13 +256,16 @@ export const OrderDiscrepancyListScreen: React.FC<
       </View>
 
       {/* Discrepancy List */}
-      <ScrollView
+      <PaginatedList
+        data={filteredDiscrepancies}
+        keyExtractor={(item) => item._id}
         style={styles.listContainer}
         contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }>
-        {filteredDiscrepancies.length === 0 ? (
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        resetKey={`${typeFilter}|${searchText}`}
+        ItemSeparatorComponent={() => <View style={{height: 0}} />}
+        ListEmptyComponent={
           <Card style={styles.emptyCard}>
             <AlertCircleIcon size={48} color="#94a3b8" />
             <Typography variant="h4" style={styles.emptyTitle}>
@@ -271,254 +275,252 @@ export const OrderDiscrepancyListScreen: React.FC<
               Discrepancies will appear here when orders are verified
             </Typography>
           </Card>
-        ) : (
-          filteredDiscrepancies.map(discrepancy => {
-            const isExpanded = expandedRow === discrepancy._id;
-            const typeColors = getTypeColor(discrepancy.discrepancyType);
+        }
+        renderItem={({item: discrepancy}) => {
+          const isExpanded = expandedRow === discrepancy._id;
+          const typeColors = getTypeColor(discrepancy.discrepancyType);
 
-            return (
-              <Card
-                key={discrepancy._id}
-                style={styles.discrepancyCard}>
-                {/* Clickable Row Header */}
-                <TouchableOpacity
-                  style={[
-                    styles.rowHeader,
-                    isExpanded && styles.rowHeaderExpanded,
-                  ]}
-                  onPress={() =>
-                    setExpandedRow(isExpanded ? null : discrepancy._id)
-                  }
-                  activeOpacity={0.7}>
-                  {/* Chevron */}
-                  <View style={styles.chevronContainer}>
-                    {isExpanded ? (
-                      <ChevronDownIcon size={18} color="#2563eb" />
-                    ) : (
-                      <ChevronRightIcon size={18} color="#94a3b8" />
+          return (
+            <Card
+              style={styles.discrepancyCard}>
+              {/* Clickable Row Header */}
+              <TouchableOpacity
+                style={[
+                  styles.rowHeader,
+                  isExpanded && styles.rowHeaderExpanded,
+                ]}
+                onPress={() =>
+                  setExpandedRow(isExpanded ? null : discrepancy._id)
+                }
+                activeOpacity={0.7}>
+                {/* Chevron */}
+                <View style={styles.chevronContainer}>
+                  {isExpanded ? (
+                    <ChevronDownIcon size={18} color="#2563eb" />
+                  ) : (
+                    <ChevronRightIcon size={18} color="#94a3b8" />
+                  )}
+                </View>
+
+                {/* Item Info */}
+                <View style={styles.rowInfo}>
+                  <View style={styles.rowTitleRow}>
+                    <Typography variant="body2" style={styles.itemName} numberOfLines={1}>
+                      {discrepancy.itemName}
+                    </Typography>
+                    {discrepancy.sku && (
+                      <View style={styles.skuBadge}>
+                        <Typography variant="body2" style={styles.skuText}>
+                          {discrepancy.sku}
+                        </Typography>
+                      </View>
                     )}
                   </View>
-
-                  {/* Item Info */}
-                  <View style={styles.rowInfo}>
-                    <View style={styles.rowTitleRow}>
-                      <Typography variant="body2" style={styles.itemName} numberOfLines={1}>
-                        {discrepancy.itemName}
-                      </Typography>
-                      {discrepancy.sku && (
-                        <View style={styles.skuBadge}>
-                          <Typography variant="body2" style={styles.skuText}>
-                            {discrepancy.sku}
-                          </Typography>
-                        </View>
-                      )}
-                    </View>
-                    <View style={styles.rowMeta}>
-                      <Typography variant="body2" style={styles.orderNum}>
-                        Order #{discrepancy.orderNumber}
-                      </Typography>
-                      <Typography variant="body2" style={styles.rowDate}>
-                        {' • '}
-                        {formatDate(discrepancy.reportedAt)}
-                      </Typography>
-                    </View>
+                  <View style={styles.rowMeta}>
+                    <Typography variant="body2" style={styles.orderNum}>
+                      Order #{discrepancy.orderNumber}
+                    </Typography>
+                    <Typography variant="body2" style={styles.rowDate}>
+                      {' • '}
+                      {formatDate(discrepancy.reportedAt)}
+                    </Typography>
                   </View>
+                </View>
 
-                  {/* Right side: diff + type badge */}
-                  <View style={styles.rowRight}>
-                    <View
+                {/* Right side: diff + type badge */}
+                <View style={styles.rowRight}>
+                  <View
+                    style={[
+                      styles.diffBadge,
+                      {
+                        backgroundColor:
+                          discrepancy.discrepancyQuantity > 0
+                            ? '#dbeafe'
+                            : discrepancy.discrepancyQuantity < 0
+                            ? '#ffedd5'
+                            : '#d1fae5',
+                      },
+                    ]}>
+                    <Typography
+                      variant="body2"
                       style={[
-                        styles.diffBadge,
-                        {
-                          backgroundColor:
-                            discrepancy.discrepancyQuantity > 0
-                              ? '#dbeafe'
-                              : discrepancy.discrepancyQuantity < 0
-                              ? '#ffedd5'
-                              : '#d1fae5',
-                        },
+                        styles.diffText,
+                        {color: getDiffColor(discrepancy.discrepancyQuantity)},
                       ]}>
+                      {discrepancy.discrepancyQuantity > 0 ? '+' : ''}
+                      {discrepancy.discrepancyQuantity}
+                    </Typography>
+                  </View>
+                  <View
+                    style={[
+                      styles.typeBadge,
+                      {backgroundColor: typeColors.bg},
+                    ]}>
+                    <Typography
+                      variant="body2"
+                      style={[styles.typeText, {color: typeColors.text}]}>
+                      {discrepancy.discrepancyType}
+                    </Typography>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Expanded Detail Panel */}
+              {isExpanded && (
+                <View style={styles.expandedPanel}>
+                  {/* Quantity Grid */}
+                  <View style={styles.quantityGrid}>
+                    <View style={styles.quantityBox}>
+                      <Typography variant="body2" style={styles.quantityLabel}>
+                        Expected
+                      </Typography>
+                      <Typography variant="h3" style={styles.quantityValue}>
+                        {discrepancy.expectedQuantity}
+                      </Typography>
+                    </View>
+                    <View style={styles.quantityArrow}>
+                      <Typography style={styles.arrowText}>→</Typography>
+                    </View>
+                    <View style={styles.quantityBox}>
+                      <Typography variant="body2" style={styles.quantityLabel}>
+                        Received
+                      </Typography>
+                      <Typography variant="h3" style={styles.quantityValue}>
+                        {discrepancy.receivedQuantity}
+                      </Typography>
+                    </View>
+                    <View style={styles.quantityArrow}>
+                      <Typography style={styles.arrowText}>=</Typography>
+                    </View>
+                    <View style={styles.quantityBox}>
+                      <Typography variant="body2" style={styles.quantityLabel}>
+                        Diff
+                      </Typography>
                       <Typography
-                        variant="body2"
+                        variant="h3"
                         style={[
-                          styles.diffText,
+                          styles.quantityValue,
                           {color: getDiffColor(discrepancy.discrepancyQuantity)},
                         ]}>
                         {discrepancy.discrepancyQuantity > 0 ? '+' : ''}
                         {discrepancy.discrepancyQuantity}
                       </Typography>
                     </View>
-                    <View
-                      style={[
-                        styles.typeBadge,
-                        {backgroundColor: typeColors.bg},
-                      ]}>
+                  </View>
+
+                  {/* Details Section */}
+                  <View style={styles.detailSection}>
+                    <View style={styles.detailRow}>
+                      <Typography variant="body2" style={styles.detailLabel}>
+                        Order #
+                      </Typography>
+                      <Typography variant="body2" style={styles.detailValue}>
+                        {discrepancy.orderNumber}
+                      </Typography>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Typography variant="body2" style={styles.detailLabel}>
+                        Item
+                      </Typography>
                       <Typography
                         variant="body2"
-                        style={[styles.typeText, {color: typeColors.text}]}>
-                        {discrepancy.discrepancyType}
+                        style={styles.detailValue}
+                        numberOfLines={1}>
+                        {discrepancy.itemName}
                       </Typography>
                     </View>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Expanded Detail Panel */}
-                {isExpanded && (
-                  <View style={styles.expandedPanel}>
-                    {/* Quantity Grid */}
-                    <View style={styles.quantityGrid}>
-                      <View style={styles.quantityBox}>
-                        <Typography variant="body2" style={styles.quantityLabel}>
-                          Expected
-                        </Typography>
-                        <Typography variant="h3" style={styles.quantityValue}>
-                          {discrepancy.expectedQuantity}
-                        </Typography>
-                      </View>
-                      <View style={styles.quantityArrow}>
-                        <Typography style={styles.arrowText}>→</Typography>
-                      </View>
-                      <View style={styles.quantityBox}>
-                        <Typography variant="body2" style={styles.quantityLabel}>
-                          Received
-                        </Typography>
-                        <Typography variant="h3" style={styles.quantityValue}>
-                          {discrepancy.receivedQuantity}
-                        </Typography>
-                      </View>
-                      <View style={styles.quantityArrow}>
-                        <Typography style={styles.arrowText}>=</Typography>
-                      </View>
-                      <View style={styles.quantityBox}>
-                        <Typography variant="body2" style={styles.quantityLabel}>
-                          Diff
-                        </Typography>
-                        <Typography
-                          variant="h3"
-                          style={[
-                            styles.quantityValue,
-                            {color: getDiffColor(discrepancy.discrepancyQuantity)},
-                          ]}>
-                          {discrepancy.discrepancyQuantity > 0 ? '+' : ''}
-                          {discrepancy.discrepancyQuantity}
-                        </Typography>
-                      </View>
-                    </View>
-
-                    {/* Details Section */}
-                    <View style={styles.detailSection}>
+                    {discrepancy.sku && (
                       <View style={styles.detailRow}>
                         <Typography variant="body2" style={styles.detailLabel}>
-                          Order #
+                          SKU
                         </Typography>
                         <Typography variant="body2" style={styles.detailValue}>
-                          {discrepancy.orderNumber}
+                          {discrepancy.sku}
                         </Typography>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Typography variant="body2" style={styles.detailLabel}>
-                          Item
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          style={styles.detailValue}
-                          numberOfLines={1}>
-                          {discrepancy.itemName}
-                        </Typography>
-                      </View>
-                      {discrepancy.sku && (
-                        <View style={styles.detailRow}>
-                          <Typography variant="body2" style={styles.detailLabel}>
-                            SKU
-                          </Typography>
-                          <Typography variant="body2" style={styles.detailValue}>
-                            {discrepancy.sku}
-                          </Typography>
-                        </View>
-                      )}
-                      {discrepancy.reportedBy && (
-                        <View style={styles.detailRow}>
-                          <Typography variant="body2" style={styles.detailLabel}>
-                            Reported By
-                          </Typography>
-                          <Typography variant="body2" style={styles.detailValue}>
-                            {discrepancy.reportedBy?.fullName ||
-                              discrepancy.reportedBy?.username ||
-                              'N/A'}
-                          </Typography>
-                        </View>
-                      )}
-                      <View style={styles.detailRow}>
-                        <Typography variant="body2" style={styles.detailLabel}>
-                          Date
-                        </Typography>
-                        <Typography variant="body2" style={styles.detailValue}>
-                          {new Date(discrepancy.reportedAt).toLocaleString()}
-                        </Typography>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Typography variant="body2" style={styles.detailLabel}>
-                          Type
-                        </Typography>
-                        <View
-                          style={[
-                            styles.typeBadge,
-                            {backgroundColor: typeColors.bg},
-                          ]}>
-                          <Typography
-                            variant="body2"
-                            style={[styles.typeText, {color: typeColors.text}]}>
-                            {discrepancy.discrepancyType}
-                          </Typography>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Notes Section */}
-                    {(discrepancy.notes || discrepancy.resolutionNotes) && (
-                      <View style={styles.notesSection}>
-                        {discrepancy.notes && (
-                          <View style={styles.noteBox}>
-                            <Typography
-                              variant="body2"
-                              style={styles.noteLabel}>
-                              Notes
-                            </Typography>
-                            <Typography variant="body2" style={styles.noteText}>
-                              {discrepancy.notes}
-                            </Typography>
-                          </View>
-                        )}
-                        {discrepancy.resolutionNotes && (
-                          <View style={[styles.noteBox, styles.resolutionNoteBox]}>
-                            <Typography
-                              variant="body2"
-                              style={styles.noteLabel}>
-                              Resolution Notes
-                            </Typography>
-                            <Typography variant="body2" style={styles.noteText}>
-                              {discrepancy.resolutionNotes}
-                            </Typography>
-                          </View>
-                        )}
                       </View>
                     )}
-
-                    {/* Delete Button */}
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() => handleDelete(discrepancy)}>
-                      <Typography variant="body2" style={styles.deleteButtonText}>
-                        Delete Discrepancy
+                    {discrepancy.reportedBy && (
+                      <View style={styles.detailRow}>
+                        <Typography variant="body2" style={styles.detailLabel}>
+                          Reported By
+                        </Typography>
+                        <Typography variant="body2" style={styles.detailValue}>
+                          {discrepancy.reportedBy?.fullName ||
+                            discrepancy.reportedBy?.username ||
+                            'N/A'}
+                        </Typography>
+                      </View>
+                    )}
+                    <View style={styles.detailRow}>
+                      <Typography variant="body2" style={styles.detailLabel}>
+                        Date
                       </Typography>
-                    </TouchableOpacity>
+                      <Typography variant="body2" style={styles.detailValue}>
+                        {new Date(discrepancy.reportedAt).toLocaleString()}
+                      </Typography>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Typography variant="body2" style={styles.detailLabel}>
+                        Type
+                      </Typography>
+                      <View
+                        style={[
+                          styles.typeBadge,
+                          {backgroundColor: typeColors.bg},
+                        ]}>
+                        <Typography
+                          variant="body2"
+                          style={[styles.typeText, {color: typeColors.text}]}>
+                          {discrepancy.discrepancyType}
+                        </Typography>
+                      </View>
+                    </View>
                   </View>
-                )}
-              </Card>
-            );
-          })
-        )}
-      </ScrollView>
+
+                  {/* Notes Section */}
+                  {(discrepancy.notes || discrepancy.resolutionNotes) && (
+                    <View style={styles.notesSection}>
+                      {discrepancy.notes && (
+                        <View style={styles.noteBox}>
+                          <Typography
+                            variant="body2"
+                            style={styles.noteLabel}>
+                            Notes
+                          </Typography>
+                          <Typography variant="body2" style={styles.noteText}>
+                            {discrepancy.notes}
+                          </Typography>
+                        </View>
+                      )}
+                      {discrepancy.resolutionNotes && (
+                        <View style={[styles.noteBox, styles.resolutionNoteBox]}>
+                          <Typography
+                            variant="body2"
+                            style={styles.noteLabel}>
+                            Resolution Notes
+                          </Typography>
+                          <Typography variant="body2" style={styles.noteText}>
+                            {discrepancy.resolutionNotes}
+                          </Typography>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Delete Button */}
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete(discrepancy)}>
+                    <Typography variant="body2" style={styles.deleteButtonText}>
+                      Delete Discrepancy
+                    </Typography>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Card>
+          );
+        }}
+      />
     </SafeAreaView>
   );
 };

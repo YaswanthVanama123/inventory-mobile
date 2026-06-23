@@ -1,12 +1,10 @@
 import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
   Alert,
   Animated,
   Easing,
@@ -15,6 +13,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {PickerModal} from '../components/molecules/PickerModal';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -252,263 +251,272 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
             </Typography>
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={history}
+            keyExtractor={(item, index) => item._id || String(index)}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.white} />
-            }>
-            <View style={styles.hero}>
-              <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
-              <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
-              <View style={styles.dotGrid} pointerEvents="none">
-                {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
-              </View>
-
-              <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
-                <View style={styles.heroTopRow}>
-                  <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <CloseIcon size={16} color={theme.colors.brand.text} />
-                  </TouchableOpacity>
-                  <View style={{flex: 1}}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textTracked} style={styles.heroEyebrow}>
-                      SYSTEM
-                    </Typography>
-                    <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
-                      Fetch History
-                    </Typography>
-                    <Typography variant="small" color={theme.colors.brand.textMuted}>
-                      External sync run history · auto-refresh 30s
-                    </Typography>
+            contentContainerStyle={[styles.scrollContent, {paddingBottom: 0}]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={`${filterSource}|${filterStatus}|${filterDays}`}
+            ItemSeparatorComponent={() => <View style={{height: 12}} />}
+            ListHeaderComponent={
+              <View>
+                <View style={styles.hero}>
+                  <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+                  <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+                  <View style={styles.dotGrid} pointerEvents="none">
+                    {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
                   </View>
-                  <TouchableOpacity onPress={() => loadData()} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <RefreshIcon size={18} color={theme.colors.brand.text} />
-                  </TouchableOpacity>
+
+                  <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
+                    <View style={styles.heroTopRow}>
+                      <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
+                        <CloseIcon size={16} color={theme.colors.brand.text} />
+                      </TouchableOpacity>
+                      <View style={{flex: 1}}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textTracked} style={styles.heroEyebrow}>
+                          SYSTEM
+                        </Typography>
+                        <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
+                          Fetch History
+                        </Typography>
+                        <Typography variant="small" color={theme.colors.brand.textMuted}>
+                          External sync run history · auto-refresh 30s
+                        </Typography>
+                      </View>
+                      <TouchableOpacity onPress={() => loadData()} style={styles.heroIconBtn} activeOpacity={0.85}>
+                        <RefreshIcon size={18} color={theme.colors.brand.text} />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.statusChip}>
+                      <View style={[styles.statusDot, stats.activeCount > 0 ? {backgroundColor: theme.colors.warning[400]} : null]} />
+                      <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
+                        {stats.activeCount > 0
+                          ? `${stats.activeCount} running · ${stats.successRate.toFixed(0)}% success`
+                          : `Idle · ${stats.successRate.toFixed(0)}% success rate`}
+                      </Typography>
+                    </View>
+
+                    <View style={styles.heroMetricsRow}>
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          ACTIVE
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.activeCount}
+                        </Typography>
+                      </View>
+                      <View style={styles.heroMetricDivider} />
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          TODAY
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.todayCount}
+                        </Typography>
+                      </View>
+                      <View style={styles.heroMetricDivider} />
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          SUCCESS
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.successRate.toFixed(0)}%
+                        </Typography>
+                      </View>
+                    </View>
+                  </Animated.View>
                 </View>
 
-                <View style={styles.statusChip}>
-                  <View style={[styles.statusDot, stats.activeCount > 0 ? {backgroundColor: theme.colors.warning[400]} : null]} />
-                  <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
-                    {stats.activeCount > 0
-                      ? `${stats.activeCount} running · ${stats.successRate.toFixed(0)}% success`
-                      : `Idle · ${stats.successRate.toFixed(0)}% success rate`}
-                  </Typography>
-                </View>
-
-                <View style={styles.heroMetricsRow}>
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      ACTIVE
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.activeCount}
-                    </Typography>
+                <View style={styles.contentWrap}>
+                  <View style={styles.statsGridWrap}>
+                    <View style={[styles.statTile, {backgroundColor: theme.colors.success[50]}]}>
+                      <View style={[styles.statTileIcon, {backgroundColor: theme.colors.success[100]}]}>
+                        <CheckCircleIcon size={16} color={theme.colors.success[600]} />
+                      </View>
+                      <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                        Completed
+                      </Typography>
+                      <Typography variant="h3" weight="bold" color={theme.colors.success[700]}>
+                        {stats.totalCompleted}
+                      </Typography>
+                    </View>
+                    <View style={[styles.statTile, {backgroundColor: theme.colors.error[50]}]}>
+                      <View style={[styles.statTileIcon, {backgroundColor: theme.colors.error[100]}]}>
+                        <XCircleIcon size={16} color={theme.colors.error[600]} />
+                      </View>
+                      <Typography variant="caption" weight="semibold" color={theme.colors.error[700]}>
+                        Failed
+                      </Typography>
+                      <Typography variant="h3" weight="bold" color={theme.colors.error[700]}>
+                        {stats.totalFailed}
+                      </Typography>
+                    </View>
+                    <View style={[styles.statTile, {backgroundColor: theme.colors.primary[50]}]}>
+                      <View style={[styles.statTileIcon, {backgroundColor: theme.colors.primary[100]}]}>
+                        <RefreshIcon size={16} color={theme.colors.primary[600]} />
+                      </View>
+                      <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                        Last {filterDays}d
+                      </Typography>
+                      <Typography variant="h3" weight="bold" color={theme.colors.primary[700]}>
+                        {stats.totalCompleted + stats.totalFailed}
+                      </Typography>
+                    </View>
                   </View>
-                  <View style={styles.heroMetricDivider} />
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      TODAY
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.todayCount}
-                    </Typography>
-                  </View>
-                  <View style={styles.heroMetricDivider} />
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      SUCCESS
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.successRate.toFixed(0)}%
-                    </Typography>
-                  </View>
-                </View>
-              </Animated.View>
-            </View>
 
-            <View style={styles.contentWrap}>
-            <View style={styles.statsGridWrap}>
-              <View style={[styles.statTile, {backgroundColor: theme.colors.success[50]}]}>
-                <View style={[styles.statTileIcon, {backgroundColor: theme.colors.success[100]}]}>
-                  <CheckCircleIcon size={16} color={theme.colors.success[600]} />
-                </View>
-                <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
-                  Completed
-                </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.success[700]}>
-                  {stats.totalCompleted}
-                </Typography>
-              </View>
-              <View style={[styles.statTile, {backgroundColor: theme.colors.error[50]}]}>
-                <View style={[styles.statTileIcon, {backgroundColor: theme.colors.error[100]}]}>
-                  <XCircleIcon size={16} color={theme.colors.error[600]} />
-                </View>
-                <Typography variant="caption" weight="semibold" color={theme.colors.error[700]}>
-                  Failed
-                </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.error[700]}>
-                  {stats.totalFailed}
-                </Typography>
-              </View>
-              <View style={[styles.statTile, {backgroundColor: theme.colors.primary[50]}]}>
-                <View style={[styles.statTileIcon, {backgroundColor: theme.colors.primary[100]}]}>
-                  <RefreshIcon size={16} color={theme.colors.primary[600]} />
-                </View>
-                <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
-                  Last {filterDays}d
-                </Typography>
-                <Typography variant="h3" weight="bold" color={theme.colors.primary[700]}>
-                  {stats.totalCompleted + stats.totalFailed}
-                </Typography>
-              </View>
-            </View>
+                  {activeFetches.length > 0 && (
+                    <>
+                      <View style={styles.sectionEyebrow}>
+                        <View style={styles.eyebrowLine} />
+                        <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+                          ACTIVE · {activeFetches.length}
+                        </Typography>
+                      </View>
+                      <View style={styles.activeFetchesList}>
+                        {activeFetches.map(fetch => (
+                          <Card key={fetch._id} variant="elevated" padding="none" style={styles.activeFetchCard}>
+                            <View style={[styles.activeFetchStripe, {backgroundColor: theme.colors.primary[500]}]} />
+                            <View style={styles.activeFetchBody}>
+                              <View style={[styles.activeFetchIcon, {backgroundColor: theme.colors.primary[50]}]}>
+                                <ClockIcon size={16} color={theme.colors.primary[600]} />
+                              </View>
+                              <View style={{flex: 1}}>
+                                <Typography variant="small" weight="semibold">
+                                  {getSourceLabel(fetch.source, fetch.fetchType)}
+                                </Typography>
+                                <Typography variant="caption" color={theme.colors.gray[500]}>
+                                  Started {formatDateTime(fetch.startedAt)}
+                                </Typography>
+                                {fetch.user && (
+                                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                                    By {fetch.user.fullName || fetch.user.username}
+                                  </Typography>
+                                )}
+                              </View>
+                              {user?.role === 'admin' && (
+                                <TouchableOpacity
+                                  style={styles.cancelButton}
+                                  onPress={() => handleCancelFetch(fetch)}
+                                  activeOpacity={0.85}>
+                                  <Typography variant="caption" color={theme.colors.error[700]} weight="semibold">
+                                    Cancel
+                                  </Typography>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          </Card>
+                        ))}
+                      </View>
+                    </>
+                  )}
 
-            {activeFetches.length > 0 && (
-              <>
-                <View style={styles.sectionEyebrow}>
-                  <View style={styles.eyebrowLine} />
-                  <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-                    ACTIVE · {activeFetches.length}
-                  </Typography>
-                </View>
-                <View style={styles.activeFetchesList}>
-                  {activeFetches.map(fetch => (
-                    <Card key={fetch._id} variant="elevated" padding="none" style={styles.activeFetchCard}>
-                      <View style={[styles.activeFetchStripe, {backgroundColor: theme.colors.primary[500]}]} />
-                      <View style={styles.activeFetchBody}>
-                        <View style={[styles.activeFetchIcon, {backgroundColor: theme.colors.primary[50]}]}>
-                          <ClockIcon size={16} color={theme.colors.primary[600]} />
-                        </View>
-                        <View style={{flex: 1}}>
-                          <Typography variant="small" weight="semibold">
-                            {getSourceLabel(fetch.source, fetch.fetchType)}
-                          </Typography>
+                  <View style={styles.filtersWrap}>
+                    <View style={styles.filtersCard}>
+                      <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.filtersTitle}>
+                        FILTERS
+                      </Typography>
+                      <View style={styles.filtersRow}>
+                        <View style={styles.filterCell}>
                           <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Started {formatDateTime(fetch.startedAt)}
+                            Source
                           </Typography>
-                          {fetch.user && (
-                            <Typography variant="caption" color={theme.colors.gray[500]}>
-                              By {fetch.user.fullName || fetch.user.username}
-                            </Typography>
-                          )}
-                        </View>
-                        {user?.role === 'admin' && (
                           <TouchableOpacity
-                            style={styles.cancelButton}
-                            onPress={() => handleCancelFetch(fetch)}
+                            style={styles.filterButton}
+                            onPress={() => setSourcePickerVisible(true)}
                             activeOpacity={0.85}>
-                            <Typography variant="caption" color={theme.colors.error[700]} weight="semibold">
-                              Cancel
+                            <Typography variant="small" weight="semibold" numberOfLines={1} style={{flex: 1}}>
+                              {sourceOptions.find(s => s.value === filterSource)?.label || 'All Sources'}
                             </Typography>
+                            <ChevronDownIcon size={14} color={theme.colors.gray[500]} />
                           </TouchableOpacity>
-                        )}
+                        </View>
+                        <View style={styles.filterCell}>
+                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                            Status
+                          </Typography>
+                          <TouchableOpacity
+                            style={styles.filterButton}
+                            onPress={() => setStatusPickerVisible(true)}
+                            activeOpacity={0.85}>
+                            <Typography variant="small" weight="semibold" numberOfLines={1} style={{flex: 1}}>
+                              {filterStatus
+                                ? filterStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                                : 'All Status'}
+                            </Typography>
+                            <ChevronDownIcon size={14} color={theme.colors.gray[500]} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                      <View style={styles.filtersRow}>
+                        <View style={styles.filterCell}>
+                          <Typography variant="caption" color={theme.colors.gray[500]}>
+                            Time period
+                          </Typography>
+                          <TouchableOpacity
+                            style={styles.filterButton}
+                            onPress={() => setDaysPickerVisible(true)}
+                            activeOpacity={0.85}>
+                            <Typography variant="small" weight="semibold" numberOfLines={1} style={{flex: 1}}>
+                              {daysOptions.find(d => d.value === filterDays)?.label || 'Last 10 days'}
+                            </Typography>
+                            <ChevronDownIcon size={14} color={theme.colors.gray[500]} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  {error && (
+                    <Card variant="outlined" padding="lg" style={styles.errorCard}>
+                      <View style={styles.errorContent}>
+                        <View style={styles.errorIconWrap}>
+                          <AlertCircleIcon size={22} color={theme.colors.error[600]} />
+                        </View>
+                        <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
+                          {error}
+                        </Typography>
                       </View>
                     </Card>
-                  ))}
-                </View>
-              </>
-            )}
+                  )}
 
-            <View style={styles.filtersWrap}>
-              <View style={styles.filtersCard}>
-                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.filtersTitle}>
-                  FILTERS
-                </Typography>
-                <View style={styles.filtersRow}>
-                  <View style={styles.filterCell}>
-                    <Typography variant="caption" color={theme.colors.gray[500]}>
-                      Source
-                    </Typography>
-                    <TouchableOpacity
-                      style={styles.filterButton}
-                      onPress={() => setSourcePickerVisible(true)}
-                      activeOpacity={0.85}>
-                      <Typography variant="small" weight="semibold" numberOfLines={1} style={{flex: 1}}>
-                        {sourceOptions.find(s => s.value === filterSource)?.label || 'All Sources'}
+                  {!error && history.length > 0 && (
+                    <View style={styles.sectionEyebrow}>
+                      <View style={styles.eyebrowLine} />
+                      <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+                        HISTORY · {history.length}
                       </Typography>
-                      <ChevronDownIcon size={14} color={theme.colors.gray[500]} />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.filterCell}>
-                    <Typography variant="caption" color={theme.colors.gray[500]}>
-                      Status
-                    </Typography>
-                    <TouchableOpacity
-                      style={styles.filterButton}
-                      onPress={() => setStatusPickerVisible(true)}
-                      activeOpacity={0.85}>
-                      <Typography variant="small" weight="semibold" numberOfLines={1} style={{flex: 1}}>
-                        {filterStatus
-                          ? filterStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-                          : 'All Status'}
-                      </Typography>
-                      <ChevronDownIcon size={14} color={theme.colors.gray[500]} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View style={styles.filtersRow}>
-                  <View style={styles.filterCell}>
-                    <Typography variant="caption" color={theme.colors.gray[500]}>
-                      Time period
-                    </Typography>
-                    <TouchableOpacity
-                      style={styles.filterButton}
-                      onPress={() => setDaysPickerVisible(true)}
-                      activeOpacity={0.85}>
-                      <Typography variant="small" weight="semibold" numberOfLines={1} style={{flex: 1}}>
-                        {daysOptions.find(d => d.value === filterDays)?.label || 'Last 10 days'}
-                      </Typography>
-                      <ChevronDownIcon size={14} color={theme.colors.gray[500]} />
-                    </TouchableOpacity>
-                  </View>
+                    </View>
+                  )}
                 </View>
               </View>
-            </View>
-
-            {error && (
-              <Card variant="outlined" padding="lg" style={styles.errorCard}>
-                <View style={styles.errorContent}>
-                  <View style={styles.errorIconWrap}>
-                    <AlertCircleIcon size={22} color={theme.colors.error[600]} />
-                  </View>
-                  <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
-                    {error}
-                  </Typography>
+            }
+            ListEmptyComponent={
+              error ? null : (
+                <View style={styles.contentWrap}>
+                  <Card variant="elevated" padding="lg" style={styles.emptyCard}>
+                    <View style={styles.emptyIconWrap}>
+                      <ClipboardIcon size={32} color={theme.colors.primary[600]} />
+                    </View>
+                    <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
+                      No fetch history
+                    </Typography>
+                    <Typography variant="small" color={theme.colors.gray[500]} align="center">
+                      No sync operations match the selected filters.
+                    </Typography>
+                  </Card>
                 </View>
-              </Card>
-            )}
-
-            {!error && history.length === 0 && (
-              <Card variant="elevated" padding="lg" style={styles.emptyCard}>
-                <View style={styles.emptyIconWrap}>
-                  <ClipboardIcon size={32} color={theme.colors.primary[600]} />
-                </View>
-                <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
-                  No fetch history
-                </Typography>
-                <Typography variant="small" color={theme.colors.gray[500]} align="center">
-                  No sync operations match the selected filters.
-                </Typography>
-              </Card>
-            )}
-
-            {!error && history.length > 0 && (
-              <View style={styles.sectionEyebrow}>
-                <View style={styles.eyebrowLine} />
-                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-                  HISTORY · {history.length}
-                </Typography>
-              </View>
-            )}
-
-            <View style={styles.historyList}>
-              {history.map((item, index) => {
-                const isExpanded = expandedItems.has(item._id);
-                const tone = getStatusTone(item.status);
-                const palette = tonePalette(tone);
-                return (
-                  <Card key={item._id || index} variant="elevated" padding="none" style={styles.historyCard}>
+              )
+            }
+            renderItem={({item, index}) => {
+              const isExpanded = expandedItems.has(item._id);
+              const tone = getStatusTone(item.status);
+              const palette = tonePalette(tone);
+              return (
+                <View style={styles.contentWrap}>
+                  <Card variant="elevated" padding="none" style={styles.historyCard}>
                     <View style={[styles.historyStripe, {backgroundColor: palette.strong}]} />
                     <TouchableOpacity onPress={() => handleItemPress(item._id)} style={styles.historyHeader} activeOpacity={0.85}>
                       <View style={[styles.historyIconWrap, {backgroundColor: palette.bg}]}>
@@ -641,11 +649,10 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
                       </View>
                     )}
                   </Card>
-                );
-              })}
-            </View>
-            </View>{/* end contentWrap */}
-          </ScrollView>
+                </View>
+              );
+            }}
+          />
         )}
 
         <PickerModal

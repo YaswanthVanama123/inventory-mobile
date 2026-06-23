@@ -12,6 +12,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -272,336 +273,339 @@ export const InvoicesScreen = () => {
   }
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <ScrollView
+      <PaginatedList
+        data={invoices}
+        keyExtractor={(item, index) => item._id || String(index)}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }>
-        {/* Header */}
-        <View style={styles.header}>
-          <Typography variant="h2" weight="bold" style={styles.headerTitle}>
-            Invoices
-          </Typography>
-          <Typography
-            variant="body"
-            color={theme.colors.gray[500]}
-            style={styles.headerSubtitle}>
-            {invoices.length} {invoices.length === 1 ? 'invoice' : 'invoices'} found
-          </Typography>
-        </View>
-
-        {/* Invoice Type Tabs */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[styles.tab, invoiceType === 'pending' && styles.tabActive]}
-            onPress={() => setInvoiceType('pending')}>
-            <Typography
-              variant="small"
-              weight="semibold"
-              color={invoiceType === 'pending' ? theme.colors.primary[600] : theme.colors.gray[600]}>
-              Pending
-            </Typography>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, invoiceType === 'closed' && styles.tabActive]}
-            onPress={() => setInvoiceType('closed')}>
-            <Typography
-              variant="small"
-              weight="semibold"
-              color={invoiceType === 'closed' ? theme.colors.primary[600] : theme.colors.gray[600]}>
-              Closed
-            </Typography>
-          </TouchableOpacity>
-        </View>
-
-        {/* Sync Buttons */}
-        <View style={styles.syncButtonsContainer}>
-          <TouchableOpacity
-            onPress={handleSyncNew}
-            disabled={syncing}
-            style={[
-              styles.syncActionButton,
-              styles.syncNewButton,
-              syncing && styles.syncButtonDisabled
-            ]}>
-            {syncingNew ? (
-              <ActivityIndicator size="small" color={theme.colors.white} />
-            ) : (
-              <Typography variant="small" weight="semibold" color={theme.colors.white}>
-                ↑ New Sync
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        resetKey={`${invoiceType}|${searchQuery}|${statusFilter}|${paymentStatusFilter}`}
+        ItemSeparatorComponent={() => <View style={{height: 12}} />}
+        ListHeaderComponent={
+          <View>
+            {/* Header */}
+            <View style={styles.header}>
+              <Typography variant="h2" weight="bold" style={styles.headerTitle}>
+                Invoices
               </Typography>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleSyncOld}
-            disabled={syncing}
-            style={[
-              styles.syncActionButton,
-              styles.syncOldButton,
-              syncing && styles.syncButtonDisabled
-            ]}>
-            {syncingOld ? (
-              <ActivityIndicator size="small" color={theme.colors.primary[600]} />
-            ) : (
-              <Typography variant="small" weight="semibold" color={theme.colors.primary[600]}>
-                ↓ Old Sync
-              </Typography>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={handleSyncAll}
-            disabled={syncing}
-            style={[
-              styles.syncActionButton,
-              styles.syncAllButton,
-              syncing && styles.syncButtonDisabled
-            ]}>
-            {syncingAll ? (
-              <ActivityIndicator size="small" color={theme.colors.white} />
-            ) : (
-              <Typography variant="small" weight="semibold" color={theme.colors.white}>
-                ⟳ Sync All
-              </Typography>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Automation Settings */}
-        <View style={styles.automationContainer}>
-          <View style={styles.automationRow}>
-            <View style={styles.automationLabel}>
-              <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
-                Auto-Sync
-              </Typography>
-              <Typography variant="caption" color={theme.colors.gray[500]}>
-                Every {autoSyncInterval} min
-              </Typography>
-            </View>
-            <Switch
-              value={autoSyncEnabled}
-              onValueChange={setAutoSyncEnabled}
-              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[400] }}
-              thumbColor={autoSyncEnabled ? theme.colors.primary[600] : theme.colors.gray[50]}
-            />
-          </View>
-        </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <RNTextInput
-            style={styles.searchInput}
-            placeholder="Search invoice or customer"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor={theme.colors.gray[400]}
-          />
-        </View>
-        {/* Status Filter */}
-        <View style={styles.filterSection}>
-          <Typography variant="small" weight="semibold" style={styles.filterLabel}>
-            Status
-          </Typography>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-            <View style={styles.filterChips}>
-              {[
-                {label: 'All', value: ''},
-                {label: 'Draft', value: 'draft'},
-                {label: 'Issued', value: 'issued'},
-                {label: 'Paid', value: 'paid'},
-                {label: 'Cancelled', value: 'cancelled'},
-              ].map((filter) => (
-                <TouchableOpacity
-                  key={filter.value}
-                  style={[
-                    styles.filterChip,
-                    statusFilter === filter.value && styles.filterChipActive,
-                  ]}
-                  onPress={() => setStatusFilter(filter.value as StatusFilter)}>
-                  <Typography
-                    variant="small"
-                    weight="semibold"
-                    color={
-                      statusFilter === filter.value
-                        ? theme.colors.white
-                        : theme.colors.gray[600]
-                    }>
-                    {filter.label}
-                  </Typography>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-        {/* Payment Status Filter */}
-        <View style={styles.filterSection}>
-          <Typography variant="small" weight="semibold" style={styles.filterLabel}>
-            Payment Status
-          </Typography>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-            <View style={styles.filterChips}>
-              {[
-                {label: 'All', value: ''},
-                {label: 'Pending', value: 'pending'},
-                {label: 'Paid', value: 'paid'},
-                {label: 'Overdue', value: 'overdue'},
-              ].map((filter) => (
-                <TouchableOpacity
-                  key={filter.value}
-                  style={[
-                    styles.filterChip,
-                    paymentStatusFilter === filter.value && styles.filterChipActive,
-                  ]}
-                  onPress={() => setPaymentStatusFilter(filter.value as PaymentStatusFilter)}>
-                  <Typography
-                    variant="small"
-                    weight="semibold"
-                    color={
-                      paymentStatusFilter === filter.value
-                        ? theme.colors.white
-                        : theme.colors.gray[600]
-                    }>
-                    {filter.label}
-                  </Typography>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-        {/* Error State */}
-        {error && (
-          <Card variant="outlined" padding="lg" style={styles.errorCard}>
-            <View style={styles.errorContent}>
-              <AlertCircleIcon size={24} color={theme.colors.error[500]} />
               <Typography
                 variant="body"
-                color={theme.colors.error[700]}
-                style={styles.errorText}>
-                {error}
+                color={theme.colors.gray[500]}
+                style={styles.headerSubtitle}>
+                {invoices.length} {invoices.length === 1 ? 'invoice' : 'invoices'} found
               </Typography>
             </View>
-          </Card>
-        )}
-        {/* Empty State */}
-        {!error && invoices.length === 0 && (
-          <Card variant="outlined" padding="lg" style={styles.emptyCard}>
-            <FileTextIcon size={48} color={theme.colors.gray[400]} />
-            <Typography
-              variant="h3"
-              weight="semibold"
-              color={theme.colors.gray[700]}
-              style={styles.emptyTitle}>
-              No invoices found
-            </Typography>
-            <Typography
-              variant="body"
-              color={theme.colors.gray[500]}
-              align="center">
-              {searchQuery || statusFilter || paymentStatusFilter
-                ? 'Try adjusting your filters'
-                : 'No invoices to display'}
-            </Typography>
-          </Card>
-        )}
-        {/* Invoices List */}
-        <View style={styles.invoicesList}>
-          {invoices.map((invoice) => (
-            <TouchableOpacity
-              key={invoice._id}
-              onPress={() => handleInvoicePress(invoice)}>
-              <Card
-                variant="elevated"
-                padding="none"
-                style={styles.invoiceCard}>
-                {/* Invoice Header */}
-                <View style={styles.invoiceHeader}>
-                  <View style={styles.invoiceHeaderLeft}>
-                    <View style={styles.iconContainer}>
-                      <FileTextIcon size={20} color={theme.colors.primary[600]} />
-                    </View>
-                    <View style={styles.invoiceHeaderInfo}>
+
+            {/* Invoice Type Tabs */}
+            <View style={styles.tabsContainer}>
+              <TouchableOpacity
+                style={[styles.tab, invoiceType === 'pending' && styles.tabActive]}
+                onPress={() => setInvoiceType('pending')}>
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  color={invoiceType === 'pending' ? theme.colors.primary[600] : theme.colors.gray[600]}>
+                  Pending
+                </Typography>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, invoiceType === 'closed' && styles.tabActive]}
+                onPress={() => setInvoiceType('closed')}>
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  color={invoiceType === 'closed' ? theme.colors.primary[600] : theme.colors.gray[600]}>
+                  Closed
+                </Typography>
+              </TouchableOpacity>
+            </View>
+
+            {/* Sync Buttons */}
+            <View style={styles.syncButtonsContainer}>
+              <TouchableOpacity
+                onPress={handleSyncNew}
+                disabled={syncing}
+                style={[
+                  styles.syncActionButton,
+                  styles.syncNewButton,
+                  syncing && styles.syncButtonDisabled
+                ]}>
+                {syncingNew ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                    ↑ New Sync
+                  </Typography>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSyncOld}
+                disabled={syncing}
+                style={[
+                  styles.syncActionButton,
+                  styles.syncOldButton,
+                  syncing && styles.syncButtonDisabled
+                ]}>
+                {syncingOld ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+                ) : (
+                  <Typography variant="small" weight="semibold" color={theme.colors.primary[600]}>
+                    ↓ Old Sync
+                  </Typography>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSyncAll}
+                disabled={syncing}
+                style={[
+                  styles.syncActionButton,
+                  styles.syncAllButton,
+                  syncing && styles.syncButtonDisabled
+                ]}>
+                {syncingAll ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                    ⟳ Sync All
+                  </Typography>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Automation Settings */}
+            <View style={styles.automationContainer}>
+              <View style={styles.automationRow}>
+                <View style={styles.automationLabel}>
+                  <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
+                    Auto-Sync
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    Every {autoSyncInterval} min
+                  </Typography>
+                </View>
+                <Switch
+                  value={autoSyncEnabled}
+                  onValueChange={setAutoSyncEnabled}
+                  trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[400] }}
+                  thumbColor={autoSyncEnabled ? theme.colors.primary[600] : theme.colors.gray[50]}
+                />
+              </View>
+            </View>
+
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <RNTextInput
+                style={styles.searchInput}
+                placeholder="Search invoice or customer"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+            </View>
+            {/* Status Filter */}
+            <View style={styles.filterSection}>
+              <Typography variant="small" weight="semibold" style={styles.filterLabel}>
+                Status
+              </Typography>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                <View style={styles.filterChips}>
+                  {[
+                    {label: 'All', value: ''},
+                    {label: 'Draft', value: 'draft'},
+                    {label: 'Issued', value: 'issued'},
+                    {label: 'Paid', value: 'paid'},
+                    {label: 'Cancelled', value: 'cancelled'},
+                  ].map((filter) => (
+                    <TouchableOpacity
+                      key={filter.value}
+                      style={[
+                        styles.filterChip,
+                        statusFilter === filter.value && styles.filterChipActive,
+                      ]}
+                      onPress={() => setStatusFilter(filter.value as StatusFilter)}>
                       <Typography
-                        variant="body"
-                        weight="bold"
-                        style={styles.invoiceNumber}>
-                        {invoice.invoiceNumber}
+                        variant="small"
+                        weight="semibold"
+                        color={
+                          statusFilter === filter.value
+                            ? theme.colors.white
+                            : theme.colors.gray[600]
+                        }>
+                        {filter.label}
                       </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+            {/* Payment Status Filter */}
+            <View style={styles.filterSection}>
+              <Typography variant="small" weight="semibold" style={styles.filterLabel}>
+                Payment Status
+              </Typography>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+                <View style={styles.filterChips}>
+                  {[
+                    {label: 'All', value: ''},
+                    {label: 'Pending', value: 'pending'},
+                    {label: 'Paid', value: 'paid'},
+                    {label: 'Overdue', value: 'overdue'},
+                  ].map((filter) => (
+                    <TouchableOpacity
+                      key={filter.value}
+                      style={[
+                        styles.filterChip,
+                        paymentStatusFilter === filter.value && styles.filterChipActive,
+                      ]}
+                      onPress={() => setPaymentStatusFilter(filter.value as PaymentStatusFilter)}>
                       <Typography
-                        variant="caption"
-                        color={theme.colors.gray[500]}>
-                        {invoice.customer?.name || invoice.customerName || 'Unknown'}
+                        variant="small"
+                        weight="semibold"
+                        color={
+                          paymentStatusFilter === filter.value
+                            ? theme.colors.white
+                            : theme.colors.gray[600]
+                        }>
+                        {filter.label}
                       </Typography>
-                    </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+            {/* Error State */}
+            {error && (
+              <Card variant="outlined" padding="lg" style={styles.errorCard}>
+                <View style={styles.errorContent}>
+                  <AlertCircleIcon size={24} color={theme.colors.error[500]} />
+                  <Typography
+                    variant="body"
+                    color={theme.colors.error[700]}
+                    style={styles.errorText}>
+                    {error}
+                  </Typography>
+                </View>
+              </Card>
+            )}
+          </View>
+        }
+        ListEmptyComponent={
+          error ? null : (
+            <Card variant="outlined" padding="lg" style={styles.emptyCard}>
+              <FileTextIcon size={48} color={theme.colors.gray[400]} />
+              <Typography
+                variant="h3"
+                weight="semibold"
+                color={theme.colors.gray[700]}
+                style={styles.emptyTitle}>
+                No invoices found
+              </Typography>
+              <Typography
+                variant="body"
+                color={theme.colors.gray[500]}
+                align="center">
+                {searchQuery || statusFilter || paymentStatusFilter
+                  ? 'Try adjusting your filters'
+                  : 'No invoices to display'}
+              </Typography>
+            </Card>
+          )
+        }
+        renderItem={({item: invoice}) => (
+          <TouchableOpacity
+            onPress={() => handleInvoicePress(invoice)}>
+            <Card
+              variant="elevated"
+              padding="none"
+              style={styles.invoiceCard}>
+              {/* Invoice Header */}
+              <View style={styles.invoiceHeader}>
+                <View style={styles.invoiceHeaderLeft}>
+                  <View style={styles.iconContainer}>
+                    <FileTextIcon size={20} color={theme.colors.primary[600]} />
                   </View>
-                  <View style={styles.invoiceHeaderRight}>
+                  <View style={styles.invoiceHeaderInfo}>
                     <Typography
                       variant="body"
                       weight="bold"
-                      color={theme.colors.success[600]}>
-                      {formatCurrency(invoice.totalAmount || invoice.total)}
+                      style={styles.invoiceNumber}>
+                      {invoice.invoiceNumber}
                     </Typography>
                     <Typography
                       variant="caption"
                       color={theme.colors.gray[500]}>
-                      {formatDate(invoice.date || invoice.createdAt)}
+                      {invoice.customer?.name || invoice.customerName || 'Unknown'}
                     </Typography>
                   </View>
                 </View>
-                {/* Invoice Details */}
-                <View style={styles.invoiceDetails}>
-                  <View style={styles.detailRow}>
-                    <Typography variant="caption" color={theme.colors.gray[500]}>
-                      Status
+                <View style={styles.invoiceHeaderRight}>
+                  <Typography
+                    variant="body"
+                    weight="bold"
+                    color={theme.colors.success[600]}>
+                    {formatCurrency(invoice.totalAmount || invoice.total)}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    color={theme.colors.gray[500]}>
+                    {formatDate(invoice.date || invoice.createdAt)}
+                  </Typography>
+                </View>
+              </View>
+              {/* Invoice Details */}
+              <View style={styles.invoiceDetails}>
+                <View style={styles.detailRow}>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    Status
+                  </Typography>
+                  <View
+                    style={[
+                      styles.badge,
+                      {backgroundColor: getStatusBgColor(invoice.status)},
+                    ]}>
+                    <Typography
+                      variant="caption"
+                      weight="semibold"
+                      color={getStatusColor(invoice.status)}>
+                      {invoice.status || 'Draft'}
                     </Typography>
-                    <View
-                      style={[
-                        styles.badge,
-                        {backgroundColor: getStatusBgColor(invoice.status)},
-                      ]}>
-                      <Typography
-                        variant="caption"
-                        weight="semibold"
-                        color={getStatusColor(invoice.status)}>
-                        {invoice.status || 'Draft'}
-                      </Typography>
-                    </View>
-                  </View>
-                  {invoice.dateCompleted && (
-                    <View style={styles.detailRow}>
-                      <Typography variant="caption" color={theme.colors.gray[500]}>
-                        Completed
-                      </Typography>
-                      <Typography variant="caption" color={theme.colors.gray[700]}>
-                        {formatDate(invoice.dateCompleted)}
-                      </Typography>
-                    </View>
-                  )}
-                  <View style={styles.detailRow}>
-                    <Typography variant="caption" color={theme.colors.gray[500]}>
-                      Payment
-                    </Typography>
-                    <View
-                      style={[
-                        styles.badge,
-                        {backgroundColor: getPaymentStatusBgColor(invoice.paymentStatus)},
-                      ]}>
-                      <Typography
-                        variant="caption"
-                        weight="semibold"
-                        color={getPaymentStatusColor(invoice.paymentStatus)}>
-                        {invoice.paymentStatus || 'Pending'}
-                      </Typography>
-                    </View>
                   </View>
                 </View>
-              </Card>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+                {invoice.dateCompleted && (
+                  <View style={styles.detailRow}>
+                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                      Completed
+                    </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[700]}>
+                      {formatDate(invoice.dateCompleted)}
+                    </Typography>
+                  </View>
+                )}
+                <View style={styles.detailRow}>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    Payment
+                  </Typography>
+                  <View
+                    style={[
+                      styles.badge,
+                      {backgroundColor: getPaymentStatusBgColor(invoice.paymentStatus)},
+                    ]}>
+                    <Typography
+                      variant="caption"
+                      weight="semibold"
+                      color={getPaymentStatusColor(invoice.paymentStatus)}>
+                      {invoice.paymentStatus || 'Pending'}
+                    </Typography>
+                  </View>
+                </View>
+              </View>
+            </Card>
+          </TouchableOpacity>
+        )}
+      />
       {/* Invoice Detail Modal */}
       <InvoiceDetailScreen
         visible={detailModalVisible}

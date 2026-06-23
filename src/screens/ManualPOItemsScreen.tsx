@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput as RNTextInput,
-  RefreshControl,
   Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -252,201 +252,200 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
             </Typography>
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={items}
+            keyExtractor={(item, index) => item.sku || String(index)}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }>
-            <View style={styles.contentWrap}>
-            {/* Add New Button */}
-            <View style={styles.addButtonContainer}>
-              <Button
-                title="Add New Item"
-                variant="primary"
-                onPress={handleAddNew}
-                leftIcon={<PlusIcon size={16} color={theme.colors.white} />}
-                fullWidth
-              />
-            </View>
+            contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={searchQuery}
+            ItemSeparatorComponent={() => <View style={{height: 12}} />}
+            ListHeaderComponent={
+              <View>
+                {/* Add New Button */}
+                <View style={styles.addButtonContainer}>
+                  <Button
+                    title="Add New Item"
+                    variant="primary"
+                    onPress={handleAddNew}
+                    leftIcon={<PlusIcon size={16} color={theme.colors.white} />}
+                    fullWidth
+                  />
+                </View>
 
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-              <RNTextInput
-                style={styles.searchInput}
-                placeholder="Search by SKU or name..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor={theme.colors.gray[400]}
-              />
-            </View>
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                  <RNTextInput
+                    style={styles.searchInput}
+                    placeholder="Search by SKU or name..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholderTextColor={theme.colors.gray[400]}
+                  />
+                </View>
 
-            {/* Error State */}
-            {error && (
-              <Card variant="outlined" padding="lg" style={styles.errorCard}>
-                <View style={styles.errorContent}>
-                  <AlertCircleIcon size={24} color={theme.colors.error[500]} />
+                {/* Error State */}
+                {error && (
+                  <Card variant="outlined" padding="lg" style={styles.errorCard}>
+                    <View style={styles.errorContent}>
+                      <AlertCircleIcon size={24} color={theme.colors.error[500]} />
+                      <Typography
+                        variant="body"
+                        color={theme.colors.error[700]}
+                        style={styles.errorText}>
+                        {error}
+                      </Typography>
+                    </View>
+                  </Card>
+                )}
+              </View>
+            }
+            ListEmptyComponent={
+              error ? null : (
+                <Card variant="outlined" padding="lg" style={styles.emptyCard}>
+                  <ClipboardIcon size={48} color={theme.colors.gray[400]} />
+                  <Typography
+                    variant="h3"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}
+                    style={styles.emptyTitle}>
+                    No items found
+                  </Typography>
                   <Typography
                     variant="body"
-                    color={theme.colors.error[700]}
-                    style={styles.errorText}>
-                    {error}
+                    color={theme.colors.gray[500]}
+                    align="center">
+                    {searchQuery
+                      ? 'Try adjusting your search'
+                      : 'Add your first manual PO item to get started'}
                   </Typography>
-                </View>
-              </Card>
-            )}
-
-            {/* Empty State */}
-            {!error && items.length === 0 && (
-              <Card variant="outlined" padding="lg" style={styles.emptyCard}>
-                <ClipboardIcon size={48} color={theme.colors.gray[400]} />
-                <Typography
-                  variant="h3"
-                  weight="semibold"
-                  color={theme.colors.gray[700]}
-                  style={styles.emptyTitle}>
-                  No items found
-                </Typography>
-                <Typography
-                  variant="body"
-                  color={theme.colors.gray[500]}
-                  align="center">
-                  {searchQuery
-                    ? 'Try adjusting your search'
-                    : 'Add your first manual PO item to get started'}
-                </Typography>
-              </Card>
-            )}
-
-            {/* Items List */}
-            <View style={styles.itemsList}>
-              {items.map((item, index) => {
-                const isExpanded = expandedItems.has(item.sku);
-                return (
-                  <Card
-                    key={item.sku || index}
-                    variant="elevated"
-                    padding="none"
-                    style={styles.itemCard}>
-                    <TouchableOpacity
-                      onPress={() => handleItemPress(item.sku)}
-                      style={styles.itemHeader}>
-                      <View style={styles.itemHeaderLeft}>
-                        <View style={styles.chevronContainer}>
-                          {isExpanded ? (
-                            <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
-                          ) : (
-                            <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
-                          )}
-                        </View>
-                        <View style={styles.iconContainer}>
-                          <ClipboardIcon size={20} color={theme.colors.primary[600]} />
-                        </View>
-                        <View style={styles.itemInfo}>
-                          <Typography variant="body" weight="bold" numberOfLines={1}>
-                            {item.sku}
-                          </Typography>
-                          <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                            {item.name}
-                          </Typography>
-                        </View>
-                      </View>
-                      <View style={styles.itemHeaderRight}>
-                        <View style={[
-                          styles.statusBadge,
-                          {backgroundColor: item.isActive ? theme.colors.success[100] : theme.colors.gray[100]}
-                        ]}>
-                          {item.isActive && (
-                            <CheckCircleIcon size={14} color={theme.colors.success[600]} />
-                          )}
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={item.isActive ? theme.colors.success[600] : theme.colors.gray[500]}
-                            style={item.isActive ? {marginLeft: 4} : {}}>
-                            {item.isActive ? 'Active' : 'Inactive'}
-                          </Typography>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Item Meta */}
-                    <View style={styles.itemMeta}>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Mapped Category
-                        </Typography>
-                        {item.mappedCategoryItemName ? (
-                          <View style={styles.mappedBadge}>
-                            <Typography variant="small" weight="medium" color={theme.colors.success[700]}>
-                              {item.mappedCategoryItemName}
-                            </Typography>
-                          </View>
+                </Card>
+              )
+            }
+            renderItem={({item}) => {
+              const isExpanded = expandedItems.has(item.sku);
+              return (
+                <Card
+                  variant="elevated"
+                  padding="none"
+                  style={styles.itemCard}>
+                  <TouchableOpacity
+                    onPress={() => handleItemPress(item.sku)}
+                    style={styles.itemHeader}>
+                    <View style={styles.itemHeaderLeft}>
+                      <View style={styles.chevronContainer}>
+                        {isExpanded ? (
+                          <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
                         ) : (
-                          <View style={styles.unmappedBadge}>
-                            <Typography variant="small" weight="medium" color={theme.colors.gray[500]}>
-                              Not Mapped
-                            </Typography>
-                          </View>
+                          <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
                         )}
                       </View>
-                      {item.description && (
-                        <View style={styles.metaRow}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Description
+                      <View style={styles.iconContainer}>
+                        <ClipboardIcon size={20} color={theme.colors.primary[600]} />
+                      </View>
+                      <View style={styles.itemInfo}>
+                        <Typography variant="body" weight="bold" numberOfLines={1}>
+                          {item.sku}
+                        </Typography>
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                          {item.name}
+                        </Typography>
+                      </View>
+                    </View>
+                    <View style={styles.itemHeaderRight}>
+                      <View style={[
+                        styles.statusBadge,
+                        {backgroundColor: item.isActive ? theme.colors.success[100] : theme.colors.gray[100]}
+                      ]}>
+                        {item.isActive && (
+                          <CheckCircleIcon size={14} color={theme.colors.success[600]} />
+                        )}
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={item.isActive ? theme.colors.success[600] : theme.colors.gray[500]}
+                          style={item.isActive ? {marginLeft: 4} : {}}>
+                          {item.isActive ? 'Active' : 'Inactive'}
+                        </Typography>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Item Meta */}
+                  <View style={styles.itemMeta}>
+                    <View style={styles.metaRow}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Mapped Category
+                      </Typography>
+                      {item.mappedCategoryItemName ? (
+                        <View style={styles.mappedBadge}>
+                          <Typography variant="small" weight="medium" color={theme.colors.success[700]}>
+                            {item.mappedCategoryItemName}
                           </Typography>
-                          <Typography variant="small" style={{flex: 1, textAlign: 'right'}}>
-                            {item.description}
+                        </View>
+                      ) : (
+                        <View style={styles.unmappedBadge}>
+                          <Typography variant="small" weight="medium" color={theme.colors.gray[500]}>
+                            Not Mapped
                           </Typography>
                         </View>
                       )}
                     </View>
-
-                    {/* Expanded Content */}
-                    {isExpanded && (
-                      <View style={styles.expandedContent}>
-                        <View style={styles.actionButtons}>
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.editButton]}
-                            onPress={() => handleEdit(item)}>
-                            <EditIcon size={16} color={theme.colors.primary[600]} />
-                            <Typography
-                              variant="small"
-                              weight="semibold"
-                              color={theme.colors.primary[600]}
-                              style={{marginLeft: 8}}>
-                              Edit
-                            </Typography>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[
-                              styles.actionButton,
-                              item.isActive ? styles.deactivateButton : styles.activateButton,
-                            ]}
-                            onPress={() => handleToggleActive(item)}>
-                            {item.isActive ? (
-                              <XCircleIcon size={16} color={theme.colors.error[600]} />
-                            ) : (
-                              <CheckCircleIcon size={16} color={theme.colors.success[600]} />
-                            )}
-                            <Typography
-                              variant="small"
-                              weight="semibold"
-                              color={item.isActive ? theme.colors.error[600] : theme.colors.success[600]}
-                              style={{marginLeft: 8}}>
-                              {item.isActive ? 'Deactivate' : 'Activate'}
-                            </Typography>
-                          </TouchableOpacity>
-                        </View>
+                    {item.description && (
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Description
+                        </Typography>
+                        <Typography variant="small" style={{flex: 1, textAlign: 'right'}}>
+                          {item.description}
+                        </Typography>
                       </View>
                     )}
-                  </Card>
-                );
-              })}
-            </View>
-            </View>{/* contentWrap */}
-          </ScrollView>
+                  </View>
+
+                  {/* Expanded Content */}
+                  {isExpanded && (
+                    <View style={styles.expandedContent}>
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.editButton]}
+                          onPress={() => handleEdit(item)}>
+                          <EditIcon size={16} color={theme.colors.primary[600]} />
+                          <Typography
+                            variant="small"
+                            weight="semibold"
+                            color={theme.colors.primary[600]}
+                            style={{marginLeft: 8}}>
+                            Edit
+                          </Typography>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.actionButton,
+                            item.isActive ? styles.deactivateButton : styles.activateButton,
+                          ]}
+                          onPress={() => handleToggleActive(item)}>
+                          {item.isActive ? (
+                            <XCircleIcon size={16} color={theme.colors.error[600]} />
+                          ) : (
+                            <CheckCircleIcon size={16} color={theme.colors.success[600]} />
+                          )}
+                          <Typography
+                            variant="small"
+                            weight="semibold"
+                            color={item.isActive ? theme.colors.error[600] : theme.colors.success[600]}
+                            style={{marginLeft: 8}}>
+                            {item.isActive ? 'Deactivate' : 'Activate'}
+                          </Typography>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </Card>
+              );
+            }}
+          />
         )}
       </SafeAreaView>
 

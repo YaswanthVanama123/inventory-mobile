@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -436,11 +437,16 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         </View>
 
         {/* Discrepancies List */}
-        <ScrollView
+        <PaginatedList
+          data={filteredDiscrepancies}
+          keyExtractor={(item) => item._id}
           style={styles.listContainer}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-          {filteredDiscrepancies.length === 0 ? (
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          resetKey={`${activeTab}|${searchText}|${filters.status}`}
+          ItemSeparatorComponent={() => <View style={{height: 0}} />}
+          ListEmptyComponent={
             <Card variant="elevated" padding="lg" style={styles.emptyCard}>
               <AlertCircleIcon size={48} color={theme.colors.gray[400]} />
               <Typography
@@ -456,312 +462,310 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                   : 'There are no discrepancies matching your filters'}
               </Typography>
             </Card>
-          ) : (
-            filteredDiscrepancies.map(discrepancy => {
-              const isExpanded = expandedRow === discrepancy._id;
-              const statusColors = getStatusColor(discrepancy.status);
-              const typeColors = getTypeColor(discrepancy.discrepancyType);
-              const source = getDiscrepancySource(discrepancy);
-              const sourceColors = getSourceColors(source, theme);
+          }
+          renderItem={({item: discrepancy}) => {
+            const isExpanded = expandedRow === discrepancy._id;
+            const statusColors = getStatusColor(discrepancy.status);
+            const typeColors = getTypeColor(discrepancy.discrepancyType);
+            const source = getDiscrepancySource(discrepancy);
+            const sourceColors = getSourceColors(source, theme);
 
-              return (
-                <Card
-                  key={discrepancy._id}
-                  variant="elevated"
-                  padding="none"
-                  style={styles.discrepancyCard}>
-                  {/* Clickable Row Header */}
-                  <TouchableOpacity
-                    style={[
-                      styles.discrepancyHeader,
-                      isExpanded && {backgroundColor: '#f0f9ff'},
-                    ]}
-                    onPress={() => setExpandedRow(isExpanded ? null : discrepancy._id)}
-                    activeOpacity={0.7}>
-                    <View style={styles.discrepancyHeaderLeft}>
-                      {isExpanded ? (
-                        <ChevronDownIcon size={18} color={theme.colors.primary[600]} />
-                      ) : (
-                        <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
-                      )}
-                      <View style={{marginLeft: 10, flex: 1}}>
-                        <Typography variant="body" weight="semibold" numberOfLines={1}>
-                          {discrepancy.itemName}
+            return (
+              <Card
+                variant="elevated"
+                padding="none"
+                style={styles.discrepancyCard}>
+                {/* Clickable Row Header */}
+                <TouchableOpacity
+                  style={[
+                    styles.discrepancyHeader,
+                    isExpanded && {backgroundColor: '#f0f9ff'},
+                  ]}
+                  onPress={() => setExpandedRow(isExpanded ? null : discrepancy._id)}
+                  activeOpacity={0.7}>
+                  <View style={styles.discrepancyHeaderLeft}>
+                    {isExpanded ? (
+                      <ChevronDownIcon size={18} color={theme.colors.primary[600]} />
+                    ) : (
+                      <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+                    )}
+                    <View style={{marginLeft: 10, flex: 1}}>
+                      <Typography variant="body" weight="semibold" numberOfLines={1}>
+                        {discrepancy.itemName}
+                      </Typography>
+                      <View style={styles.rowMeta}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          {discrepancy.invoiceNumber}
                         </Typography>
-                        <View style={styles.rowMeta}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            {discrepancy.invoiceNumber}
+                        <Typography variant="caption" color={theme.colors.gray[400]}>
+                          {' • '}
+                          {formatDate(discrepancy.reportedAt)}
+                        </Typography>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.rowRight}>
+                    {/* Difference badge */}
+                    <View
+                      style={[
+                        styles.diffBadge,
+                        {
+                          backgroundColor:
+                            discrepancy.difference > 0
+                              ? theme.colors.success[100]
+                              : theme.colors.error[100],
+                        },
+                      ]}>
+                      <Typography
+                        variant="small"
+                        weight="bold"
+                        color={
+                          discrepancy.difference > 0
+                            ? theme.colors.success[700]
+                            : theme.colors.error[700]
+                        }>
+                        {discrepancy.difference > 0 ? '+' : ''}
+                        {discrepancy.difference}
+                      </Typography>
+                    </View>
+                    {/* Status badge */}
+                    <View style={[styles.badge, {backgroundColor: statusColors.bg}]}>
+                      {getStatusIcon(discrepancy.status)}
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={statusColors.text}
+                        style={{marginLeft: 4}}>
+                        {discrepancy.status}
+                      </Typography>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Expanded Detail Panel */}
+                {isExpanded && (
+                  <View style={styles.expandedPanel}>
+                    {/* Source Badge */}
+                    {activeTab === 'all' && (
+                      <View style={styles.sourceRow}>
+                        <View
+                          style={[
+                            styles.sourceBadge,
+                            {backgroundColor: sourceColors.bg},
+                          ]}>
+                          <Typography
+                            variant="caption"
+                            weight="semibold"
+                            color={sourceColors.text}>
+                            {getSourceLabel(source)}
                           </Typography>
-                          <Typography variant="caption" color={theme.colors.gray[400]}>
-                            {' • '}
-                            {formatDate(discrepancy.reportedAt)}
+                        </View>
+                        <View style={[styles.badge, {backgroundColor: typeColors.bg}]}>
+                          <Typography
+                            variant="caption"
+                            weight="semibold"
+                            color={typeColors.text}>
+                            {discrepancy.discrepancyType}
                           </Typography>
                         </View>
                       </View>
-                    </View>
-                    <View style={styles.rowRight}>
-                      {/* Difference badge */}
-                      <View
-                        style={[
-                          styles.diffBadge,
-                          {
-                            backgroundColor:
-                              discrepancy.difference > 0
-                                ? theme.colors.success[100]
-                                : theme.colors.error[100],
-                          },
-                        ]}>
+                    )}
+
+                    {/* Quantities Grid */}
+                    <View style={styles.quantityGrid}>
+                      <View style={styles.quantityBox}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          System
+                        </Typography>
+                        <Typography variant="h3" weight="bold">
+                          {discrepancy.systemQuantity}
+                        </Typography>
+                      </View>
+                      <View style={styles.quantityArrow}>
+                        <Typography variant="body" color={theme.colors.gray[400]}>
+                          →
+                        </Typography>
+                      </View>
+                      <View style={styles.quantityBox}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Actual
+                        </Typography>
+                        <Typography variant="h3" weight="bold">
+                          {discrepancy.actualQuantity}
+                        </Typography>
+                      </View>
+                      <View style={styles.quantityArrow}>
+                        <Typography variant="body" color={theme.colors.gray[400]}>
+                          =
+                        </Typography>
+                      </View>
+                      <View style={styles.quantityBox}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Diff
+                        </Typography>
                         <Typography
-                          variant="small"
+                          variant="h3"
                           weight="bold"
                           color={
                             discrepancy.difference > 0
-                              ? theme.colors.success[700]
-                              : theme.colors.error[700]
+                              ? theme.colors.success[600]
+                              : theme.colors.error[600]
                           }>
                           {discrepancy.difference > 0 ? '+' : ''}
                           {discrepancy.difference}
                         </Typography>
                       </View>
-                      {/* Status badge */}
-                      <View style={[styles.badge, {backgroundColor: statusColors.bg}]}>
-                        {getStatusIcon(discrepancy.status)}
-                        <Typography
-                          variant="caption"
-                          weight="semibold"
-                          color={statusColors.text}
-                          style={{marginLeft: 4}}>
-                          {discrepancy.status}
+                    </View>
+
+                    {/* Details */}
+                    <View style={styles.detailSection}>
+                      {discrepancy.itemSku && (
+                        <View style={styles.detailRow}>
+                          <Typography variant="small" color={theme.colors.gray[500]}>
+                            SKU
+                          </Typography>
+                          <Typography variant="small" weight="semibold">
+                            {discrepancy.itemSku}
+                          </Typography>
+                        </View>
+                      )}
+                      {discrepancy.categoryName && (
+                        <View style={styles.detailRow}>
+                          <Typography variant="small" color={theme.colors.gray[500]}>
+                            Category
+                          </Typography>
+                          <Typography variant="small" weight="semibold">
+                            {discrepancy.categoryName}
+                          </Typography>
+                        </View>
+                      )}
+                      <View style={styles.detailRow}>
+                        <Typography variant="small" color={theme.colors.gray[500]}>
+                          Invoice
+                        </Typography>
+                        <Typography variant="small" weight="semibold">
+                          {discrepancy.invoiceNumber || 'N/A'}
+                        </Typography>
+                      </View>
+                      {discrepancy.reportedBy && (
+                        <View style={styles.detailRow}>
+                          <Typography variant="small" color={theme.colors.gray[500]}>
+                            Reported By
+                          </Typography>
+                          <Typography variant="small" weight="semibold">
+                            {discrepancy.reportedBy.fullName ||
+                              discrepancy.reportedBy.username}
+                          </Typography>
+                        </View>
+                      )}
+                      <View style={styles.detailRow}>
+                        <Typography variant="small" color={theme.colors.gray[500]}>
+                          Date
+                        </Typography>
+                        <Typography variant="small" weight="semibold">
+                          {new Date(discrepancy.reportedAt).toLocaleString()}
                         </Typography>
                       </View>
                     </View>
-                  </TouchableOpacity>
 
-                  {/* Expanded Detail Panel */}
-                  {isExpanded && (
-                    <View style={styles.expandedPanel}>
-                      {/* Source Badge */}
-                      {activeTab === 'all' && (
-                        <View style={styles.sourceRow}>
-                          <View
-                            style={[
-                              styles.sourceBadge,
-                              {backgroundColor: sourceColors.bg},
-                            ]}>
+                    {/* Reason & Notes */}
+                    {(discrepancy.reason || discrepancy.notes) && (
+                      <View style={styles.notesSection}>
+                        {discrepancy.reason && (
+                          <View style={styles.noteBox}>
                             <Typography
                               variant="caption"
                               weight="semibold"
-                              color={sourceColors.text}>
-                              {getSourceLabel(source)}
+                              color={theme.colors.gray[600]}>
+                              Reason
+                            </Typography>
+                            <Typography
+                              variant="small"
+                              color={theme.colors.gray[800]}
+                              style={{marginTop: 4}}>
+                              {discrepancy.reason}
                             </Typography>
                           </View>
-                          <View style={[styles.badge, {backgroundColor: typeColors.bg}]}>
+                        )}
+                        {discrepancy.notes && (
+                          <View style={styles.noteBox}>
                             <Typography
                               variant="caption"
                               weight="semibold"
-                              color={typeColors.text}>
-                              {discrepancy.discrepancyType}
+                              color={theme.colors.gray[600]}>
+                              Notes
+                            </Typography>
+                            <Typography
+                              variant="small"
+                              color={theme.colors.gray[800]}
+                              style={{marginTop: 4}}>
+                              {discrepancy.notes}
                             </Typography>
                           </View>
-                        </View>
-                      )}
-
-                      {/* Quantities Grid */}
-                      <View style={styles.quantityGrid}>
-                        <View style={styles.quantityBox}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            System
-                          </Typography>
-                          <Typography variant="h3" weight="bold">
-                            {discrepancy.systemQuantity}
-                          </Typography>
-                        </View>
-                        <View style={styles.quantityArrow}>
-                          <Typography variant="body" color={theme.colors.gray[400]}>
-                            →
-                          </Typography>
-                        </View>
-                        <View style={styles.quantityBox}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Actual
-                          </Typography>
-                          <Typography variant="h3" weight="bold">
-                            {discrepancy.actualQuantity}
-                          </Typography>
-                        </View>
-                        <View style={styles.quantityArrow}>
-                          <Typography variant="body" color={theme.colors.gray[400]}>
-                            =
-                          </Typography>
-                        </View>
-                        <View style={styles.quantityBox}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Diff
-                          </Typography>
-                          <Typography
-                            variant="h3"
-                            weight="bold"
-                            color={
-                              discrepancy.difference > 0
-                                ? theme.colors.success[600]
-                                : theme.colors.error[600]
-                            }>
-                            {discrepancy.difference > 0 ? '+' : ''}
-                            {discrepancy.difference}
-                          </Typography>
-                        </View>
+                        )}
                       </View>
+                    )}
 
-                      {/* Details */}
-                      <View style={styles.detailSection}>
-                        {discrepancy.itemSku && (
-                          <View style={styles.detailRow}>
-                            <Typography variant="small" color={theme.colors.gray[500]}>
-                              SKU
-                            </Typography>
-                            <Typography variant="small" weight="semibold">
-                              {discrepancy.itemSku}
-                            </Typography>
-                          </View>
-                        )}
-                        {discrepancy.categoryName && (
-                          <View style={styles.detailRow}>
-                            <Typography variant="small" color={theme.colors.gray[500]}>
-                              Category
-                            </Typography>
-                            <Typography variant="small" weight="semibold">
-                              {discrepancy.categoryName}
-                            </Typography>
-                          </View>
-                        )}
+                    {/* Resolution Info */}
+                    {discrepancy.resolvedBy && (
+                      <View style={styles.resolutionSection}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={theme.colors.gray[600]}
+                          style={{marginBottom: 8}}>
+                          Resolution
+                        </Typography>
                         <View style={styles.detailRow}>
                           <Typography variant="small" color={theme.colors.gray[500]}>
-                            Invoice
+                            Resolved By
                           </Typography>
                           <Typography variant="small" weight="semibold">
-                            {discrepancy.invoiceNumber || 'N/A'}
+                            {discrepancy.resolvedBy.fullName ||
+                              discrepancy.resolvedBy.username}
                           </Typography>
                         </View>
-                        {discrepancy.reportedBy && (
+                        {discrepancy.resolvedAt && (
                           <View style={styles.detailRow}>
                             <Typography variant="small" color={theme.colors.gray[500]}>
-                              Reported By
+                              Resolved At
                             </Typography>
                             <Typography variant="small" weight="semibold">
-                              {discrepancy.reportedBy.fullName ||
-                                discrepancy.reportedBy.username}
+                              {new Date(discrepancy.resolvedAt).toLocaleString()}
                             </Typography>
                           </View>
                         )}
-                        <View style={styles.detailRow}>
-                          <Typography variant="small" color={theme.colors.gray[500]}>
-                            Date
-                          </Typography>
-                          <Typography variant="small" weight="semibold">
-                            {new Date(discrepancy.reportedAt).toLocaleString()}
-                          </Typography>
-                        </View>
-                      </View>
-
-                      {/* Reason & Notes */}
-                      {(discrepancy.reason || discrepancy.notes) && (
-                        <View style={styles.notesSection}>
-                          {discrepancy.reason && (
-                            <View style={styles.noteBox}>
-                              <Typography
-                                variant="caption"
-                                weight="semibold"
-                                color={theme.colors.gray[600]}>
-                                Reason
-                              </Typography>
-                              <Typography
-                                variant="small"
-                                color={theme.colors.gray[800]}
-                                style={{marginTop: 4}}>
-                                {discrepancy.reason}
-                              </Typography>
-                            </View>
-                          )}
-                          {discrepancy.notes && (
-                            <View style={styles.noteBox}>
-                              <Typography
-                                variant="caption"
-                                weight="semibold"
-                                color={theme.colors.gray[600]}>
-                                Notes
-                              </Typography>
-                              <Typography
-                                variant="small"
-                                color={theme.colors.gray[800]}
-                                style={{marginTop: 4}}>
-                                {discrepancy.notes}
-                              </Typography>
-                            </View>
-                          )}
-                        </View>
-                      )}
-
-                      {/* Resolution Info */}
-                      {discrepancy.resolvedBy && (
-                        <View style={styles.resolutionSection}>
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={theme.colors.gray[600]}
-                            style={{marginBottom: 8}}>
-                            Resolution
-                          </Typography>
-                          <View style={styles.detailRow}>
-                            <Typography variant="small" color={theme.colors.gray[500]}>
-                              Resolved By
-                            </Typography>
-                            <Typography variant="small" weight="semibold">
-                              {discrepancy.resolvedBy.fullName ||
-                                discrepancy.resolvedBy.username}
+                        {discrepancy.resolutionNotes && (
+                          <View style={[styles.noteBox, {marginTop: 8}]}>
+                            <Typography
+                              variant="small"
+                              color={theme.colors.gray[800]}>
+                              {discrepancy.resolutionNotes}
                             </Typography>
                           </View>
-                          {discrepancy.resolvedAt && (
-                            <View style={styles.detailRow}>
-                              <Typography variant="small" color={theme.colors.gray[500]}>
-                                Resolved At
-                              </Typography>
-                              <Typography variant="small" weight="semibold">
-                                {new Date(discrepancy.resolvedAt).toLocaleString()}
-                              </Typography>
-                            </View>
-                          )}
-                          {discrepancy.resolutionNotes && (
-                            <View style={[styles.noteBox, {marginTop: 8}]}>
-                              <Typography
-                                variant="small"
-                                color={theme.colors.gray[800]}>
-                                {discrepancy.resolutionNotes}
-                              </Typography>
-                            </View>
-                          )}
-                        </View>
-                      )}
+                        )}
+                      </View>
+                    )}
 
-                      {/* Delete Button */}
-                      {user?.role === 'admin' && (
-                        <TouchableOpacity
-                          style={styles.deleteButton}
-                          onPress={() => handleDelete(discrepancy._id)}>
-                          <Typography
-                            variant="small"
-                            weight="semibold"
-                            color={theme.colors.error[600]}>
-                            Delete Discrepancy
-                          </Typography>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  )}
-                </Card>
-              );
-            })
-          )}
-        </ScrollView>
+                    {/* Delete Button */}
+                    {user?.role === 'admin' && (
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={() => handleDelete(discrepancy._id)}>
+                        <Typography
+                          variant="small"
+                          weight="semibold"
+                          color={theme.colors.error[600]}>
+                          Delete Discrepancy
+                        </Typography>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </Card>
+            );
+          }}
+        />
       </SafeAreaView>
     </Modal>
   );

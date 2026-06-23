@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -317,233 +318,240 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
             </Typography>
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={filteredItems}
+            keyExtractor={(item, index) => item.itemName || String(index)}
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.white} />
-            }>
-            <View style={styles.hero}>
-              <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
-              <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
-              <View style={styles.dotGrid} pointerEvents="none">
-                {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
-              </View>
-
-              <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
-                <View style={styles.heroTopRow}>
-                  <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <CloseIcon size={16} color={theme.colors.brand.text} />
-                  </TouchableOpacity>
-                  <View style={{flex: 1}}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textTracked} style={styles.heroEyebrow}>
-                      MAPPING
-                    </Typography>
-                    <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
-                      Item Aliases
-                    </Typography>
-                    <Typography variant="small" color={theme.colors.brand.textMuted}>
-                      Group variant names under one canonical item
-                    </Typography>
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={`${searchQuery}|${filterStatus}`}
+            ItemSeparatorComponent={() => <View style={{height: 12}} />}
+            ListHeaderComponent={
+              <View style={styles.contentWrap}>
+                <View style={styles.hero}>
+                  <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+                  <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+                  <View style={styles.dotGrid} pointerEvents="none">
+                    {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
                   </View>
-                  <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <RefreshIcon size={18} color={theme.colors.brand.text} />
-                  </TouchableOpacity>
-                </View>
 
-                <View style={styles.statusChip}>
-                  <View style={styles.statusDot} />
-                  <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
-                    {completionPct}% mapped · {mappings.length} groups
-                  </Typography>
-                </View>
-
-                <View style={styles.heroMetricsRow}>
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      ITEMS
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.totalUniqueItems}
-                    </Typography>
-                  </View>
-                  <View style={styles.heroMetricDivider} />
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      MAPPED
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.mappedItems}
-                    </Typography>
-                  </View>
-                  <View style={styles.heroMetricDivider} />
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      UNMAPPED
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.unmappedItems}
-                    </Typography>
-                  </View>
-                </View>
-              </Animated.View>
-            </View>
-
-            <View style={styles.contentWrap}>
-            <View style={styles.searchWrap}>
-              <View style={styles.searchCard}>
-                <SearchIcon size={18} color={theme.colors.gray[500]} />
-                <RNTextInput
-                  style={styles.searchInput}
-                  placeholder="Search by name"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholderTextColor={theme.colors.gray[400]}
-                />
-                {searchQuery ? (
-                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear} activeOpacity={0.7}>
-                    <CloseIcon size={14} color={theme.colors.gray[500]} />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </View>
-
-            <View style={styles.tabsWrap}>
-              <View style={styles.tabsCard}>
-                {(
-                  [
-                    {key: 'all', label: 'All'},
-                    {key: 'mapped', label: 'Mapped'},
-                    {key: 'unmapped', label: 'Unmapped'},
-                  ] as const
-                ).map(opt => {
-                  const active = filterStatus === opt.key;
-                  return (
-                    <TouchableOpacity
-                      key={opt.key}
-                      style={[styles.tab, active && styles.tabActive]}
-                      onPress={() => setFilterStatus(opt.key)}
-                      activeOpacity={0.85}>
-                      <Typography
-                        variant="small"
-                        weight="semibold"
-                        color={active ? theme.colors.white : theme.colors.gray[700]}>
-                        {opt.label}
-                      </Typography>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {mappings.length > 0 && (
-              <View style={styles.mappingsSectionWrap}>
-                <Card variant="elevated" padding="none" style={styles.mappingsCard}>
-                  <TouchableOpacity
-                    style={styles.mappingsHeader}
-                    onPress={() => setShowMappingsSection(!showMappingsSection)}
-                    activeOpacity={0.85}>
-                    <View style={styles.mappingsHeaderLeft}>
-                      <View style={[styles.mappingsHeaderIcon, {backgroundColor: theme.colors.success[50]}]}>
-                        <LinkIcon size={14} color={theme.colors.success[600]} />
+                  <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
+                    <View style={styles.heroTopRow}>
+                      <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
+                        <CloseIcon size={16} color={theme.colors.brand.text} />
+                      </TouchableOpacity>
+                      <View style={{flex: 1}}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textTracked} style={styles.heroEyebrow}>
+                          MAPPING
+                        </Typography>
+                        <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
+                          Item Aliases
+                        </Typography>
+                        <Typography variant="small" color={theme.colors.brand.textMuted}>
+                          Group variant names under one canonical item
+                        </Typography>
                       </View>
-                      <Typography variant="small" weight="semibold">
-                        Existing mappings
+                      <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
+                        <RefreshIcon size={18} color={theme.colors.brand.text} />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.statusChip}>
+                      <View style={styles.statusDot} />
+                      <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
+                        {completionPct}% mapped · {mappings.length} groups
                       </Typography>
-                      <View style={[styles.countPill, {backgroundColor: theme.colors.success[50]}]}>
-                        <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
-                          {mappings.length}
+                    </View>
+
+                    <View style={styles.heroMetricsRow}>
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          ITEMS
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.totalUniqueItems}
+                        </Typography>
+                      </View>
+                      <View style={styles.heroMetricDivider} />
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          MAPPED
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.mappedItems}
+                        </Typography>
+                      </View>
+                      <View style={styles.heroMetricDivider} />
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          UNMAPPED
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.unmappedItems}
                         </Typography>
                       </View>
                     </View>
-                    {showMappingsSection ? (
-                      <ChevronDownIcon size={16} color={theme.colors.gray[600]} />
-                    ) : (
-                      <ChevronRightIcon size={16} color={theme.colors.gray[600]} />
-                    )}
-                  </TouchableOpacity>
-                  {showMappingsSection && (
-                    <View style={styles.mappingsBody}>
-                      {mappings.map((mapping: any, idx: number) => (
-                        <TouchableOpacity
-                          key={mapping._id || idx}
-                          style={[styles.mappingItem, idx > 0 && styles.mappingItemBorder]}
-                          onPress={() => openEditMapping(mapping)}
-                          activeOpacity={0.85}>
-                          <View style={styles.mappingItemContent}>
-                            <Typography variant="small" weight="bold" numberOfLines={1}>
-                              {mapping.canonicalName}
-                            </Typography>
-                            <View style={styles.aliasChipsRow}>
-                              {mapping.aliases.slice(0, 3).map((alias: any, aIdx: number) => (
-                                <View key={aIdx} style={styles.aliasChip}>
-                                  <Typography variant="caption" color={theme.colors.primary[700]} numberOfLines={1}>
-                                    {alias.name}
-                                  </Typography>
-                                </View>
-                              ))}
-                              {mapping.aliases.length > 3 && (
-                                <Typography variant="caption" color={theme.colors.gray[500]}>
-                                  +{mapping.aliases.length - 3} more
-                                </Typography>
-                              )}
-                            </View>
-                          </View>
-                          <View style={styles.editBadge}>
-                            <EditIcon size={14} color={theme.colors.primary[600]} />
-                          </View>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </Card>
-              </View>
-            )}
+                  </Animated.View>
+                </View>
 
-            {error && (
-              <Card variant="outlined" padding="lg" style={styles.errorCard}>
-                <View style={styles.errorContent}>
-                  <View style={styles.errorIconWrap}>
-                    <AlertCircleIcon size={22} color={theme.colors.error[600]} />
+                <View style={styles.searchWrap}>
+                  <View style={styles.searchCard}>
+                    <SearchIcon size={18} color={theme.colors.gray[500]} />
+                    <RNTextInput
+                      style={styles.searchInput}
+                      placeholder="Search by name"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholderTextColor={theme.colors.gray[400]}
+                    />
+                    {searchQuery ? (
+                      <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear} activeOpacity={0.7}>
+                        <CloseIcon size={14} color={theme.colors.gray[500]} />
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
-                  <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
-                    {error}
-                  </Typography>
                 </View>
-              </Card>
-            )}
 
-            {!error && filteredItems.length === 0 && (
-              <Card variant="elevated" padding="lg" style={styles.emptyCard}>
-                <View style={styles.emptyIconWrap}>
-                  <TagIcon size={32} color={theme.colors.primary[600]} />
+                <View style={styles.tabsWrap}>
+                  <View style={styles.tabsCard}>
+                    {(
+                      [
+                        {key: 'all', label: 'All'},
+                        {key: 'mapped', label: 'Mapped'},
+                        {key: 'unmapped', label: 'Unmapped'},
+                      ] as const
+                    ).map(opt => {
+                      const active = filterStatus === opt.key;
+                      return (
+                        <TouchableOpacity
+                          key={opt.key}
+                          style={[styles.tab, active && styles.tabActive]}
+                          onPress={() => setFilterStatus(opt.key)}
+                          activeOpacity={0.85}>
+                          <Typography
+                            variant="small"
+                            weight="semibold"
+                            color={active ? theme.colors.white : theme.colors.gray[700]}>
+                            {opt.label}
+                          </Typography>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 </View>
-                <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
-                  No items found
-                </Typography>
-                <Typography variant="small" color={theme.colors.gray[500]} align="center">
-                  {searchQuery ? 'Try adjusting your search.' : 'No items available yet.'}
-                </Typography>
-              </Card>
-            )}
 
-            {!error && filteredItems.length > 0 && (
-              <View style={styles.sectionEyebrow}>
-                <View style={styles.eyebrowLine} />
-                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-                  ITEMS · {filteredItems.length}
-                </Typography>
+                {mappings.length > 0 && (
+                  <View style={styles.mappingsSectionWrap}>
+                    <Card variant="elevated" padding="none" style={styles.mappingsCard}>
+                      <TouchableOpacity
+                        style={styles.mappingsHeader}
+                        onPress={() => setShowMappingsSection(!showMappingsSection)}
+                        activeOpacity={0.85}>
+                        <View style={styles.mappingsHeaderLeft}>
+                          <View style={[styles.mappingsHeaderIcon, {backgroundColor: theme.colors.success[50]}]}>
+                            <LinkIcon size={14} color={theme.colors.success[600]} />
+                          </View>
+                          <Typography variant="small" weight="semibold">
+                            Existing mappings
+                          </Typography>
+                          <View style={[styles.countPill, {backgroundColor: theme.colors.success[50]}]}>
+                            <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                              {mappings.length}
+                            </Typography>
+                          </View>
+                        </View>
+                        {showMappingsSection ? (
+                          <ChevronDownIcon size={16} color={theme.colors.gray[600]} />
+                        ) : (
+                          <ChevronRightIcon size={16} color={theme.colors.gray[600]} />
+                        )}
+                      </TouchableOpacity>
+                      {showMappingsSection && (
+                        <View style={styles.mappingsBody}>
+                          {mappings.map((mapping: any, idx: number) => (
+                            <TouchableOpacity
+                              key={mapping._id || idx}
+                              style={[styles.mappingItem, idx > 0 && styles.mappingItemBorder]}
+                              onPress={() => openEditMapping(mapping)}
+                              activeOpacity={0.85}>
+                              <View style={styles.mappingItemContent}>
+                                <Typography variant="small" weight="bold" numberOfLines={1}>
+                                  {mapping.canonicalName}
+                                </Typography>
+                                <View style={styles.aliasChipsRow}>
+                                  {mapping.aliases.slice(0, 3).map((alias: any, aIdx: number) => (
+                                    <View key={aIdx} style={styles.aliasChip}>
+                                      <Typography variant="caption" color={theme.colors.primary[700]} numberOfLines={1}>
+                                        {alias.name}
+                                      </Typography>
+                                    </View>
+                                  ))}
+                                  {mapping.aliases.length > 3 && (
+                                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                                      +{mapping.aliases.length - 3} more
+                                    </Typography>
+                                  )}
+                                </View>
+                              </View>
+                              <View style={styles.editBadge}>
+                                <EditIcon size={14} color={theme.colors.primary[600]} />
+                              </View>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </Card>
+                  </View>
+                )}
+
+                {error && (
+                  <Card variant="outlined" padding="lg" style={styles.errorCard}>
+                    <View style={styles.errorContent}>
+                      <View style={styles.errorIconWrap}>
+                        <AlertCircleIcon size={22} color={theme.colors.error[600]} />
+                      </View>
+                      <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
+                        {error}
+                      </Typography>
+                    </View>
+                  </Card>
+                )}
+
+                {!error && filteredItems.length > 0 && (
+                  <View style={styles.sectionEyebrow}>
+                    <View style={styles.eyebrowLine} />
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+                      ITEMS · {filteredItems.length}
+                    </Typography>
+                  </View>
+                )}
               </View>
-            )}
-
-            <View style={styles.itemsList}>
-              {filteredItems.map((item, index) => {
-                const isExpanded = expandedItems.has(item.itemName);
-                const isMapped = Boolean(item.isMapped);
-                const stripeColor = isMapped ? theme.colors.success[500] : theme.colors.warning[500];
-                return (
-                  <Card key={item.itemName || index} variant="elevated" padding="none" style={styles.itemCard}>
+            }
+            ListEmptyComponent={
+              error ? null : (
+                <View style={styles.contentWrap}>
+                  <Card variant="elevated" padding="lg" style={styles.emptyCard}>
+                    <View style={styles.emptyIconWrap}>
+                      <TagIcon size={32} color={theme.colors.primary[600]} />
+                    </View>
+                    <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
+                      No items found
+                    </Typography>
+                    <Typography variant="small" color={theme.colors.gray[500]} align="center">
+                      {searchQuery ? 'Try adjusting your search.' : 'No items available yet.'}
+                    </Typography>
+                  </Card>
+                </View>
+              )
+            }
+            renderItem={({item}) => {
+              const isExpanded = expandedItems.has(item.itemName);
+              const isMapped = Boolean(item.isMapped);
+              const stripeColor = isMapped ? theme.colors.success[500] : theme.colors.warning[500];
+              return (
+                <View style={styles.itemsList}>
+                  <Card variant="elevated" padding="none" style={styles.itemCard}>
                     <View style={[styles.itemStripe, {backgroundColor: stripeColor}]} />
                     <TouchableOpacity onPress={() => handleItemPress(item.itemName)} style={styles.itemHeader} activeOpacity={0.85}>
                       <View
@@ -628,11 +636,10 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                       </View>
                     )}
                   </Card>
-                );
-              })}
-            </View>
-            </View>{/* contentWrap */}
-          </ScrollView>
+                </View>
+              );
+            }}
+          />
         )}
 
         <Modal

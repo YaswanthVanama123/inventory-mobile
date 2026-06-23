@@ -1,14 +1,13 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
   TextInput as RNTextInput,
 } from 'react-native';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -268,18 +267,25 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
             />
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={filteredItems}
+            keyExtractor={(item, index) => String(item.itemName + index)}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.colors.primary[600]}
-              />
-            }>
-            <View style={styles.contentWrap}>
-            {filteredItems.length === 0 ? (
+            contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={searchQuery}
+            ItemSeparatorComponent={() => <View style={{height: 0}} />}
+            ListHeaderComponent={
+              filteredItems.length > 0 ? (
+                <View style={styles.resultsHeader}>
+                  <Typography variant="small" color={theme.colors.gray[600]}>
+                    {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
+                  </Typography>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <BarChartIcon size={48} color={theme.colors.gray[300]} />
                 <Typography
@@ -291,18 +297,9 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
                     : 'No invoice usage data available'}
                 </Typography>
               </View>
-            ) : (
-              <>
-                <View style={styles.resultsHeader}>
-                  <Typography variant="small" color={theme.colors.gray[600]}>
-                    {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found
-                  </Typography>
-                </View>
-                {filteredItems.map(renderItemCard)}
-              </>
-            )}
-            </View>{/* contentWrap */}
-          </ScrollView>
+            }
+            renderItem={({item, index}) => renderItemCard(item, index)}
+          />
         )}
       </SafeAreaView>
     </Modal>

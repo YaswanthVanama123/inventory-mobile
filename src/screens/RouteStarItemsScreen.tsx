@@ -1,18 +1,17 @@
 import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ActivityIndicator,
   TextInput as RNTextInput,
-  RefreshControl,
   Alert,
   Switch,
   Animated,
   Easing,
 } from 'react-native';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -192,359 +191,363 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
             </Typography>
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={items}
+            keyExtractor={(item, index) => item._id || String(index)}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.white} />
-            }>
-            <View style={styles.hero}>
-              <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
-              <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
-              <View style={styles.dotGrid} pointerEvents="none">
-                {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
-              </View>
-
-              <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
-                <View style={styles.heroTopRow}>
-                  <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <CloseIcon size={16} color={theme.colors.brand.text} />
-                  </TouchableOpacity>
-                  <View style={{flex: 1}}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textTracked} style={styles.heroEyebrow}>
-                      ROUTESTAR
-                    </Typography>
-                    <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
-                      Items Catalog
-                    </Typography>
-                    <Typography variant="small" color={theme.colors.brand.textMuted}>
-                      Synced from RouteStar · use vs sell flags
-                    </Typography>
+            contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={`${searchQuery}|${filterForUse}|${filterForSell}|${filterMapped}`}
+            ItemSeparatorComponent={() => <View style={{height: 12}} />}
+            ListHeaderComponent={
+              <View>
+                <View style={styles.hero}>
+                  <Animated.View style={[styles.blob, styles.blobOne, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+                  <Animated.View style={[styles.blob, styles.blobTwo, {transform: [{scale: blobScale}], opacity: blobOpacity}]} />
+                  <View style={styles.dotGrid} pointerEvents="none">
+                    {Array.from({length: 18}).map((_, i) => <View key={i} style={styles.dot} />)}
                   </View>
-                  <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <RefreshIcon size={18} color={theme.colors.brand.text} />
-                  </TouchableOpacity>
-                </View>
 
-                <View style={styles.statusChip}>
-                  <View style={styles.statusDot} />
-                  <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
-                    {stats.total} items · {stats.both} both · {stats.unmarked} unmarked
-                  </Typography>
-                </View>
-
-                <View style={styles.heroMetricsRow}>
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      TOTAL
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.total}
-                    </Typography>
-                  </View>
-                  <View style={styles.heroMetricDivider} />
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      FOR USE
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.forUse}
-                    </Typography>
-                  </View>
-                  <View style={styles.heroMetricDivider} />
-                  <View style={styles.heroMetric}>
-                    <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
-                      FOR SELL
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.forSell}
-                    </Typography>
-                  </View>
-                </View>
-              </Animated.View>
-            </View>
-
-            <View style={styles.contentWrap}>
-            <View style={styles.searchWrap}>
-              <View style={styles.searchCard}>
-                <SearchIcon size={18} color={theme.colors.gray[500]} />
-                <RNTextInput
-                  style={styles.searchInput}
-                  placeholder="Search items..."
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholderTextColor={theme.colors.gray[400]}
-                />
-                {searchQuery ? (
-                  <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear} activeOpacity={0.7}>
-                    <CloseIcon size={14} color={theme.colors.gray[500]} />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </View>
-
-            <View style={styles.actionWrap}>
-              <Button
-                title={syncing ? 'Syncing items...' : 'Sync items from RouteStar'}
-                variant="primary"
-                onPress={handleSync}
-                disabled={syncing}
-                fullWidth
-                leftIcon={<RefreshIcon size={16} color={theme.colors.brand.text} />}
-              />
-            </View>
-
-            <View style={styles.filtersWrap}>
-              <View style={styles.filterCard}>
-                <View style={styles.filterRow}>
-                  <View style={styles.filterRowLeft}>
-                    <View style={[styles.filterIconWrap, {backgroundColor: theme.colors.primary[50]}]}>
-                      <CheckCircleIcon size={14} color={theme.colors.primary[600]} />
+                  <Animated.View style={[styles.heroBody, {opacity: heroFade, transform: [{translateY: heroSlide}]}]}>
+                    <View style={styles.heroTopRow}>
+                      <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
+                        <CloseIcon size={16} color={theme.colors.brand.text} />
+                      </TouchableOpacity>
+                      <View style={{flex: 1}}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textTracked} style={styles.heroEyebrow}>
+                          ROUTESTAR
+                        </Typography>
+                        <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
+                          Items Catalog
+                        </Typography>
+                        <Typography variant="small" color={theme.colors.brand.textMuted}>
+                          Synced from RouteStar · use vs sell flags
+                        </Typography>
+                      </View>
+                      <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
+                        <RefreshIcon size={18} color={theme.colors.brand.text} />
+                      </TouchableOpacity>
                     </View>
-                    <Typography variant="small" weight="semibold">
-                      Show only "For Use"
-                    </Typography>
+
+                    <View style={styles.statusChip}>
+                      <View style={styles.statusDot} />
+                      <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
+                        {stats.total} items · {stats.both} both · {stats.unmarked} unmarked
+                      </Typography>
+                    </View>
+
+                    <View style={styles.heroMetricsRow}>
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          TOTAL
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.total}
+                        </Typography>
+                      </View>
+                      <View style={styles.heroMetricDivider} />
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          FOR USE
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.forUse}
+                        </Typography>
+                      </View>
+                      <View style={styles.heroMetricDivider} />
+                      <View style={styles.heroMetric}>
+                        <Typography variant="caption" weight="semibold" color={theme.colors.brand.textMuted} style={styles.heroMetricLabel}>
+                          FOR SELL
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.forSell}
+                        </Typography>
+                      </View>
+                    </View>
+                  </Animated.View>
+                </View>
+
+                <View style={styles.searchWrap}>
+                  <View style={styles.searchCard}>
+                    <SearchIcon size={18} color={theme.colors.gray[500]} />
+                    <RNTextInput
+                      style={styles.searchInput}
+                      placeholder="Search items..."
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholderTextColor={theme.colors.gray[400]}
+                    />
+                    {searchQuery ? (
+                      <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.searchClear} activeOpacity={0.7}>
+                        <CloseIcon size={14} color={theme.colors.gray[500]} />
+                      </TouchableOpacity>
+                    ) : null}
                   </View>
-                  <Switch
-                    value={filterForUse}
-                    onValueChange={setFilterForUse}
-                    trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
-                    thumbColor={theme.colors.white}
+                </View>
+
+                <View style={styles.actionWrap}>
+                  <Button
+                    title={syncing ? 'Syncing items...' : 'Sync items from RouteStar'}
+                    variant="primary"
+                    onPress={handleSync}
+                    disabled={syncing}
+                    fullWidth
+                    leftIcon={<RefreshIcon size={16} color={theme.colors.brand.text} />}
                   />
                 </View>
-                <View style={styles.filterDivider} />
-                <View style={styles.filterRow}>
-                  <View style={styles.filterRowLeft}>
-                    <View style={[styles.filterIconWrap, {backgroundColor: theme.colors.success[50]}]}>
-                      <TagIcon size={14} color={theme.colors.success[600]} />
+
+                <View style={styles.filtersWrap}>
+                  <View style={styles.filterCard}>
+                    <View style={styles.filterRow}>
+                      <View style={styles.filterRowLeft}>
+                        <View style={[styles.filterIconWrap, {backgroundColor: theme.colors.primary[50]}]}>
+                          <CheckCircleIcon size={14} color={theme.colors.primary[600]} />
+                        </View>
+                        <Typography variant="small" weight="semibold">
+                          Show only "For Use"
+                        </Typography>
+                      </View>
+                      <Switch
+                        value={filterForUse}
+                        onValueChange={setFilterForUse}
+                        trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
+                        thumbColor={theme.colors.white}
+                      />
                     </View>
-                    <Typography variant="small" weight="semibold">
-                      Show only "For Sell"
+                    <View style={styles.filterDivider} />
+                    <View style={styles.filterRow}>
+                      <View style={styles.filterRowLeft}>
+                        <View style={[styles.filterIconWrap, {backgroundColor: theme.colors.success[50]}]}>
+                          <TagIcon size={14} color={theme.colors.success[600]} />
+                        </View>
+                        <Typography variant="small" weight="semibold">
+                          Show only "For Sell"
+                        </Typography>
+                      </View>
+                      <Switch
+                        value={filterForSell}
+                        onValueChange={setFilterForSell}
+                        trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
+                        thumbColor={theme.colors.white}
+                      />
+                    </View>
+                    <View style={styles.filterDivider} />
+                    <View style={styles.filterRowVertical}>
+                      <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.filterLabel}>
+                        STATUS
+                      </Typography>
+                      <View style={styles.statusFiltersRow}>
+                        {(['all', 'mapped', 'unmapped'] as const).map(opt => {
+                          const active = filterMapped === opt;
+                          return (
+                            <TouchableOpacity
+                              key={opt}
+                              onPress={() => setFilterMapped(opt)}
+                              style={[styles.statusFilterPill, active && styles.statusFilterPillActive]}
+                              activeOpacity={0.85}>
+                              <Typography
+                                variant="caption"
+                                weight="semibold"
+                                color={active ? theme.colors.white : theme.colors.gray[700]}>
+                                {opt === 'all' ? 'All' : opt === 'mapped' ? 'Mapped' : 'Unmapped'}
+                              </Typography>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                {error && (
+                  <Card variant="outlined" padding="lg" style={styles.errorCard}>
+                    <View style={styles.errorContent}>
+                      <View style={styles.errorIconWrap}>
+                        <AlertCircleIcon size={22} color={theme.colors.error[600]} />
+                      </View>
+                      <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
+                        {error}
+                      </Typography>
+                    </View>
+                  </Card>
+                )}
+
+                {!error && items.length > 0 && (
+                  <View style={styles.sectionEyebrow}>
+                    <View style={styles.eyebrowLine} />
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+                      ITEMS · {items.length}
                     </Typography>
                   </View>
-                  <Switch
-                    value={filterForSell}
-                    onValueChange={setFilterForSell}
-                    trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
-                    thumbColor={theme.colors.white}
-                  />
-                </View>
-                <View style={styles.filterDivider} />
-                <View style={styles.filterRowVertical}>
-                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.filterLabel}>
-                    STATUS
+                )}
+              </View>
+            }
+            ListEmptyComponent={
+              error ? null : (
+                <Card variant="elevated" padding="lg" style={styles.emptyCard}>
+                  <View style={styles.emptyIconWrap}>
+                    <BoxIcon size={32} color={theme.colors.primary[600]} />
+                  </View>
+                  <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
+                    No items found
                   </Typography>
-                  <View style={styles.statusFiltersRow}>
-                    {(['all', 'mapped', 'unmapped'] as const).map(opt => {
-                      const active = filterMapped === opt;
-                      return (
-                        <TouchableOpacity
-                          key={opt}
-                          onPress={() => setFilterMapped(opt)}
-                          style={[styles.statusFilterPill, active && styles.statusFilterPillActive]}
-                          activeOpacity={0.85}>
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={active ? theme.colors.white : theme.colors.gray[700]}>
-                            {opt === 'all' ? 'All' : opt === 'mapped' ? 'Mapped' : 'Unmapped'}
+                  <Typography variant="small" color={theme.colors.gray[500]} align="center">
+                    {searchQuery ? 'Try adjusting your search.' : 'Sync items to get started.'}
+                  </Typography>
+                </Card>
+              )
+            }
+            renderItem={({item}) => {
+              const isExpanded = expandedItems.has(item._id);
+              const isMapped = !!item.isMapped;
+              const stripeColor = isMapped ? theme.colors.success[500] : theme.colors.warning[500];
+              return (
+                <View style={styles.itemRow}>
+                <Card variant="elevated" padding="none" style={styles.itemCard}>
+                  <View style={[styles.itemStripe, {backgroundColor: stripeColor}]} />
+                  <TouchableOpacity onPress={() => handleItemPress(item._id)} style={styles.itemHeader} activeOpacity={0.85}>
+                    <View
+                      style={[
+                        styles.itemIconWrap,
+                        {backgroundColor: isMapped ? theme.colors.success[50] : theme.colors.warning[50]},
+                      ]}>
+                      <BoxIcon size={20} color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]} />
+                    </View>
+                    <View style={styles.itemInfo}>
+                      <Typography variant="body" weight="bold" numberOfLines={1}>
+                        {item.itemName}
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                        {item.itemParent || 'No parent'}
+                      </Typography>
+                    </View>
+                    <View
+                      style={[
+                        styles.statusPill,
+                        {
+                          backgroundColor: isMapped
+                            ? theme.colors.success[50]
+                            : theme.colors.warning[50],
+                        },
+                      ]}>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={isMapped ? theme.colors.success[700] : theme.colors.warning[700]}>
+                        {isMapped ? 'Mapped' : 'Unmapped'}
+                      </Typography>
+                    </View>
+                    <View style={styles.chevronCircle}>
+                      {isExpanded ? (
+                        <ChevronDownIcon size={14} color={theme.colors.gray[700]} />
+                      ) : (
+                        <ChevronRightIcon size={14} color={theme.colors.gray[700]} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  <View style={styles.itemMeta}>
+                    <View style={styles.metaTagsRow}>
+                      {item.forUse ? (
+                        <View style={[styles.tagPill, {backgroundColor: theme.colors.primary[50]}]}>
+                          <CheckCircleIcon size={11} color={theme.colors.primary[600]} />
+                          <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                            For Use
                           </Typography>
-                        </TouchableOpacity>
-                      );
-                    })}
+                        </View>
+                      ) : null}
+                      {item.forSell ? (
+                        <View style={[styles.tagPill, {backgroundColor: theme.colors.success[50]}]}>
+                          <TagIcon size={11} color={theme.colors.success[600]} />
+                          <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                            For Sell
+                          </Typography>
+                        </View>
+                      ) : null}
+                      {!item.forUse && !item.forSell ? (
+                        <View style={[styles.tagPill, {backgroundColor: theme.colors.gray[100]}]}>
+                          <WarningIcon size={11} color={theme.colors.gray[600]} />
+                          <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>
+                            Unmarked
+                          </Typography>
+                        </View>
+                      ) : null}
+                    </View>
+                    <View style={styles.metaRow}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Category
+                      </Typography>
+                      <Typography variant="small" weight="semibold">
+                        {item.itemCategory || 'Item'}
+                      </Typography>
+                    </View>
+                    <View style={styles.metaRow}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Qty on Hand
+                      </Typography>
+                      <Typography variant="small" weight="bold">
+                        {item.qtyOnHand !== undefined ? item.qtyOnHand.toFixed(2) : '0'}
+                      </Typography>
+                    </View>
+                    {item.description ? (
+                      <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={2}>
+                        {item.description}
+                      </Typography>
+                    ) : null}
                   </View>
-                </View>
-              </View>
-            </View>
 
-            {error && (
-              <Card variant="outlined" padding="lg" style={styles.errorCard}>
-                <View style={styles.errorContent}>
-                  <View style={styles.errorIconWrap}>
-                    <AlertCircleIcon size={22} color={theme.colors.error[600]} />
-                  </View>
-                  <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
-                    {error}
-                  </Typography>
-                </View>
-              </Card>
-            )}
-
-            {!error && items.length === 0 && (
-              <Card variant="elevated" padding="lg" style={styles.emptyCard}>
-                <View style={styles.emptyIconWrap}>
-                  <BoxIcon size={32} color={theme.colors.primary[600]} />
-                </View>
-                <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
-                  No items found
-                </Typography>
-                <Typography variant="small" color={theme.colors.gray[500]} align="center">
-                  {searchQuery ? 'Try adjusting your search.' : 'Sync items to get started.'}
-                </Typography>
-              </Card>
-            )}
-
-            {!error && items.length > 0 && (
-              <View style={styles.sectionEyebrow}>
-                <View style={styles.eyebrowLine} />
-                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-                  ITEMS · {items.length}
-                </Typography>
-              </View>
-            )}
-
-            <View style={styles.itemsList}>
-              {items.map((item, index) => {
-                const isExpanded = expandedItems.has(item._id);
-                const isMapped = !!item.isMapped;
-                const stripeColor = isMapped ? theme.colors.success[500] : theme.colors.warning[500];
-                return (
-                  <Card key={item._id || index} variant="elevated" padding="none" style={styles.itemCard}>
-                    <View style={[styles.itemStripe, {backgroundColor: stripeColor}]} />
-                    <TouchableOpacity onPress={() => handleItemPress(item._id)} style={styles.itemHeader} activeOpacity={0.85}>
-                      <View
-                        style={[
-                          styles.itemIconWrap,
-                          {backgroundColor: isMapped ? theme.colors.success[50] : theme.colors.warning[50]},
-                        ]}>
-                        <BoxIcon size={20} color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]} />
-                      </View>
-                      <View style={styles.itemInfo}>
-                        <Typography variant="body" weight="bold" numberOfLines={1}>
-                          {item.itemName}
-                        </Typography>
-                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                          {item.itemParent || 'No parent'}
-                        </Typography>
-                      </View>
-                      <View
-                        style={[
-                          styles.statusPill,
-                          {
-                            backgroundColor: isMapped
-                              ? theme.colors.success[50]
-                              : theme.colors.warning[50],
-                          },
-                        ]}>
-                        <Typography
-                          variant="caption"
-                          weight="semibold"
-                          color={isMapped ? theme.colors.success[700] : theme.colors.warning[700]}>
-                          {isMapped ? 'Mapped' : 'Unmapped'}
-                        </Typography>
-                      </View>
-                      <View style={styles.chevronCircle}>
-                        {isExpanded ? (
-                          <ChevronDownIcon size={14} color={theme.colors.gray[700]} />
-                        ) : (
-                          <ChevronRightIcon size={14} color={theme.colors.gray[700]} />
-                        )}
-                      </View>
-                    </TouchableOpacity>
-
-                    <View style={styles.itemMeta}>
-                      <View style={styles.metaTagsRow}>
-                        {item.forUse ? (
-                          <View style={[styles.tagPill, {backgroundColor: theme.colors.primary[50]}]}>
-                            <CheckCircleIcon size={11} color={theme.colors.primary[600]} />
-                            <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                  {isExpanded && (
+                    <View style={styles.expandedContent}>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={theme.colors.gray[600]}
+                        style={styles.expandedLabel}>
+                        FLAGS
+                      </Typography>
+                      <View style={styles.flagCard}>
+                        <View style={styles.flagRow}>
+                          <View style={styles.flagRowLeft}>
+                            <View style={[styles.flagIconWrap, {backgroundColor: theme.colors.primary[50]}]}>
+                              <CheckCircleIcon size={14} color={theme.colors.primary[600]} />
+                            </View>
+                            <Typography variant="small" weight="semibold">
                               For Use
                             </Typography>
                           </View>
-                        ) : null}
-                        {item.forSell ? (
-                          <View style={[styles.tagPill, {backgroundColor: theme.colors.success[50]}]}>
-                            <TagIcon size={11} color={theme.colors.success[600]} />
-                            <Typography variant="caption" weight="semibold" color={theme.colors.success[700]}>
+                          <Switch
+                            value={item.forUse || false}
+                            onValueChange={() => handleFlagChange(item._id, 'forUse', item.forUse)}
+                            trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
+                            thumbColor={theme.colors.white}
+                          />
+                        </View>
+                        <View style={styles.flagDivider} />
+                        <View style={styles.flagRow}>
+                          <View style={styles.flagRowLeft}>
+                            <View style={[styles.flagIconWrap, {backgroundColor: theme.colors.success[50]}]}>
+                              <TagIcon size={14} color={theme.colors.success[600]} />
+                            </View>
+                            <Typography variant="small" weight="semibold">
                               For Sell
                             </Typography>
                           </View>
-                        ) : null}
-                        {!item.forUse && !item.forSell ? (
-                          <View style={[styles.tagPill, {backgroundColor: theme.colors.gray[100]}]}>
-                            <WarningIcon size={11} color={theme.colors.gray[600]} />
-                            <Typography variant="caption" weight="semibold" color={theme.colors.gray[700]}>
-                              Unmarked
-                            </Typography>
-                          </View>
-                        ) : null}
-                      </View>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Category
-                        </Typography>
-                        <Typography variant="small" weight="semibold">
-                          {item.itemCategory || 'Item'}
-                        </Typography>
-                      </View>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Qty on Hand
-                        </Typography>
-                        <Typography variant="small" weight="bold">
-                          {item.qtyOnHand !== undefined ? item.qtyOnHand.toFixed(2) : '0'}
-                        </Typography>
-                      </View>
-                      {item.description ? (
-                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={2}>
-                          {item.description}
-                        </Typography>
-                      ) : null}
-                    </View>
-
-                    {isExpanded && (
-                      <View style={styles.expandedContent}>
-                        <Typography
-                          variant="caption"
-                          weight="semibold"
-                          color={theme.colors.gray[600]}
-                          style={styles.expandedLabel}>
-                          FLAGS
-                        </Typography>
-                        <View style={styles.flagCard}>
-                          <View style={styles.flagRow}>
-                            <View style={styles.flagRowLeft}>
-                              <View style={[styles.flagIconWrap, {backgroundColor: theme.colors.primary[50]}]}>
-                                <CheckCircleIcon size={14} color={theme.colors.primary[600]} />
-                              </View>
-                              <Typography variant="small" weight="semibold">
-                                For Use
-                              </Typography>
-                            </View>
-                            <Switch
-                              value={item.forUse || false}
-                              onValueChange={() => handleFlagChange(item._id, 'forUse', item.forUse)}
-                              trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
-                              thumbColor={theme.colors.white}
-                            />
-                          </View>
-                          <View style={styles.flagDivider} />
-                          <View style={styles.flagRow}>
-                            <View style={styles.flagRowLeft}>
-                              <View style={[styles.flagIconWrap, {backgroundColor: theme.colors.success[50]}]}>
-                                <TagIcon size={14} color={theme.colors.success[600]} />
-                              </View>
-                              <Typography variant="small" weight="semibold">
-                                For Sell
-                              </Typography>
-                            </View>
-                            <Switch
-                              value={item.forSell || false}
-                              onValueChange={() => handleFlagChange(item._id, 'forSell', item.forSell)}
-                              trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
-                              thumbColor={theme.colors.white}
-                            />
-                          </View>
+                          <Switch
+                            value={item.forSell || false}
+                            onValueChange={() => handleFlagChange(item._id, 'forSell', item.forSell)}
+                            trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
+                            thumbColor={theme.colors.white}
+                          />
                         </View>
                       </View>
-                    )}
-                  </Card>
-                );
-              })}
-            </View>
-            </View>{/* contentWrap */}
-          </ScrollView>
+                    </View>
+                  )}
+                </Card>
+                </View>
+              );
+            }}
+          />
         )}
       </SafeAreaView>
     </Modal>
@@ -699,6 +702,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     },
     emptyTitle: {marginBottom: theme.spacing.xs},
 
+    itemRow: {paddingHorizontal: bp.gutter},
     itemsList: {paddingHorizontal: bp.gutter, gap: theme.spacing.md},
     itemCard: {overflow: 'hidden', position: 'relative'},
     itemStripe: {position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: theme.colors.primary[500]},

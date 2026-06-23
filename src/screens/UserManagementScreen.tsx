@@ -1,19 +1,18 @@
 import React, {useState, useEffect, useMemo} from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ActivityIndicator,
   TextInput as RNTextInput,
-  RefreshControl,
   Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {UserFormModal} from '../components/molecules/UserFormModal';
 import {ResetPasswordModal} from '../components/molecules/ResetPasswordModal';
 import {useAuth} from '../contexts/AuthContext';
@@ -228,341 +227,340 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             </Typography>
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={filteredUsers}
+            keyExtractor={(item, index) => item._id || String(index)}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            stickyHeaderIndices={[1]}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }>
-            {/* Stats Cards - Neutral, professional */}
-            <View style={styles.statsGrid}>
-              <View style={styles.statCardWrapper}>
-                <View style={styles.statCard}>
-                  <View style={styles.statIconBadge}>
-                    <UserIcon size={18} color={theme.colors.gray[700]} />
+            contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={`${searchQuery}|${filterStatus}`}
+            ItemSeparatorComponent={() => <View style={{height: 12}} />}
+            ListHeaderComponent={
+              <View>
+                {/* Stats Cards - Neutral, professional */}
+                <View style={styles.statsGrid}>
+                  <View style={styles.statCardWrapper}>
+                    <View style={styles.statCard}>
+                      <View style={styles.statIconBadge}>
+                        <UserIcon size={18} color={theme.colors.gray[700]} />
+                      </View>
+                      <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
+                        TOTAL USERS
+                      </Typography>
+                      <Typography variant="h2" weight="bold" style={styles.statValue}>
+                        {stats.total}
+                      </Typography>
+                    </View>
                   </View>
-                  <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
-                    TOTAL USERS
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.total}
-                  </Typography>
-                </View>
-              </View>
-              <View style={styles.statCardWrapper}>
-                <View style={styles.statCard}>
-                  <View style={styles.statIconBadge}>
-                    <CheckCircleIcon size={18} color={theme.colors.gray[700]} />
+                  <View style={styles.statCardWrapper}>
+                    <View style={styles.statCard}>
+                      <View style={styles.statIconBadge}>
+                        <CheckCircleIcon size={18} color={theme.colors.gray[700]} />
+                      </View>
+                      <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
+                        ACTIVE
+                      </Typography>
+                      <Typography variant="h2" weight="bold" style={styles.statValue}>
+                        {stats.active}
+                      </Typography>
+                    </View>
                   </View>
-                  <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
-                    ACTIVE
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.active}
-                  </Typography>
-                </View>
-              </View>
-              <View style={styles.statCardWrapper}>
-                <View style={styles.statCard}>
-                  <View style={styles.statIconBadge}>
-                    <WarningIcon size={18} color={theme.colors.gray[700]} />
+                  <View style={styles.statCardWrapper}>
+                    <View style={styles.statCard}>
+                      <View style={styles.statIconBadge}>
+                        <WarningIcon size={18} color={theme.colors.gray[700]} />
+                      </View>
+                      <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
+                        INACTIVE
+                      </Typography>
+                      <Typography variant="h2" weight="bold" style={styles.statValue}>
+                        {stats.inactive}
+                      </Typography>
+                    </View>
                   </View>
-                  <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
-                    INACTIVE
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.inactive}
-                  </Typography>
-                </View>
-              </View>
-              <View style={styles.statCardWrapper}>
-                <View style={styles.statCard}>
-                  <View style={styles.statIconBadge}>
-                    <UserIcon size={18} color={theme.colors.gray[700]} />
+                  <View style={styles.statCardWrapper}>
+                    <View style={styles.statCard}>
+                      <View style={styles.statIconBadge}>
+                        <UserIcon size={18} color={theme.colors.gray[700]} />
+                      </View>
+                      <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
+                        ADMINS
+                      </Typography>
+                      <Typography variant="h2" weight="bold" style={styles.statValue}>
+                        {stats.admins}
+                      </Typography>
+                    </View>
                   </View>
-                  <Typography variant="caption" color={theme.colors.gray[500]} style={styles.statLabel}>
-                    ADMINS
-                  </Typography>
-                  <Typography variant="h2" weight="bold" style={styles.statValue}>
-                    {stats.admins}
-                  </Typography>
                 </View>
-              </View>
-            </View>
 
-            {/* Sticky Header: Tabs + Search */}
-            <View style={styles.stickyHeaderContainer}>
-              {/* Filter Tabs */}
-              <View style={styles.tabsContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.tab,
-                    filterStatus === 'all' && styles.tabActive,
-                  ]}
-                  onPress={() => setFilterStatus('all')}>
-                  <Typography
-                    variant="small"
-                    weight="semibold"
-                    color={
-                      filterStatus === 'all'
-                        ? theme.colors.white
-                        : theme.colors.gray[600]
-                    }>
-                    All
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.tab,
-                    filterStatus === 'active' && styles.tabActive,
-                  ]}
-                  onPress={() => setFilterStatus('active')}>
-                  <Typography
-                    variant="small"
-                    weight="semibold"
-                    color={
-                      filterStatus === 'active'
-                        ? theme.colors.white
-                        : theme.colors.gray[600]
-                    }>
-                    Active
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.tab,
-                    filterStatus === 'inactive' && styles.tabActive,
-                  ]}
-                  onPress={() => setFilterStatus('inactive')}>
-                  <Typography
-                    variant="small"
-                    weight="semibold"
-                    color={
-                      filterStatus === 'inactive'
-                        ? theme.colors.white
-                        : theme.colors.gray[600]
-                    }>
-                    Inactive
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.tab,
-                    filterStatus === 'admin' && styles.tabActive,
-                  ]}
-                  onPress={() => setFilterStatus('admin')}>
-                  <Typography
-                    variant="small"
-                    weight="semibold"
-                    color={
-                      filterStatus === 'admin'
-                        ? theme.colors.white
-                        : theme.colors.gray[600]
-                    }>
-                    Admin
-                  </Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.tab,
-                    filterStatus === 'employee' && styles.tabActive,
-                  ]}
-                  onPress={() => setFilterStatus('employee')}>
-                  <Typography
-                    variant="small"
-                    weight="semibold"
-                    color={
-                      filterStatus === 'employee'
-                        ? theme.colors.white
-                        : theme.colors.gray[600]
-                    }>
-                    Employee
-                  </Typography>
-                </TouchableOpacity>
-              </View>
-              {/* Search Bar */}
-              <View style={styles.searchContainer}>
-                <RNTextInput
-                  style={styles.searchInput}
-                  placeholder="Search by name or email"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholderTextColor={theme.colors.gray[400]}
-                />
-              </View>
-            </View>
+                {/* Filter Tabs + Search */}
+                <View style={styles.stickyHeaderContainer}>
+                  {/* Filter Tabs */}
+                  <View style={styles.tabsContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.tab,
+                        filterStatus === 'all' && styles.tabActive,
+                      ]}
+                      onPress={() => setFilterStatus('all')}>
+                      <Typography
+                        variant="small"
+                        weight="semibold"
+                        color={
+                          filterStatus === 'all'
+                            ? theme.colors.white
+                            : theme.colors.gray[600]
+                        }>
+                        All
+                      </Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.tab,
+                        filterStatus === 'active' && styles.tabActive,
+                      ]}
+                      onPress={() => setFilterStatus('active')}>
+                      <Typography
+                        variant="small"
+                        weight="semibold"
+                        color={
+                          filterStatus === 'active'
+                            ? theme.colors.white
+                            : theme.colors.gray[600]
+                        }>
+                        Active
+                      </Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.tab,
+                        filterStatus === 'inactive' && styles.tabActive,
+                      ]}
+                      onPress={() => setFilterStatus('inactive')}>
+                      <Typography
+                        variant="small"
+                        weight="semibold"
+                        color={
+                          filterStatus === 'inactive'
+                            ? theme.colors.white
+                            : theme.colors.gray[600]
+                        }>
+                        Inactive
+                      </Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.tab,
+                        filterStatus === 'admin' && styles.tabActive,
+                      ]}
+                      onPress={() => setFilterStatus('admin')}>
+                      <Typography
+                        variant="small"
+                        weight="semibold"
+                        color={
+                          filterStatus === 'admin'
+                            ? theme.colors.white
+                            : theme.colors.gray[600]
+                        }>
+                        Admin
+                      </Typography>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.tab,
+                        filterStatus === 'employee' && styles.tabActive,
+                      ]}
+                      onPress={() => setFilterStatus('employee')}>
+                      <Typography
+                        variant="small"
+                        weight="semibold"
+                        color={
+                          filterStatus === 'employee'
+                            ? theme.colors.white
+                            : theme.colors.gray[600]
+                        }>
+                        Employee
+                      </Typography>
+                    </TouchableOpacity>
+                  </View>
+                  {/* Search Bar */}
+                  <View style={styles.searchContainer}>
+                    <RNTextInput
+                      style={styles.searchInput}
+                      placeholder="Search by name or email"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholderTextColor={theme.colors.gray[400]}
+                    />
+                  </View>
+                </View>
 
-            {/* Scrollable Content */}
-            <View style={styles.contentWrap}>
-            {/* Error State */}
-            {error && (
-              <Card variant="outlined" padding="lg" style={styles.errorCard}>
-                <View style={styles.errorContent}>
-                  <AlertCircleIcon size={24} color={theme.colors.error[500]} />
+                {/* Error State */}
+                {error && (
+                  <Card variant="outlined" padding="lg" style={styles.errorCard}>
+                    <View style={styles.errorContent}>
+                      <AlertCircleIcon size={24} color={theme.colors.error[500]} />
+                      <Typography
+                        variant="body"
+                        color={theme.colors.error[700]}
+                        style={styles.errorText}>
+                        {error}
+                      </Typography>
+                    </View>
+                  </Card>
+                )}
+              </View>
+            }
+            ListEmptyComponent={
+              error ? null : (
+                <Card variant="outlined" padding="lg" style={styles.emptyCard}>
+                  <UserIcon size={48} color={theme.colors.gray[400]} />
+                  <Typography
+                    variant="h3"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}
+                    style={styles.emptyTitle}>
+                    No users found
+                  </Typography>
                   <Typography
                     variant="body"
-                    color={theme.colors.error[700]}
-                    style={styles.errorText}>
-                    {error}
+                    color={theme.colors.gray[500]}
+                    align="center">
+                    {searchQuery || filterStatus !== 'all'
+                      ? 'Try adjusting your search or filter'
+                      : 'Add a user to get started'}
                   </Typography>
-                </View>
-              </Card>
-            )}
-            {/* Empty State */}
-            {!error && filteredUsers.length === 0 && (
-              <Card variant="outlined" padding="lg" style={styles.emptyCard}>
-                <UserIcon size={48} color={theme.colors.gray[400]} />
-                <Typography
-                  variant="h3"
-                  weight="semibold"
-                  color={theme.colors.gray[700]}
-                  style={styles.emptyTitle}>
-                  No users found
-                </Typography>
-                <Typography
-                  variant="body"
-                  color={theme.colors.gray[500]}
-                  align="center">
-                  {searchQuery || filterStatus !== 'all'
-                    ? 'Try adjusting your search or filter'
-                    : 'Add a user to get started'}
-                </Typography>
-              </Card>
-            )}
-            {/* Users List */}
-            <View style={styles.usersList}>
-              {filteredUsers.map((user, index) => {
-                const isExpanded = expandedUsers.has(user._id);
-                const isCurrentUser = user._id === currentUser?._id;
-                return (
-                  <Card
-                    key={user._id || index}
-                    variant="elevated"
-                    padding="none"
-                    style={styles.userCard}>
-                    <TouchableOpacity
-                      onPress={() => handleUserPress(user._id)}
-                      style={styles.userHeader}>
-                      <View style={styles.userHeaderLeft}>
-                        <View style={styles.chevronContainer}>
-                          {isExpanded ? (
-                            <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
-                          ) : (
-                            <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
-                          )}
-                        </View>
-                        <View style={styles.userInfo}>
-                          <View style={styles.userNameRow}>
-                            <Typography variant="body" weight="bold" numberOfLines={1}>
-                              {user.fullName}
-                            </Typography>
-                            {isCurrentUser && (
-                              <View style={styles.youBadge}>
-                                <Typography variant="caption" color={theme.colors.primary[600]} weight="semibold">
-                                  You
-                                </Typography>
-                              </View>
-                            )}
-                          </View>
-                          <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                            @{user.username}
-                          </Typography>
-                        </View>
+                </Card>
+              )
+            }
+            renderItem={({item: user}) => {
+              const isExpanded = expandedUsers.has(user._id);
+              const isCurrentUser = user._id === currentUser?._id;
+              return (
+                <Card
+                  variant="elevated"
+                  padding="none"
+                  style={styles.userCard}>
+                  <TouchableOpacity
+                    onPress={() => handleUserPress(user._id)}
+                    style={styles.userHeader}>
+                    <View style={styles.userHeaderLeft}>
+                      <View style={styles.chevronContainer}>
+                        {isExpanded ? (
+                          <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
+                        ) : (
+                          <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
+                        )}
                       </View>
-                      <View style={styles.userHeaderRight}>
-                        <View style={[styles.statusBadge, {backgroundColor: getUserStatusBgColor(user.isActive)}]}>
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={getUserStatusColor(user.isActive)}>
-                            {user.isActive ? 'Active' : 'Inactive'}
+                      <View style={styles.userInfo}>
+                        <View style={styles.userNameRow}>
+                          <Typography variant="body" weight="bold" numberOfLines={1}>
+                            {user.fullName}
                           </Typography>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                    {/* User Meta */}
-                    <View style={styles.userMeta}>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Email
-                        </Typography>
-                        <Typography variant="small" weight="medium" numberOfLines={1} style={{flex: 1, textAlign: 'right'}}>
-                          {user.email}
-                        </Typography>
-                      </View>
-                      <View style={styles.metaRow}>
-                        <Typography variant="caption" color={theme.colors.gray[500]}>
-                          Role
-                        </Typography>
-                        <View style={[styles.roleBadge, {backgroundColor: getRoleBadgeBgColor(user.role)}]}>
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={getRoleBadgeColor(user.role)}>
-                            {user.role === 'admin' ? 'Administrator' : 'Employee'}
-                          </Typography>
-                        </View>
-                      </View>
-                      {user.truckNumber && (
-                        <View style={styles.metaRow}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Route Name
-                          </Typography>
-                          <Typography variant="small" weight="medium">
-                            {user.truckNumber}
-                          </Typography>
-                        </View>
-                      )}
-                    </View>
-                    {/* Expanded Content - Actions */}
-                    {isExpanded && (
-                      <View style={styles.expandedContent}>
-                        <View style={styles.actionsRow}>
-                          <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => handleEditUser(user)}>
-                            <EditIcon size={16} color={theme.colors.primary[600]} />
-                            <Typography variant="small" color={theme.colors.primary[600]} weight="medium">
-                              Edit
-                            </Typography>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => handleResetPassword(user)}>
-                            <KeyIcon size={16} color={theme.colors.primary[600]} />
-                            <Typography variant="small" color={theme.colors.primary[600]} weight="medium">
-                              Reset Password
-                            </Typography>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => handleToggleStatus(user)}>
-                            <CheckCircleIcon size={16} color={user.isActive ? theme.colors.error[600] : theme.colors.success[600]} />
-                            <Typography variant="small" color={user.isActive ? theme.colors.error[600] : theme.colors.success[600]} weight="medium">
-                              {user.isActive ? 'Deactivate' : 'Activate'}
-                            </Typography>
-                          </TouchableOpacity>
-                          {!isCurrentUser && (
-                            <TouchableOpacity
-                              style={styles.actionButton}
-                              onPress={() => handleDeleteUser(user)}>
-                              <TrashIcon size={16} color={theme.colors.error[600]} />
-                              <Typography variant="small" color={theme.colors.error[600]} weight="medium">
-                                Delete
+                          {isCurrentUser && (
+                            <View style={styles.youBadge}>
+                              <Typography variant="caption" color={theme.colors.primary[600]} weight="semibold">
+                                You
                               </Typography>
-                            </TouchableOpacity>
+                            </View>
                           )}
                         </View>
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                          @{user.username}
+                        </Typography>
+                      </View>
+                    </View>
+                    <View style={styles.userHeaderRight}>
+                      <View style={[styles.statusBadge, {backgroundColor: getUserStatusBgColor(user.isActive)}]}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={getUserStatusColor(user.isActive)}>
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </Typography>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                  {/* User Meta */}
+                  <View style={styles.userMeta}>
+                    <View style={styles.metaRow}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Email
+                      </Typography>
+                      <Typography variant="small" weight="medium" numberOfLines={1} style={{flex: 1, textAlign: 'right'}}>
+                        {user.email}
+                      </Typography>
+                    </View>
+                    <View style={styles.metaRow}>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Role
+                      </Typography>
+                      <View style={[styles.roleBadge, {backgroundColor: getRoleBadgeBgColor(user.role)}]}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={getRoleBadgeColor(user.role)}>
+                          {user.role === 'admin' ? 'Administrator' : 'Employee'}
+                        </Typography>
+                      </View>
+                    </View>
+                    {user.truckNumber && (
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Route Name
+                        </Typography>
+                        <Typography variant="small" weight="medium">
+                          {user.truckNumber}
+                        </Typography>
                       </View>
                     )}
-                  </Card>
-                );
-              })}
-            </View>
-          </View>
-          </ScrollView>
+                  </View>
+                  {/* Expanded Content - Actions */}
+                  {isExpanded && (
+                    <View style={styles.expandedContent}>
+                      <View style={styles.actionsRow}>
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={() => handleEditUser(user)}>
+                          <EditIcon size={16} color={theme.colors.primary[600]} />
+                          <Typography variant="small" color={theme.colors.primary[600]} weight="medium">
+                            Edit
+                          </Typography>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={() => handleResetPassword(user)}>
+                          <KeyIcon size={16} color={theme.colors.primary[600]} />
+                          <Typography variant="small" color={theme.colors.primary[600]} weight="medium">
+                            Reset Password
+                          </Typography>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.actionButton}
+                          onPress={() => handleToggleStatus(user)}>
+                          <CheckCircleIcon size={16} color={user.isActive ? theme.colors.error[600] : theme.colors.success[600]} />
+                          <Typography variant="small" color={user.isActive ? theme.colors.error[600] : theme.colors.success[600]} weight="medium">
+                            {user.isActive ? 'Deactivate' : 'Activate'}
+                          </Typography>
+                        </TouchableOpacity>
+                        {!isCurrentUser && (
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => handleDeleteUser(user)}>
+                            <TrashIcon size={16} color={theme.colors.error[600]} />
+                            <Typography variant="small" color={theme.colors.error[600]} weight="medium">
+                              Delete
+                            </Typography>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  )}
+                </Card>
+              );
+            }}
+          />
         )}
         {/* User Form Modal */}
         <UserFormModal

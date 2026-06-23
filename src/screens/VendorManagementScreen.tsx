@@ -15,6 +15,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -251,198 +252,180 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
             </Typography>
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={vendors}
+            keyExtractor={(item, index) => item._id || String(index)}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }>
-            {/* Add New Button */}
-            <View style={styles.contentWrap}>
-            <View style={styles.addButtonContainer}>
-              <Button
-                title="Add New Vendor"
-                variant="primary"
-                onPress={handleAddNew}
-                leftIcon={<PlusIcon size={16} color={theme.colors.white} />}
-                fullWidth
-              />
-            </View>
-
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-              <RNTextInput
-                style={styles.searchInput}
-                placeholder="Search by name or email"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholderTextColor={theme.colors.gray[400]}
-              />
-            </View>
-
-            {/* Error State */}
-            {error && (
-              <Card variant="outlined" padding="lg" style={styles.errorCard}>
-                <View style={styles.errorContent}>
-                  <AlertCircleIcon size={24} color={theme.colors.error[500]} />
-                  <Typography
-                    variant="body"
-                    color={theme.colors.error[700]}
-                    style={styles.errorText}>
-                    {error}
-                  </Typography>
+            contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={searchQuery}
+            ItemSeparatorComponent={() => <View style={{height: 12}} />}
+            ListHeaderComponent={
+              <View>
+                <View style={styles.addButtonContainer}>
+                  <Button
+                    title="Add New Vendor"
+                    variant="primary"
+                    onPress={handleAddNew}
+                    leftIcon={<PlusIcon size={16} color={theme.colors.white} />}
+                    fullWidth
+                  />
                 </View>
-              </Card>
-            )}
-
-            {/* Empty State */}
-            {!error && vendors.length === 0 && (
-              <Card variant="outlined" padding="lg" style={styles.emptyCard}>
-                <TruckIcon size={48} color={theme.colors.gray[400]} />
-                <Typography
-                  variant="h3"
-                  weight="semibold"
-                  color={theme.colors.gray[700]}
-                  style={styles.emptyTitle}>
-                  No vendors found
-                </Typography>
-                <Typography
-                  variant="body"
-                  color={theme.colors.gray[500]}
-                  align="center">
-                  {searchQuery
-                    ? 'Try adjusting your search'
-                    : 'Add your first vendor to get started'}
-                </Typography>
-              </Card>
-            )}
-
-            {/* Vendors List */}
-            <View style={styles.vendorsList}>
-              {vendors.map((vendor, index) => {
-                const isExpanded = expandedVendors.has(vendor._id);
-                return (
-                  <Card
-                    key={vendor._id || index}
-                    variant="elevated"
-                    padding="none"
-                    style={styles.vendorCard}>
-                    <TouchableOpacity
-                      onPress={() => handleVendorPress(vendor._id)}
-                      style={styles.vendorHeader}>
-                      <View style={styles.vendorHeaderLeft}>
-                        <View style={styles.chevronContainer}>
-                          {isExpanded ? (
-                            <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
-                          ) : (
-                            <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
-                          )}
-                        </View>
-                        <View style={styles.iconContainer}>
-                          <TruckIcon size={20} color={theme.colors.primary[600]} />
-                        </View>
-                        <View style={styles.vendorInfo}>
-                          <Typography variant="body" weight="bold" numberOfLines={1}>
-                            {vendor.name}
-                          </Typography>
-                          {vendor.email && (
-                            <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                              {vendor.email}
-                            </Typography>
-                          )}
-                        </View>
-                      </View>
-                      <View style={styles.vendorHeaderRight}>
-                        <View style={[
-                          styles.statusBadge,
-                          {backgroundColor: vendor.isActive ? theme.colors.success[100] : theme.colors.gray[100]}
-                        ]}>
-                          {vendor.isActive && (
-                            <CheckCircleIcon size={14} color={theme.colors.success[600]} />
-                          )}
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={vendor.isActive ? theme.colors.success[600] : theme.colors.gray[500]}
-                            style={vendor.isActive ? {marginLeft: 4} : {}}>
-                            {vendor.isActive ? 'Active' : 'Inactive'}
-                          </Typography>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Vendor Meta */}
-                    <View style={styles.vendorMeta}>
-                      {vendor.phone && (
-                        <View style={styles.metaRow}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Phone
-                          </Typography>
-                          <Typography variant="small" weight="medium">
-                            {vendor.phone}
-                          </Typography>
-                        </View>
-                      )}
-                      {vendor.address && (
-                        <View style={styles.metaRow}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Address
-                          </Typography>
-                          <Typography variant="small" style={{flex: 1, textAlign: 'right'}}>
-                            {vendor.address}
-                          </Typography>
-                        </View>
-                      )}
-                      {vendor.notes && (
-                        <View style={styles.metaRow}>
-                          <Typography variant="caption" color={theme.colors.gray[500]}>
-                            Notes
-                          </Typography>
-                          <Typography variant="small" style={{flex: 1, textAlign: 'right'}}>
-                            {vendor.notes}
-                          </Typography>
-                        </View>
-                      )}
+                <View style={styles.searchContainer}>
+                  <RNTextInput
+                    style={styles.searchInput}
+                    placeholder="Search by name or email"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholderTextColor={theme.colors.gray[400]}
+                  />
+                </View>
+                {error && (
+                  <Card variant="outlined" padding="lg" style={styles.errorCard}>
+                    <View style={styles.errorContent}>
+                      <AlertCircleIcon size={24} color={theme.colors.error[500]} />
+                      <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
+                        {error}
+                      </Typography>
                     </View>
+                  </Card>
+                )}
+              </View>
+            }
+            ListEmptyComponent={
+              error ? null : (
+                <Card variant="outlined" padding="lg" style={styles.emptyCard}>
+                  <TruckIcon size={48} color={theme.colors.gray[400]} />
+                  <Typography
+                    variant="h3"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}
+                    style={styles.emptyTitle}>
+                    No vendors found
+                  </Typography>
+                  <Typography variant="body" color={theme.colors.gray[500]} align="center">
+                    {searchQuery ? 'Try adjusting your search' : 'Add your first vendor to get started'}
+                  </Typography>
+                </Card>
+              )
+            }
+            renderItem={({item: vendor}) => {
+              const isExpanded = expandedVendors.has(vendor._id);
+              return (
+                <Card variant="elevated" padding="none" style={styles.vendorCard}>
+                  <TouchableOpacity
+                    onPress={() => handleVendorPress(vendor._id)}
+                    style={styles.vendorHeader}>
+                    <View style={styles.vendorHeaderLeft}>
+                      <View style={styles.chevronContainer}>
+                        {isExpanded ? (
+                          <ChevronDownIcon size={20} color={theme.colors.gray[600]} />
+                        ) : (
+                          <ChevronRightIcon size={20} color={theme.colors.gray[600]} />
+                        )}
+                      </View>
+                      <View style={styles.iconContainer}>
+                        <TruckIcon size={20} color={theme.colors.primary[600]} />
+                      </View>
+                      <View style={styles.vendorInfo}>
+                        <Typography variant="body" weight="bold" numberOfLines={1}>
+                          {vendor.name}
+                        </Typography>
+                        {vendor.email && (
+                          <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                            {vendor.email}
+                          </Typography>
+                        )}
+                      </View>
+                    </View>
+                    <View style={styles.vendorHeaderRight}>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          {backgroundColor: vendor.isActive ? theme.colors.success[100] : theme.colors.gray[100]},
+                        ]}>
+                        {vendor.isActive && (
+                          <CheckCircleIcon size={14} color={theme.colors.success[600]} />
+                        )}
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={vendor.isActive ? theme.colors.success[600] : theme.colors.gray[500]}
+                          style={vendor.isActive ? {marginLeft: 4} : {}}>
+                          {vendor.isActive ? 'Active' : 'Inactive'}
+                        </Typography>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
 
-                    {/* Expanded Content */}
-                    {isExpanded && (
-                      <View style={styles.expandedContent}>
-                        <View style={styles.actionButtons}>
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.editButton]}
-                            onPress={() => handleEdit(vendor)}>
-                            <EditIcon size={16} color={theme.colors.primary[600]} />
-                            <Typography
-                              variant="small"
-                              weight="semibold"
-                              color={theme.colors.primary[600]}
-                              style={{marginLeft: 8}}>
-                              Edit
-                            </Typography>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.deleteButton]}
-                            onPress={() => handleDelete(vendor)}>
-                            <TrashIcon size={16} color={theme.colors.error[600]} />
-                            <Typography
-                              variant="small"
-                              weight="semibold"
-                              color={theme.colors.error[600]}
-                              style={{marginLeft: 8}}>
-                              Delete
-                            </Typography>
-                          </TouchableOpacity>
-                        </View>
+                  <View style={styles.vendorMeta}>
+                    {vendor.phone && (
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Phone
+                        </Typography>
+                        <Typography variant="small" weight="medium">
+                          {vendor.phone}
+                        </Typography>
                       </View>
                     )}
-                  </Card>
-                );
-              })}
-            </View>
-            </View>
-          </ScrollView>
+                    {vendor.address && (
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Address
+                        </Typography>
+                        <Typography variant="small" style={{flex: 1, textAlign: 'right'}}>
+                          {vendor.address}
+                        </Typography>
+                      </View>
+                    )}
+                    {vendor.notes && (
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Notes
+                        </Typography>
+                        <Typography variant="small" style={{flex: 1, textAlign: 'right'}}>
+                          {vendor.notes}
+                        </Typography>
+                      </View>
+                    )}
+                  </View>
+
+                  {isExpanded && (
+                    <View style={styles.expandedContent}>
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.editButton]}
+                          onPress={() => handleEdit(vendor)}>
+                          <EditIcon size={16} color={theme.colors.primary[600]} />
+                          <Typography
+                            variant="small"
+                            weight="semibold"
+                            color={theme.colors.primary[600]}
+                            style={{marginLeft: 8}}>
+                            Edit
+                          </Typography>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.actionButton, styles.deleteButton]}
+                          onPress={() => handleDelete(vendor)}>
+                          <TrashIcon size={16} color={theme.colors.error[600]} />
+                          <Typography
+                            variant="small"
+                            weight="semibold"
+                            color={theme.colors.error[600]}
+                            style={{marginLeft: 8}}>
+                            Delete
+                          </Typography>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </Card>
+              );
+            }}
+          />
         )}
       </SafeAreaView>
 

@@ -1,17 +1,16 @@
 import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
-  ScrollView,
   StyleSheet,
   Modal,
   TouchableOpacity,
   ActivityIndicator,
   TextInput as RNTextInput,
-  RefreshControl,
   Alert,
   Animated,
   Easing,
 } from 'react-native';
+import {PaginatedList} from '../components/molecules/PaginatedList';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -278,366 +277,365 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
             </Typography>
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={filteredModels}
+            keyExtractor={(item, index) => item.modelNumber || String(index)}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.colors.white}
-              />
-            }>
-            <View style={styles.hero}>
-              <Animated.View
-                style={[
-                  styles.blob,
-                  styles.blobOne,
-                  {transform: [{scale: blobScale}], opacity: blobOpacity},
-                ]}
-              />
-              <Animated.View
-                style={[
-                  styles.blob,
-                  styles.blobTwo,
-                  {transform: [{scale: blobScale}], opacity: blobOpacity},
-                ]}
-              />
-              <View style={styles.dotGrid} pointerEvents="none">
-                {Array.from({length: 18}).map((_, i) => (
-                  <View key={i} style={styles.dot} />
-                ))}
-              </View>
-
-              <Animated.View
-                style={[
-                  styles.heroBody,
-                  {opacity: heroFade, transform: [{translateY: heroSlide}]},
-                ]}>
-                <View style={styles.heroTopRow}>
-                  <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <CloseIcon size={16} color={theme.colors.brand.text} />
-                  </TouchableOpacity>
-                  <View style={{flex: 1}}>
-                    <Typography
-                      variant="caption"
-                      weight="semibold"
-                      color={theme.colors.brand.textTracked}
-                      style={styles.heroEyebrow}>
-                      MAPPING
-                    </Typography>
-                    <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
-                      Model Categories
-                    </Typography>
-                    <Typography variant="small" color={theme.colors.brand.textMuted}>
-                      Link order models to RouteStar items
-                    </Typography>
+            contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={`${searchQuery}|${filterStatus}`}
+            ItemSeparatorComponent={() => <View style={{height: 12}} />}
+            ListHeaderComponent={
+              <View>
+                <View style={styles.hero}>
+                  <Animated.View
+                    style={[
+                      styles.blob,
+                      styles.blobOne,
+                      {transform: [{scale: blobScale}], opacity: blobOpacity},
+                    ]}
+                  />
+                  <Animated.View
+                    style={[
+                      styles.blob,
+                      styles.blobTwo,
+                      {transform: [{scale: blobScale}], opacity: blobOpacity},
+                    ]}
+                  />
+                  <View style={styles.dotGrid} pointerEvents="none">
+                    {Array.from({length: 18}).map((_, i) => (
+                      <View key={i} style={styles.dot} />
+                    ))}
                   </View>
-                  <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
-                    <RefreshIcon size={18} color={theme.colors.brand.text} />
-                  </TouchableOpacity>
-                </View>
 
-                <View style={styles.statusChip}>
-                  <View style={styles.statusDot} />
-                  <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
-                    {completionPct}% mapped · {stats.total} models · {routeStarItems.length} items
-                  </Typography>
-                </View>
-
-                <View style={styles.heroMetricsRow}>
-                  <View style={styles.heroMetric}>
-                    <Typography
-                      variant="caption"
-                      weight="semibold"
-                      color={theme.colors.brand.textMuted}
-                      style={styles.heroMetricLabel}>
-                      TOTAL
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.total}
-                    </Typography>
-                  </View>
-                  <View style={styles.heroMetricDivider} />
-                  <View style={styles.heroMetric}>
-                    <Typography
-                      variant="caption"
-                      weight="semibold"
-                      color={theme.colors.brand.textMuted}
-                      style={styles.heroMetricLabel}>
-                      MAPPED
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.mapped}
-                    </Typography>
-                  </View>
-                  <View style={styles.heroMetricDivider} />
-                  <View style={styles.heroMetric}>
-                    <Typography
-                      variant="caption"
-                      weight="semibold"
-                      color={theme.colors.brand.textMuted}
-                      style={styles.heroMetricLabel}>
-                      UNMAPPED
-                    </Typography>
-                    <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
-                      {stats.unmapped}
-                    </Typography>
-                  </View>
-                </View>
-              </Animated.View>
-            </View>
-
-            <View style={styles.contentWrap}>
-            <View style={styles.searchWrap}>
-              <View style={styles.searchCard}>
-                <SearchIcon size={18} color={theme.colors.gray[500]} />
-                <RNTextInput
-                  style={styles.searchInput}
-                  placeholder="Search model or item"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholderTextColor={theme.colors.gray[400]}
-                />
-                {searchQuery ? (
-                  <TouchableOpacity
-                    onPress={() => setSearchQuery('')}
-                    style={styles.searchClear}
-                    activeOpacity={0.7}>
-                    <CloseIcon size={14} color={theme.colors.gray[500]} />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </View>
-
-            <View style={styles.tabsWrap}>
-              <View style={styles.tabsCard}>
-                {(
-                  [
-                    {key: 'all', label: 'All'},
-                    {key: 'mapped', label: 'Mapped'},
-                    {key: 'unmapped', label: 'Unmapped'},
-                  ] as const
-                ).map(opt => {
-                  const active = filterStatus === opt.key;
-                  return (
-                    <TouchableOpacity
-                      key={opt.key}
-                      style={[styles.tab, active && styles.tabActive]}
-                      onPress={() => setFilterStatus(opt.key)}
-                      activeOpacity={0.85}>
-                      <Typography
-                        variant="small"
-                        weight="semibold"
-                        color={active ? theme.colors.white : theme.colors.gray[700]}>
-                        {opt.label}
-                      </Typography>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {error && (
-              <Card variant="outlined" padding="lg" style={styles.errorCard}>
-                <View style={styles.errorContent}>
-                  <View style={styles.errorIconWrap}>
-                    <AlertCircleIcon size={22} color={theme.colors.error[600]} />
-                  </View>
-                  <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
-                    {error}
-                  </Typography>
-                </View>
-              </Card>
-            )}
-
-            {!error && filteredModels.length === 0 && (
-              <Card variant="elevated" padding="lg" style={styles.emptyCard}>
-                <View style={styles.emptyIconWrap}>
-                  <BoxIcon size={32} color={theme.colors.primary[600]} />
-                </View>
-                <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
-                  No models found
-                </Typography>
-                <Typography variant="small" color={theme.colors.gray[500]} align="center">
-                  {searchQuery ? 'Try adjusting your search.' : 'No models available yet.'}
-                </Typography>
-              </Card>
-            )}
-
-            {!error && filteredModels.length > 0 && (
-              <View style={styles.sectionEyebrow}>
-                <View style={styles.eyebrowLine} />
-                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-                  MODELS · {filteredModels.length}
-                </Typography>
-              </View>
-            )}
-
-            <View style={styles.modelsList}>
-              {filteredModels.map((model, index) => {
-                const isExpanded = expandedModels.has(model.modelNumber);
-                const isMapped = Boolean(model.categoryItemName);
-                const stripeColor = isMapped ? theme.colors.success[500] : theme.colors.warning[500];
-                return (
-                  <Card
-                    key={model.modelNumber || index}
-                    variant="elevated"
-                    padding="none"
-                    style={styles.modelCard}>
-                    <View style={[styles.modelStripe, {backgroundColor: stripeColor}]} />
-                    <TouchableOpacity
-                      onPress={() => handleModelPress(model.modelNumber)}
-                      style={styles.modelHeader}
-                      activeOpacity={0.85}>
-                      <View
-                        style={[
-                          styles.modelIconWrap,
-                          {backgroundColor: isMapped ? theme.colors.success[50] : theme.colors.warning[50]},
-                        ]}>
-                        <BoxIcon
-                          size={20}
-                          color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]}
-                        />
+                  <Animated.View
+                    style={[
+                      styles.heroBody,
+                      {opacity: heroFade, transform: [{translateY: heroSlide}]},
+                    ]}>
+                    <View style={styles.heroTopRow}>
+                      <TouchableOpacity onPress={onClose} style={styles.heroIconBtn} activeOpacity={0.85}>
+                        <CloseIcon size={16} color={theme.colors.brand.text} />
+                      </TouchableOpacity>
+                      <View style={{flex: 1}}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={theme.colors.brand.textTracked}
+                          style={styles.heroEyebrow}>
+                          MAPPING
+                        </Typography>
+                        <Typography variant="h2" weight="bold" color={theme.colors.brand.text} style={styles.heroTitle}>
+                          Model Categories
+                        </Typography>
+                        <Typography variant="small" color={theme.colors.brand.textMuted}>
+                          Link order models to RouteStar items
+                        </Typography>
                       </View>
-                      <View style={styles.modelInfo}>
-                        <Typography variant="body" weight="bold" numberOfLines={1}>
-                          {model.modelNumber}
+                      <TouchableOpacity onPress={loadData} style={styles.heroIconBtn} activeOpacity={0.85}>
+                        <RefreshIcon size={18} color={theme.colors.brand.text} />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.statusChip}>
+                      <View style={styles.statusDot} />
+                      <Typography variant="caption" weight="semibold" color={theme.colors.brand.text}>
+                        {completionPct}% mapped · {stats.total} models · {routeStarItems.length} items
+                      </Typography>
+                    </View>
+
+                    <View style={styles.heroMetricsRow}>
+                      <View style={styles.heroMetric}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={theme.colors.brand.textMuted}
+                          style={styles.heroMetricLabel}>
+                          TOTAL
                         </Typography>
-                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
-                          {model.orderItemName || 'No item name'}
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.total}
                         </Typography>
-                        {isMapped && (
-                          <View style={styles.mappedHint}>
-                            <LinkIcon size={11} color={theme.colors.success[600]} />
+                      </View>
+                      <View style={styles.heroMetricDivider} />
+                      <View style={styles.heroMetric}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={theme.colors.brand.textMuted}
+                          style={styles.heroMetricLabel}>
+                          MAPPED
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.mapped}
+                        </Typography>
+                      </View>
+                      <View style={styles.heroMetricDivider} />
+                      <View style={styles.heroMetric}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={theme.colors.brand.textMuted}
+                          style={styles.heroMetricLabel}>
+                          UNMAPPED
+                        </Typography>
+                        <Typography variant="h3" weight="bold" color={theme.colors.brand.text}>
+                          {stats.unmapped}
+                        </Typography>
+                      </View>
+                    </View>
+                  </Animated.View>
+                </View>
+
+                <View style={styles.searchWrap}>
+                  <View style={styles.searchCard}>
+                    <SearchIcon size={18} color={theme.colors.gray[500]} />
+                    <RNTextInput
+                      style={styles.searchInput}
+                      placeholder="Search model or item"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                      placeholderTextColor={theme.colors.gray[400]}
+                    />
+                    {searchQuery ? (
+                      <TouchableOpacity
+                        onPress={() => setSearchQuery('')}
+                        style={styles.searchClear}
+                        activeOpacity={0.7}>
+                        <CloseIcon size={14} color={theme.colors.gray[500]} />
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                </View>
+
+                <View style={styles.tabsWrap}>
+                  <View style={styles.tabsCard}>
+                    {(
+                      [
+                        {key: 'all', label: 'All'},
+                        {key: 'mapped', label: 'Mapped'},
+                        {key: 'unmapped', label: 'Unmapped'},
+                      ] as const
+                    ).map(opt => {
+                      const active = filterStatus === opt.key;
+                      return (
+                        <TouchableOpacity
+                          key={opt.key}
+                          style={[styles.tab, active && styles.tabActive]}
+                          onPress={() => setFilterStatus(opt.key)}
+                          activeOpacity={0.85}>
+                          <Typography
+                            variant="small"
+                            weight="semibold"
+                            color={active ? theme.colors.white : theme.colors.gray[700]}>
+                            {opt.label}
+                          </Typography>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {error && (
+                  <Card variant="outlined" padding="lg" style={styles.errorCard}>
+                    <View style={styles.errorContent}>
+                      <View style={styles.errorIconWrap}>
+                        <AlertCircleIcon size={22} color={theme.colors.error[600]} />
+                      </View>
+                      <Typography variant="body" color={theme.colors.error[700]} style={styles.errorText}>
+                        {error}
+                      </Typography>
+                    </View>
+                  </Card>
+                )}
+
+                {!error && filteredModels.length > 0 && (
+                  <View style={styles.sectionEyebrow}>
+                    <View style={styles.eyebrowLine} />
+                    <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
+                      MODELS · {filteredModels.length}
+                    </Typography>
+                  </View>
+                )}
+              </View>
+            }
+            ListEmptyComponent={
+              error ? null : (
+                <Card variant="elevated" padding="lg" style={styles.emptyCard}>
+                  <View style={styles.emptyIconWrap}>
+                    <BoxIcon size={32} color={theme.colors.primary[600]} />
+                  </View>
+                  <Typography variant="h3" weight="semibold" color={theme.colors.gray[800]} style={styles.emptyTitle}>
+                    No models found
+                  </Typography>
+                  <Typography variant="small" color={theme.colors.gray[500]} align="center">
+                    {searchQuery ? 'Try adjusting your search.' : 'No models available yet.'}
+                  </Typography>
+                </Card>
+              )
+            }
+            renderItem={({item: model}) => {
+              const isExpanded = expandedModels.has(model.modelNumber);
+              const isMapped = Boolean(model.categoryItemName);
+              const stripeColor = isMapped ? theme.colors.success[500] : theme.colors.warning[500];
+              return (
+                <View style={{paddingHorizontal: bp.gutter}}>
+                <Card
+                  variant="elevated"
+                  padding="none"
+                  style={styles.modelCard}>
+                  <View style={[styles.modelStripe, {backgroundColor: stripeColor}]} />
+                  <TouchableOpacity
+                    onPress={() => handleModelPress(model.modelNumber)}
+                    style={styles.modelHeader}
+                    activeOpacity={0.85}>
+                    <View
+                      style={[
+                        styles.modelIconWrap,
+                        {backgroundColor: isMapped ? theme.colors.success[50] : theme.colors.warning[50]},
+                      ]}>
+                      <BoxIcon
+                        size={20}
+                        color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]}
+                      />
+                    </View>
+                    <View style={styles.modelInfo}>
+                      <Typography variant="body" weight="bold" numberOfLines={1}>
+                        {model.modelNumber}
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                        {model.orderItemName || 'No item name'}
+                      </Typography>
+                      {isMapped && (
+                        <View style={styles.mappedHint}>
+                          <LinkIcon size={11} color={theme.colors.success[600]} />
+                          <Typography
+                            variant="caption"
+                            weight="semibold"
+                            color={theme.colors.success[700]}
+                            numberOfLines={1}>
+                            {model.categoryItemName}
+                          </Typography>
+                        </View>
+                      )}
+                    </View>
+                    <View
+                      style={[
+                        styles.statusPill,
+                        {
+                          backgroundColor: isMapped
+                            ? theme.colors.success[50]
+                            : theme.colors.warning[50],
+                        },
+                      ]}>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={isMapped ? theme.colors.success[700] : theme.colors.warning[700]}>
+                        {isMapped ? 'Mapped' : 'Unmapped'}
+                      </Typography>
+                    </View>
+                    <View style={styles.chevronCircle}>
+                      {isExpanded ? (
+                        <ChevronDownIcon size={14} color={theme.colors.gray[700]} />
+                      ) : (
+                        <ChevronRightIcon size={14} color={theme.colors.gray[700]} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  {isExpanded && (
+                    <View style={styles.expandedContent}>
+                      <View style={styles.mappingSection}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={theme.colors.gray[600]}
+                          style={styles.sectionLabel}>
+                          CURRENT MAPPING
+                        </Typography>
+                        {isMapped ? (
+                          <View style={styles.mappedItemInfo}>
+                            <Typography variant="caption" color={theme.colors.success[700]}>
+                              Linked to
+                            </Typography>
                             <Typography
-                              variant="caption"
+                              variant="body"
                               weight="semibold"
-                              color={theme.colors.success[700]}
-                              numberOfLines={1}>
+                              color={theme.colors.success[800]}
+                              style={{marginTop: 2}}>
                               {model.categoryItemName}
+                            </Typography>
+                          </View>
+                        ) : (
+                          <View style={styles.notMappedInfo}>
+                            <Typography variant="small" color={theme.colors.gray[500]}>
+                              Not mapped yet
                             </Typography>
                           </View>
                         )}
                       </View>
-                      <View
-                        style={[
-                          styles.statusPill,
-                          {
-                            backgroundColor: isMapped
-                              ? theme.colors.success[50]
-                              : theme.colors.warning[50],
-                          },
-                        ]}>
+
+                      <View style={styles.pickerSection}>
                         <Typography
                           variant="caption"
                           weight="semibold"
-                          color={isMapped ? theme.colors.success[700] : theme.colors.warning[700]}>
-                          {isMapped ? 'Mapped' : 'Unmapped'}
+                          color={theme.colors.gray[600]}
+                          style={styles.sectionLabel}>
+                          SELECT CATEGORY
                         </Typography>
+                        <TouchableOpacity
+                          style={styles.pickerButton}
+                          onPress={() => openPickerForModel(model.modelNumber)}
+                          activeOpacity={0.85}>
+                          <View style={styles.pickerLeft}>
+                            <View style={styles.pickerIconWrap}>
+                              <TagIcon size={14} color={theme.colors.primary[600]} />
+                            </View>
+                            <Typography
+                              variant="small"
+                              color={
+                                model.categoryItemId ? theme.colors.gray[900] : theme.colors.gray[500]
+                              }
+                              numberOfLines={1}
+                              style={{flex: 1}}>
+                              {model.categoryItemId
+                                ? routeStarItems.find(i => i._id === model.categoryItemId)?.itemName ||
+                                  'Select category'
+                                : `Select from ${routeStarItems.length} items`}
+                            </Typography>
+                          </View>
+                          <ChevronDownIcon size={16} color={theme.colors.gray[500]} />
+                        </TouchableOpacity>
                       </View>
-                      <View style={styles.chevronCircle}>
-                        {isExpanded ? (
-                          <ChevronDownIcon size={14} color={theme.colors.gray[700]} />
-                        ) : (
-                          <ChevronRightIcon size={14} color={theme.colors.gray[700]} />
+
+                      <View style={styles.actionsSection}>
+                        <Button
+                          title="Save mapping"
+                          variant="primary"
+                          onPress={() => saveMapping(model.modelNumber)}
+                          disabled={saving || !model.categoryItemId}
+                          fullWidth
+                        />
+                        {isMapped && (
+                          <Button
+                            title="Delete mapping"
+                            variant="danger"
+                            onPress={() => deleteMapping(model.modelNumber)}
+                            disabled={saving}
+                            fullWidth
+                            style={{marginTop: 8}}
+                          />
                         )}
                       </View>
-                    </TouchableOpacity>
-
-                    {isExpanded && (
-                      <View style={styles.expandedContent}>
-                        <View style={styles.mappingSection}>
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={theme.colors.gray[600]}
-                            style={styles.sectionLabel}>
-                            CURRENT MAPPING
-                          </Typography>
-                          {isMapped ? (
-                            <View style={styles.mappedItemInfo}>
-                              <Typography variant="caption" color={theme.colors.success[700]}>
-                                Linked to
-                              </Typography>
-                              <Typography
-                                variant="body"
-                                weight="semibold"
-                                color={theme.colors.success[800]}
-                                style={{marginTop: 2}}>
-                                {model.categoryItemName}
-                              </Typography>
-                            </View>
-                          ) : (
-                            <View style={styles.notMappedInfo}>
-                              <Typography variant="small" color={theme.colors.gray[500]}>
-                                Not mapped yet
-                              </Typography>
-                            </View>
-                          )}
-                        </View>
-
-                        <View style={styles.pickerSection}>
-                          <Typography
-                            variant="caption"
-                            weight="semibold"
-                            color={theme.colors.gray[600]}
-                            style={styles.sectionLabel}>
-                            SELECT CATEGORY
-                          </Typography>
-                          <TouchableOpacity
-                            style={styles.pickerButton}
-                            onPress={() => openPickerForModel(model.modelNumber)}
-                            activeOpacity={0.85}>
-                            <View style={styles.pickerLeft}>
-                              <View style={styles.pickerIconWrap}>
-                                <TagIcon size={14} color={theme.colors.primary[600]} />
-                              </View>
-                              <Typography
-                                variant="small"
-                                color={
-                                  model.categoryItemId ? theme.colors.gray[900] : theme.colors.gray[500]
-                                }
-                                numberOfLines={1}
-                                style={{flex: 1}}>
-                                {model.categoryItemId
-                                  ? routeStarItems.find(i => i._id === model.categoryItemId)?.itemName ||
-                                    'Select category'
-                                  : `Select from ${routeStarItems.length} items`}
-                              </Typography>
-                            </View>
-                            <ChevronDownIcon size={16} color={theme.colors.gray[500]} />
-                          </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.actionsSection}>
-                          <Button
-                            title="Save mapping"
-                            variant="primary"
-                            onPress={() => saveMapping(model.modelNumber)}
-                            disabled={saving || !model.categoryItemId}
-                            fullWidth
-                          />
-                          {isMapped && (
-                            <Button
-                              title="Delete mapping"
-                              variant="danger"
-                              onPress={() => deleteMapping(model.modelNumber)}
-                              disabled={saving}
-                              fullWidth
-                              style={{marginTop: 8}}
-                            />
-                          )}
-                        </View>
-                      </View>
-                    )}
-                  </Card>
-                );
-              })}
-            </View>
-            </View>{/* contentWrap */}
-          </ScrollView>
+                    </View>
+                  )}
+                </Card>
+                </View>
+              );
+            }}
+          />
         )}
 
         <PickerModal
