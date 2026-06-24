@@ -13,9 +13,11 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import salesReportService from '../services/salesReportService';
@@ -46,22 +48,44 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [items, setItems] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>({});
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
 
   const heroFade = useRef(new Animated.Value(1)).current;
   const heroSlide = useRef(new Animated.Value(0)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (visible && token) loadData();
-  }, [visible, token, debouncedSearch]);
+  // Server-side pagination: 20 rows per page (+ aggregate totals for the hero).
+  const {
+    items,
+    loading,
+    refreshing,
+    error,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    refresh,
+    refetch,
+  } = useServerPagination<any>(
+    async (pg, limit) => {
+      try {
+        const res = await salesReportService.getSalesReport(token!, {search: debouncedSearch, page: pg, limit});
+        setTotals(res.totals || {});
+        return {items: res.items, total: res.total, pages: res.pages};
+      } catch (err) {
+        await handleApiError(err);
+        throw err;
+      }
+    },
+    {pageSize: 20, resetKey: debouncedSearch, enabled: !!(visible && token)},
+  );
+  const loadData = refetch;
+  const onRefresh = refresh;
 
   useEffect(() => {
     if (visible) {
@@ -83,29 +107,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
     ).start();
   }, [blobPulse]);
 
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await salesReportService.getSalesReport(token, {search: debouncedSearch});
-      setItems(response.items || []);
-      setTotals(response.totals || {});
-    } catch (err: any) {
-      console.error('Failed to fetch sales report:', err);
-      const wasHandled = await handleApiError(err);
-      if (wasHandled) return;
-      setError(err.message || 'Failed to load sales report');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
 
   const handleItemPress = (itemId: string) => {
     const newExpanded = new Set(expandedItems);
@@ -143,6 +144,20 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
             refreshing={refreshing}
             onRefresh={onRefresh}
             resetKey={searchQuery}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              total > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>

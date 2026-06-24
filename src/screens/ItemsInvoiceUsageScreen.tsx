@@ -8,6 +8,7 @@ import {
   TextInput as RNTextInput,
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -24,6 +25,7 @@ import itemsInvoiceUsageService, {
 import {BarChartIcon, SearchIcon, XIcon, BoxIcon, ClockIcon} from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
 
 interface ItemsInvoiceUsageScreenProps {
   visible: boolean;
@@ -39,12 +41,8 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [items, setItems] = useState<ItemUsage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
-  const [error, setError] = useState<string | null>(null);
   const [totals, setTotals] = useState<InvoiceUsageTotals>({
     totalMappedItems: 0,
     totalUniqueItems: 0,
@@ -52,41 +50,39 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
     totalInvoices: 0,
   });
 
-  useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, token, debouncedSearch]);
-
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-
-      const result = await itemsInvoiceUsageService.getItemsUsage(token, {
-        search: debouncedSearch,
-      });
-
-      console.log('[ItemsInvoiceUsageScreen] Data loaded:', result.items?.length || 0);
-      setItems(result.items || []);
-      setTotals(result.totals);
-    } catch (error: any) {
-      console.error('Failed to fetch items usage:', error);
-      const wasHandled = await handleApiError(error);
-      if (wasHandled) return;
-      setError(error.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  // Server-side pagination: 20 rows per page (+ aggregate totals for the stat cards).
+  const {
+    items,
+    loading,
+    refreshing,
+    error,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    refresh,
+    refetch,
+  } = useServerPagination<ItemUsage>(
+    async (pg, limit) => {
+      try {
+        const res = await itemsInvoiceUsageService.getItemsUsage(token!, {
+          search: debouncedSearch,
+          page: pg,
+          limit,
+        });
+        setTotals(res.totals);
+        return {items: res.items, total: res.total, pages: res.pages};
+      } catch (e) {
+        await handleApiError(e);
+        throw e;
+      }
+    },
+    {pageSize: 20, resetKey: debouncedSearch, enabled: !!(visible && token)},
+  );
+  const loadData = refetch;
+  const onRefresh = refresh;
 
   // Backend applies the search (itemName + aliases); render the result as-is.
   const filteredItems = items;
@@ -273,6 +269,20 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
             refreshing={refreshing}
             onRefresh={onRefresh}
             resetKey={searchQuery}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              total > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 0}} />}
             ListHeaderComponent={
               filteredItems.length > 0 ? (

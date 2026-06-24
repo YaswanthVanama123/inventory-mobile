@@ -8,6 +8,7 @@ import {
   Animated,
   Easing,
   TouchableOpacity,
+  DimensionValue,
 } from 'react-native';
 import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {LineChart, BarChart, PieChart} from 'react-native-chart-kit';
@@ -15,6 +16,7 @@ import {useNavigation} from '@react-navigation/native';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -48,7 +50,7 @@ interface StatTileProps {
   trend?: 'up' | 'down' | 'neutral';
   Icon: React.FC<{size?: number; color?: string}>;
   tone: Tone;
-  width: number;
+  width: DimensionValue;
 }
 
 const StatTile: React.FC<StatTileProps> = ({theme, label, value, change, trend, Icon, tone, width}) => {
@@ -147,6 +149,9 @@ export const DashboardScreen = () => {
   useEffect(() => {
     fetchDashboardData();
   }, [token]);
+
+  // Refresh when returning to this tab (after creates/deletes/sync elsewhere).
+  useRefetchOnFocus(() => fetchDashboardData());
 
   useEffect(() => {
     Animated.loop(
@@ -341,9 +346,12 @@ export const DashboardScreen = () => {
   const innerWidth = contentWidth - bp.gutter * 2;
   const tileGap = bp.isMobile ? TILE_GAP : 16;
   const statCols = bp.isWide ? 6 : bp.isDesktop ? 4 : bp.isTablet ? 3 : 2;
-  const tileWidth = Math.floor((innerWidth - tileGap * (statCols - 1)) / statCols);
+  // Percentage widths (resolved by the native layout engine against the real
+  // parent) — robust on Android, where exact-pixel widths + flexbox `gap` round
+  // up and overflow, wrapping a 2-up grid to 1-per-row.
+  const tileWidth: DimensionValue = `${Math.floor(100 / statCols) - 2}%`;
   const quickCols = 4;
-  const quickWidth = Math.floor((innerWidth - tileGap * (quickCols - 1)) / quickCols);
+  const quickWidth: DimensionValue = `${Math.floor(100 / quickCols) - 2}%`;
   // Charts live inside an elevated Card with `lg` padding (spacing.xl on each side).
   const chartWidth = innerWidth - theme.spacing.xl * 2;
 
@@ -958,9 +966,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
 
     quickActionsWrap: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
       marginTop: -22,
       marginBottom: theme.spacing.md,
-      gap: tileGap,
+      rowGap: tileGap,
       zIndex: 3,
     },
     quickAction: {
@@ -998,7 +1008,8 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     statsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: tileGap,
+      justifyContent: 'space-between',
+      rowGap: tileGap,
       marginBottom: theme.spacing.sm,
     },
     statTileWrapper: {},

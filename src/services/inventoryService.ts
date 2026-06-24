@@ -12,10 +12,17 @@ interface InventoryParams {
 }
 
 class InventoryService {
-  async getGroupedItems(token: string, search = '') {
+  async getGroupedItems(
+    token: string,
+    params: {search?: string; page?: number; limit?: number} = {},
+  ): Promise<{items: any[]; total: number; pages: number; totals: {totalQuantity: number; totalValue: number}}> {
     try {
-      const qs = search ? `?search=${encodeURIComponent(search)}` : '';
-      const response = await fetch(`${API_BASE_URL}/customerconnect/items/grouped${qs}`, {
+      const qp = new URLSearchParams();
+      if (params.search) qp.append('search', params.search);
+      if (params.page) qp.append('page', String(params.page));
+      if (params.limit) qp.append('limit', String(params.limit));
+      const qs = qp.toString();
+      const response = await fetch(`${API_BASE_URL}/customerconnect/items/grouped${qs ? `?${qs}` : ''}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -25,16 +32,31 @@ class InventoryService {
         throw new Error('Failed to fetch grouped items');
       }
       const data = await response.json();
-      return data.data?.items || data.items || [];
+      const payload = data.data || data;
+      const items = payload.items || [];
+      const pg = payload.pagination || {};
+      return {
+        items,
+        total: pg.total ?? items.length,
+        pages: pg.pages ?? 1,
+        totals: payload.totals || {totalQuantity: 0, totalValue: 0},
+      };
     } catch (error) {
       console.error('Grouped Items Service Error:', error);
       throw error;
     }
   }
-  async getGroupedSalesItems(token: string, search = '') {
+  async getGroupedSalesItems(
+    token: string,
+    params: {search?: string; page?: number; limit?: number} = {},
+  ): Promise<{items: any[]; total: number; pages: number; totals: {totalQuantity: number; totalValue: number}}> {
     try {
-      const qs = search ? `?search=${encodeURIComponent(search)}` : '';
-      const response = await fetch(`${API_BASE_URL}/routestar/items/grouped${qs}`, {
+      const qp = new URLSearchParams();
+      if (params.search) qp.append('search', params.search);
+      if (params.page) qp.append('page', String(params.page));
+      if (params.limit) qp.append('limit', String(params.limit));
+      const qs = qp.toString();
+      const response = await fetch(`${API_BASE_URL}/routestar/items/grouped${qs ? `?${qs}` : ''}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -44,7 +66,15 @@ class InventoryService {
         throw new Error('Failed to fetch grouped sales items');
       }
       const data = await response.json();
-      return data.data?.items || data.items || [];
+      const payload = data.data || data;
+      const items = payload.items || [];
+      const pg = payload.pagination || {};
+      return {
+        items,
+        total: pg.total ?? items.length,
+        pages: pg.pages ?? 1,
+        totals: payload.totals || {totalQuantity: 0, totalValue: 0},
+      };
     } catch (error) {
       console.error('Grouped Sales Items Service Error:', error);
       throw error;

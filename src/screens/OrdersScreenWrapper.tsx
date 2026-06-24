@@ -13,6 +13,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -52,6 +53,9 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
+  // Source filter (mirrors the webapp dropdown) shown as a tab switcher:
+  // all = both sources, customerconnect = synced, manual = manual orders.
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'customerconnect' | 'manual'>('all');
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [orderDetails, setOrderDetails] = useState<Record<string, any>>({});
   const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
@@ -71,19 +75,24 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       loadData(1);
     }
   }, [token]);
+  // Refresh when returning to the Orders list (e.g. after creating a manual order).
+  useRefetchOnFocus(() => {
+    setCurrentPage(1);
+    loadData(1);
+  });
   // Search now runs on the backend; just mirror the returned page into the list.
   useEffect(() => {
     setFilteredOrders(orders);
   }, [orders]);
 
-  // Refetch from page 1 whenever the debounced search query changes.
+  // Refetch from page 1 whenever the debounced search or the source filter changes.
   useEffect(() => {
     if (token) {
       setCurrentPage(1);
       loadData(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
+  }, [debouncedSearch, sourceFilter]);
   const loadData = async (page: number = 1) => {
     if (!token) return;
     try {
@@ -93,6 +102,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
         page,
         limit: 20,
         search: debouncedSearch,
+        source: sourceFilter === 'all' ? undefined : sourceFilter,
       });
       const ordersData = response.orders || [];
       setOrders(ordersData);
@@ -282,6 +292,31 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               onChangeText={setSearchQuery}
               placeholderTextColor={theme.colors.gray[400]}
             />
+          </View>
+
+          {/* Source filter — tab switcher (All / Synced / Manual) */}
+          <View style={styles.sourceTabs}>
+            {([
+              {key: 'all', label: 'All Sources'},
+              {key: 'customerconnect', label: 'Synced'},
+              {key: 'manual', label: 'Manual'},
+            ] as const).map(t => {
+              const active = sourceFilter === t.key;
+              return (
+                <TouchableOpacity
+                  key={t.key}
+                  style={[styles.sourceTab, active && styles.sourceTabActive]}
+                  onPress={() => setSourceFilter(t.key)}
+                  activeOpacity={0.85}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={active ? theme.colors.white : theme.colors.gray[700]}>
+                    {t.label}
+                  </Typography>
+                </TouchableOpacity>
+              );
+            })}
           </View>
           </View>{/* end contentWrap */}
 
@@ -751,6 +786,24 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     color: theme.colors.gray[900],
     borderWidth: 1,
     borderColor: theme.colors.gray[200],
+  },
+  sourceTabs: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.gray[100],
+    borderRadius: 10,
+    padding: 4,
+    marginTop: 10,
+    gap: 4,
+  },
+  sourceTab: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sourceTabActive: {
+    backgroundColor: theme.colors.primary[600],
   },
   errorContainer: {
     flex: 1,

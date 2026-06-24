@@ -21,6 +21,9 @@ import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import screenPermissionService, {Screen} from '../services/screenPermissionService';
 import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
+import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {
   GridIcon,
   PlusIcon,
@@ -48,9 +51,6 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [screens, setScreens] = useState<Screen[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSaving, setAddSaving] = useState(false);
   const [newScreen, setNewScreen] = useState({
@@ -62,11 +62,9 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
     isDefault: false,
     isActive: true,
   });
-  const [filteredScreens, setFilteredScreens] = useState<Screen[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   const categories = [
     'Dashboard',
@@ -83,54 +81,43 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
     'Other',
   ];
 
-  useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, token, debouncedSearch]);
-
-  useEffect(() => {
-    filterScreens();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryFilter, screens]);
-
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await screenPermissionService.getAllScreens(token, {
-        search: debouncedSearch,
-      });
-      console.log('[ScreenManagementScreen] Data loaded:', data?.length || 0);
-      setScreens(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Failed to fetch screens:', error);
-      const wasHandled = await handleApiError(error);
-      if (wasHandled) return;
-      setError(error.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Text search runs on the backend; only the category facet is applied locally.
-  const filterScreens = () => {
-    let filtered = screens;
-
-    if (categoryFilter) {
-      filtered = filtered.filter(screen => screen.category === categoryFilter);
-    }
-
-    setFilteredScreens(filtered);
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  // Server-side pagination: search + category + 20/page all applied on the backend.
+  const {
+    items: filteredScreens,
+    loading,
+    refreshing,
+    error,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    refresh,
+    refetch,
+  } = useServerPagination<Screen>(
+    async (pg, limit) => {
+      try {
+        const res = await screenPermissionService.getScreensPaged(token!, {
+          search: debouncedSearch,
+          category: categoryFilter,
+          page: pg,
+          limit,
+        });
+        return {items: res.screens, total: res.total, pages: res.pages};
+      } catch (e) {
+        await handleApiError(e);
+        throw e;
+      }
+    },
+    {
+      pageSize: 20,
+      resetKey: `${debouncedSearch}|${categoryFilter}`,
+      enabled: !!(visible && token),
+    },
+  );
+  const loadData = refetch;
+  const onRefresh = refresh;
 
   const openAddModal = () => {
     setNewScreen({
@@ -173,14 +160,11 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
           text: 'Initialize',
           onPress: async () => {
             try {
-              setLoading(true);
               await screenPermissionService.initializeScreens(token!);
               Alert.alert('Success', 'Screens initialized successfully');
               loadData();
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to initialize screens');
-            } finally {
-              setLoading(false);
             }
           },
         },
@@ -400,17 +384,39 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
             <Button title="Retry" variant="outline" size="sm" onPress={loadData} style={styles.retryButton} />
           </View>
         ) : (
-          <ScrollView
+          <PaginatedList
+            data={filteredScreens}
+            keyExtractor={(item, index) => item._id || String(index)}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={theme.colors.primary[600]}
-              />
-            }>
-            {filteredScreens.length === 0 ? (
+            contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            resetKey={`${debouncedSearch}|${categoryFilter}`}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              total > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
+            renderItem={({item}) => renderScreenItem(item)}
+            ListHeaderComponent={
+              filteredScreens.length > 0 ? (
+                <View style={styles.statsRow}>
+                  <Typography variant="small" color={theme.colors.gray[600]}>
+                    {total} screen{total !== 1 ? 's' : ''} found
+                  </Typography>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
               <View style={[styles.contentWrap, styles.emptyContainer]}>
                 <GridIcon size={48} color={theme.colors.gray[300]} />
                 <Typography
@@ -422,17 +428,8 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
                     : 'No screens found'}
                 </Typography>
               </View>
-            ) : (
-              <View style={styles.contentWrap}>
-                <View style={styles.statsRow}>
-                  <Typography variant="small" color={theme.colors.gray[600]}>
-                    {filteredScreens.length} screen{filteredScreens.length !== 1 ? 's' : ''} found
-                  </Typography>
-                </View>
-                {filteredScreens.map(renderScreenItem)}
-              </View>
-            )}
-          </ScrollView>
+            }
+          />
         )}
       </SafeAreaView>
 

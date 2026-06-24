@@ -32,10 +32,12 @@ class ItemsInvoiceUsageService {
   // query param (matches itemName + aliases server-side).
   async getItemsUsage(
     token: string,
-    params: {search?: string} = {},
-  ): Promise<{items: ItemUsage[]; totals: InvoiceUsageTotals}> {
+    params: {search?: string; page?: number; limit?: number} = {},
+  ): Promise<{items: ItemUsage[]; totals: InvoiceUsageTotals; total: number; pages: number}> {
     const queryParams = new URLSearchParams();
     if (params.search) queryParams.append('search', params.search);
+    if (params.page) queryParams.append('page', String(params.page));
+    if (params.limit) queryParams.append('limit', String(params.limit));
     const qs = queryParams.toString();
     const url = `${API_BASE_URL}/routestar/items/invoice-usage${qs ? `?${qs}` : ''}`;
     console.log('[ItemsInvoiceUsageService] Fetching items usage from:', url);
@@ -85,7 +87,12 @@ class ItemsInvoiceUsageService {
     };
 
     console.log('[ItemsInvoiceUsageService] Items count:', items.length);
-    return {items, totals};
+    return {
+      items,
+      totals,
+      total: result.data?.total ?? items.length,
+      pages: result.data?.pages ?? 1,
+    };
   }
 }
 

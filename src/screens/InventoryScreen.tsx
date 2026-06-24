@@ -16,11 +16,14 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import inventoryService from '../services/inventoryService';
 import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
+import {Pagination} from '../components/molecules/Pagination';
 import {
   BoxIcon,
   AlertCircleIcon,
@@ -44,17 +47,15 @@ export const InventoryScreen = () => {
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [groupedItems, setGroupedItems] = useState<any[]>([]);
-  const [filteredItems, setFilteredItems] = useState<any[]>([]);
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
   const [loadingDetails, setLoadingDetails] = useState<{[key: string]: boolean}>({});
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [activeTab, setActiveTab] = useState<'purchases' | 'sells'>('purchases');
-  const [error, setError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(true);
+  const [statsTotals, setStatsTotals] = useState<{totalQuantity: number; totalValue: number}>({
+    totalQuantity: 0,
+    totalValue: 0,
+  });
   const [verifyingItems, setVerifyingItems] = useState<{[key: string]: boolean}>({});
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
   const [selectedOrderForVerify, setSelectedOrderForVerify] = useState<any>(null);
@@ -64,28 +65,61 @@ export const InventoryScreen = () => {
   const heroSlide = useRef(new Animated.Value(20)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Server-side numbered pagination: backend returns the current 20-item page
+  // (+ search + aggregate qty/value totals).
+  const {
+    items: filteredItems,
+    setItems: setGroupedItems,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    loading,
+    refreshing,
+    error,
+    refresh,
+    refetch,
+  } = useServerPagination<any>(
+    async (pg, limit) => {
+      try {
+        const res =
+          activeTab === 'purchases'
+            ? await inventoryService.getGroupedItems(token!, {search: debouncedSearch, page: pg, limit})
+            : await inventoryService.getGroupedSalesItems(token!, {search: debouncedSearch, page: pg, limit});
+        setStatsTotals(res.totals || {totalQuantity: 0, totalValue: 0});
+        return {items: res.items, total: res.total, pages: res.pages};
+      } catch (err) {
+        await handleApiError(err);
+        throw err;
+      }
+    },
+    {pageSize: 20, resetKey: `${activeTab}|${debouncedSearch}`, enabled: !!token},
+  );
+  const fetchData = refetch;
+  const onRefresh = refresh;
+
+  // Jump back to the top of the list whenever the page changes.
   useEffect(() => {
-    setIsMounted(true);
-    return () => {
-      setIsMounted(false);
-    };
+    scrollRef.current?.scrollTo({y: 0, animated: true});
+  }, [page]);
+
+  // Guards against setState after unmount in the async expand/verify handlers.
+  const mountedRef = useRef(true);
+  useEffect(() => () => {
+    mountedRef.current = false;
   }, []);
 
+  // Collapse expanded rows whenever the tab or search changes.
   useEffect(() => {
-    if (token && isMounted) {
-      setExpandedItems({});
-      fetchData();
-    } else if (isMounted) {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, activeTab, debouncedSearch]);
+    setExpandedItems({});
+  }, [activeTab, debouncedSearch]);
 
-  // Backend applies the search; just mirror the grouped result into the list.
-  useEffect(() => {
-    applySearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupedItems]);
+  // Refresh when returning to this tab (after creates/deletes/sync elsewhere).
+  useRefetchOnFocus(() => refetch());
 
   useEffect(() => {
     Animated.parallel([
@@ -121,52 +155,11 @@ export const InventoryScreen = () => {
     ).start();
   }, [heroFade, heroSlide, blobPulse]);
 
-  const fetchData = async () => {
-    try {
-      if (token && isMounted) {
-        let items;
-        if (activeTab === 'purchases') {
-          items = await inventoryService.getGroupedItems(token, debouncedSearch);
-        } else {
-          items = await inventoryService.getGroupedSalesItems(token, debouncedSearch);
-        }
-        if (isMounted) {
-          setGroupedItems(Array.isArray(items) ? items : []);
-          setError(null);
-        }
-      }
-    } catch (err: any) {
-      console.error('Failed to fetch grouped items:', err);
-      const wasHandled = await handleApiError(err);
-      if (wasHandled) return;
-      if (isMounted) {
-        setError(err.message || 'Failed to load inventory');
-        setGroupedItems([]);
-      }
-    } finally {
-      if (isMounted) {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    }
-  };
-
-  // Search runs on the backend; mirror the grouped result straight through.
-  const applySearch = () => {
-    if (!isMounted) return;
-    setFilteredItems(Array.isArray(groupedItems) ? groupedItems : []);
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchData();
-  };
-
   const toggleExpand = async (sku: string, itemName: string) => {
     const isCurrentlyExpanded = expandedItems[sku];
     setExpandedItems(prev => ({...prev, [sku]: !prev[sku]}));
     if (!isCurrentlyExpanded && token) {
-      const item = groupedItems.find(i => i.sku === sku);
+      const item = filteredItems.find(i => i.sku === sku);
       const hasData =
         activeTab === 'purchases'
           ? item?.orders && item.orders.length > 0
@@ -180,7 +173,7 @@ export const InventoryScreen = () => {
           } else {
             details = await inventoryService.getInvoicesForItem(token, itemName);
           }
-          if (isMounted) {
+          if (mountedRef.current) {
             setGroupedItems(prev =>
               prev.map(i =>
                 i.sku === sku
@@ -192,7 +185,7 @@ export const InventoryScreen = () => {
         } catch (err: any) {
           console.error('Failed to fetch details:', err);
           const wasHandled = await handleApiError(err);
-          if (!wasHandled && isMounted) {
+          if (!wasHandled && mountedRef.current) {
             setGroupedItems(prev =>
               prev.map(i =>
                 i.sku === sku
@@ -202,7 +195,7 @@ export const InventoryScreen = () => {
             );
           }
         } finally {
-          if (isMounted) {
+          if (mountedRef.current) {
             setLoadingDetails(prev => ({...prev, [sku]: false}));
           }
         }
@@ -241,7 +234,7 @@ export const InventoryScreen = () => {
         : `Partial receipt recorded - ${result.data?.remaining || 0} unit(s) remaining`;
       Alert.alert('Success', message);
       const updatedOrders = await inventoryService.getOrdersForItem(token, verifyingSku);
-      if (isMounted) {
+      if (mountedRef.current) {
         setGroupedItems(prev =>
           prev.map(item => {
             if (item.sku === verifyingSku) return {...item, orders: updatedOrders};
@@ -259,7 +252,7 @@ export const InventoryScreen = () => {
         Alert.alert('Error', err.message || 'Failed to verify item');
       }
     } finally {
-      if (isMounted) {
+      if (mountedRef.current) {
         setVerifyingItems(prev => {
           const newState = {...prev};
           delete newState[verifyKey];
@@ -278,9 +271,9 @@ export const InventoryScreen = () => {
   const blobScale = blobPulse.interpolate({inputRange: [0, 1], outputRange: [1, 1.08]});
   const blobOpacity = blobPulse.interpolate({inputRange: [0, 1], outputRange: [0.18, 0.28]});
 
-  const totalItems = filteredItems.length;
-  const totalQty = filteredItems.reduce((sum: number, g: any) => sum + (g.totalQuantity || 0), 0);
-  const totalValue = filteredItems.reduce((sum: number, g: any) => sum + (g.totalValue || 0), 0);
+  const totalItems = total;
+  const totalQty = statsTotals.totalQuantity;
+  const totalValue = statsTotals.totalValue;
 
   if (loading) {
     return (
@@ -299,6 +292,7 @@ export const InventoryScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -923,6 +917,17 @@ export const InventoryScreen = () => {
             );
           })}
         </View>
+
+        {!error && total > 0 && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={total}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
         </View>
       </ScrollView>
 

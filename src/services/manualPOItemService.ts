@@ -6,15 +6,23 @@ export interface ManualPOItem {
   description?: string;
   mappedCategoryItemId?: string;
   mappedCategoryItemName?: string;
+  // Vendor is informational (tracking only) — matches the webapp form.
+  vendorId?: any;
+  vendorName?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 class ManualPOItemService {
-  async getManualPOItems(token: string, params: {search?: string} = {}): Promise<ManualPOItem[]> {
+  async getManualPOItems(
+    token: string,
+    params: {search?: string; page?: number; limit?: number} = {},
+  ): Promise<{items: ManualPOItem[]; total: number; pages: number}> {
     const queryParams = new URLSearchParams();
     if (params.search) queryParams.append('search', params.search);
+    if (params.page) queryParams.append('page', String(params.page));
+    if (params.limit) queryParams.append('limit', String(params.limit));
     const qs = queryParams.toString();
     const response = await fetch(`${API_BASE_URL}/manual-po-items${qs ? `?${qs}` : ''}`, {
       headers: {
@@ -24,9 +32,14 @@ class ManualPOItemService {
     });
     if (!response.ok) throw new Error('Failed to fetch manual PO items');
     const result = await response.json();
-    // Backend returns: { success: true, data: { items: [...], total: 1 } }
-    const items = result.data?.items || result.data || result.items || [];
-    return Array.isArray(items) ? items : [];
+    // Backend returns: { success, data: { items: [...], total, page, pages } }
+    const data = result.data || {};
+    const items = data.items || result.items || (Array.isArray(data) ? data : []);
+    return {
+      items: Array.isArray(items) ? items : [],
+      total: data.total ?? (Array.isArray(items) ? items.length : 0),
+      pages: data.pages ?? 1,
+    };
   }
 
   async getActiveManualPOItems(token: string): Promise<ManualPOItem[]> {

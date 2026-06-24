@@ -13,9 +13,14 @@ export interface Vendor {
 }
 
 class VendorService {
-  async getVendors(token: string, params: {search?: string} = {}): Promise<Vendor[]> {
+  async getVendors(
+    token: string,
+    params: {search?: string; page?: number; limit?: number} = {},
+  ): Promise<{vendors: Vendor[]; total: number; pages: number}> {
     const queryParams = new URLSearchParams();
     if (params.search) queryParams.append('search', params.search);
+    if (params.page) queryParams.append('page', String(params.page));
+    if (params.limit) queryParams.append('limit', String(params.limit));
     const qs = queryParams.toString();
     const response = await fetch(`${API_BASE_URL}/vendors${qs ? `?${qs}` : ''}`, {
       headers: {
@@ -25,9 +30,14 @@ class VendorService {
     });
     if (!response.ok) throw new Error('Failed to fetch vendors');
     const result = await response.json();
-    // Backend returns: { success: true, data: { vendors: [...], total: 1 } }
-    const vendors = result.data?.vendors || result.data || result.vendors || [];
-    return Array.isArray(vendors) ? vendors : [];
+    // Backend returns: { success, data: { vendors: [...], total, page, pages } }
+    const data = result.data || {};
+    const vendors = data.vendors || result.vendors || (Array.isArray(data) ? data : []);
+    return {
+      vendors: Array.isArray(vendors) ? vendors : [],
+      total: data.total ?? (Array.isArray(vendors) ? vendors.length : 0),
+      pages: data.pages ?? 1,
+    };
   }
 
   async getActiveVendors(token: string): Promise<Vendor[]> {

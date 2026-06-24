@@ -14,13 +14,17 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
+import {PickerModal} from '../components/molecules/PickerModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import manualPOItemService, {ManualPOItem} from '../services/manualPOItemService';
+import vendorService, {Vendor} from '../services/vendorService';
 import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
 import {
   AlertCircleIcon,
   ChevronDownIcon,
@@ -46,13 +50,9 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [items, setItems] = useState<ManualPOItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
 
   // Form modal state — handles both create and edit. Mirrors the webapp
   // ManualPOItems.jsx behavior: SKU is optional on create (auto-generated
@@ -63,47 +63,50 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   const [formName, setFormName] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formIsActive, setFormIsActive] = useState(true);
+  const [formVendorId, setFormVendorId] = useState('');
+  const [formVendorName, setFormVendorName] = useState('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendorPickerVisible, setVendorPickerVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Load active vendors for the form's (informational) vendor selector.
   useEffect(() => {
     if (visible && token) {
-      loadData();
+      vendorService
+        .getActiveVendors(token)
+        .then(setVendors)
+        .catch(() => setVendors([]));
     }
   }, [visible, token]);
 
-  // Refetch from the backend whenever the debounced search text changes.
-  useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
-
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await manualPOItemService.getManualPOItems(token, {search: debouncedSearch});
-      console.log('[ManualPOItemsScreen] Data loaded:', data?.length || 0);
-
-      // Backend already applied the search filter; render the result directly.
-      setItems(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Failed to fetch manual PO items:', error);
-      const wasHandled = await handleApiError(error);
-      if (wasHandled) return;
-      setError(error.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  // Server-side pagination: 20 items per page, more load on scroll.
+  const {
+    items,
+    loading,
+    refreshing,
+    error,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    refresh,
+    refetch,
+  } = useServerPagination<ManualPOItem>(
+    async (pg, limit) => {
+      try {
+        const res = await manualPOItemService.getManualPOItems(token!, {search: debouncedSearch, page: pg, limit});
+        return {items: res.items, total: res.total, pages: res.pages};
+      } catch (e) {
+        await handleApiError(e);
+        throw e;
+      }
+    },
+    {pageSize: 20, resetKey: debouncedSearch, enabled: !!(visible && token)},
+  );
+  const loadData = refetch;
+  const onRefresh = refresh;
 
   const handleItemPress = (sku: string) => {
     const newExpanded = new Set(expandedItems);
@@ -120,6 +123,8 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
     setFormName('');
     setFormDescription('');
     setFormIsActive(true);
+    setFormVendorId('');
+    setFormVendorName('');
     setEditingItem(null);
   };
 
@@ -134,7 +139,16 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
     setFormName(item.name || '');
     setFormDescription(item.description || '');
     setFormIsActive(item.isActive);
+    // vendorId may be a populated object or a raw id.
+    setFormVendorId(item.vendorId?._id || item.vendorId || '');
+    setFormVendorName(item.vendorName || item.vendorId?.name || '');
     setFormVisible(true);
+  };
+
+  const handleVendorChange = (vendorId: string) => {
+    const vendor = vendors.find(v => v._id === vendorId);
+    setFormVendorId(vendorId);
+    setFormVendorName(vendor ? vendor.name : '');
   };
 
   const handleCloseForm = () => {
@@ -154,6 +168,9 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
       name: formName.trim(),
       description: formDescription.trim() || undefined,
       isActive: formIsActive,
+      // Vendor is informational/tracking only (mirrors the webapp form).
+      vendorId: formVendorId || null,
+      vendorName: formVendorName || null,
     };
     // Only forward SKU when the user supplied something — blank means
     // "auto-generate" on create, "leave unchanged" on edit.
@@ -247,6 +264,20 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
             refreshing={refreshing}
             onRefresh={onRefresh}
             resetKey={searchQuery}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              total > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>
@@ -509,6 +540,30 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
               />
             </View>
 
+            <View style={styles.formField}>
+              <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.formLabel}>
+                Vendor
+              </Typography>
+              <TouchableOpacity
+                style={[styles.searchInput, styles.vendorSelect]}
+                onPress={() => setVendorPickerVisible(true)}
+                activeOpacity={0.7}>
+                <Typography
+                  variant="body"
+                  color={formVendorName ? theme.colors.gray[900] : theme.colors.gray[400]}>
+                  {formVendorName || 'Select vendor (optional)'}
+                </Typography>
+                <ChevronDownIcon size={18} color={theme.colors.gray[500]} />
+              </TouchableOpacity>
+              {formVendorName ? (
+                <TouchableOpacity onPress={() => handleVendorChange('')} activeOpacity={0.7}>
+                  <Typography variant="caption" color={theme.colors.primary[600]} style={styles.formHint}>
+                    Clear vendor
+                  </Typography>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
             <TouchableOpacity
               style={styles.formToggleRow}
               onPress={() => setFormIsActive(prev => !prev)}
@@ -551,6 +606,17 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
             </View>
             </View>{/* contentWrap */}
           </ScrollView>
+
+          <PickerModal
+            visible={vendorPickerVisible}
+            onClose={() => setVendorPickerVisible(false)}
+            items={vendors}
+            selectedValue={formVendorId}
+            onValueChange={handleVendorChange}
+            placeholder="Select vendor"
+            getLabel={(v: Vendor) => v.name}
+            getValue={(v: Vendor) => v._id}
+          />
         </SafeAreaView>
       </Modal>
     </Modal>
@@ -745,6 +811,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   formInput: {
     fontSize: theme.typography.roles.body.fontSize,
+  },
+  vendorSelect: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   formHint: {
     marginTop: 4,

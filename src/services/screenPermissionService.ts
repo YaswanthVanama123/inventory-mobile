@@ -26,6 +26,38 @@ export interface UserWithPermissions {
 
 class ScreenPermissionService {
   // Get all screens
+  // Server-paginated screens (search + category + page/limit applied on the backend).
+  async getScreensPaged(
+    token: string,
+    params: {search?: string; category?: string; page?: number; limit?: number} = {},
+  ): Promise<{screens: Screen[]; total: number; pages: number}> {
+    const queryParams = new URLSearchParams();
+    if (params.search) queryParams.append('search', params.search);
+    if (params.category) queryParams.append('category', params.category);
+    if (params.page) queryParams.append('page', String(params.page));
+    if (params.limit) queryParams.append('limit', String(params.limit));
+    const qs = queryParams.toString();
+    const url = `${API_BASE_URL}/screen-permissions/screens${qs ? `?${qs}` : ''}`;
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error ${response.status}: ${errorText}`);
+    }
+    const result = await response.json();
+    const data = result.data || {};
+    const screens = data.screens || (Array.isArray(data) ? data : []);
+    return {
+      screens: Array.isArray(screens) ? screens : [],
+      total: data.total ?? (Array.isArray(screens) ? screens.length : 0),
+      pages: data.pages ?? 1,
+    };
+  }
+
   async getAllScreens(token: string, params: {search?: string} = {}): Promise<Screen[]> {
     try {
       const queryParams = new URLSearchParams();

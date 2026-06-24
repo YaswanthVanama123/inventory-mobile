@@ -15,6 +15,7 @@ import {useNavigation} from '@react-navigation/native';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -100,6 +101,25 @@ export const TruckCheckoutListScreen = () => {
       }
     }
   }, [activeTab, checkoutsSubTab, salesSubTab, statusFilter, employeeFilter, searchTerm, pagination.page]);
+
+  // Refresh the active tab/sub-tab when returning to this screen (e.g. after a checkout).
+  useRefetchOnFocus(() => {
+    if (activeTab === 'checkouts') {
+      if (checkoutsSubTab === 'all') {
+        loadCheckouts();
+      } else if (checkoutsSubTab === 'mine') {
+        loadMyCheckouts();
+      } else {
+        loadEmployees();
+      }
+    } else if (activeTab === 'sales') {
+      if (salesSubTab === 'all') {
+        loadSalesTracking();
+      } else {
+        loadSalesEmployees();
+      }
+    }
+  });
 
   useEffect(() => {
     Animated.parallel([

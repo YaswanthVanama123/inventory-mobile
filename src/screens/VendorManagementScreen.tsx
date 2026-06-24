@@ -16,6 +16,7 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -23,6 +24,7 @@ import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import vendorService, {Vendor} from '../services/vendorService';
 import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
 import {
   AlertCircleIcon,
   ChevronDownIcon,
@@ -48,13 +50,9 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
 
   // Add / edit vendor form
   const [formVisible, setFormVisible] = useState(false);
@@ -67,45 +65,34 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
   const [formIsActive, setFormIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
-  }, [visible, token]);
-
-  // Refetch from the backend whenever the debounced search text changes.
-  useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch]);
-
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await vendorService.getVendors(token, {search: debouncedSearch});
-      console.log('[VendorManagementScreen] Data loaded:', data?.length || 0);
-
-      // Backend already applied the search filter; render the result directly.
-      setVendors(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Failed to fetch vendors:', error);
-      const wasHandled = await handleApiError(error);
-      if (wasHandled) return;
-      setError(error.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  // Server-side numbered pagination: 20 vendors per page.
+  const {
+    items: vendors,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    loading,
+    refreshing,
+    error,
+    refresh,
+    refetch,
+  } = useServerPagination<Vendor>(
+    async (pg, limit) => {
+      try {
+        const res = await vendorService.getVendors(token!, {search: debouncedSearch, page: pg, limit});
+        return {items: res.vendors, total: res.total, pages: res.pages};
+      } catch (e) {
+        await handleApiError(e);
+        throw e;
+      }
+    },
+    {pageSize: 20, resetKey: debouncedSearch, enabled: !!(visible && token)},
+  );
+  const loadData = refetch;
+  const onRefresh = refresh;
 
   const handleVendorPress = (vendorId: string) => {
     const newExpanded = new Set(expandedVendors);
@@ -247,6 +234,20 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
             refreshing={refreshing}
             onRefresh={onRefresh}
             resetKey={searchQuery}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              total > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>

@@ -11,11 +11,14 @@ import {
   Alert,
   Animated,
   Easing,
+  DimensionValue,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -49,7 +52,7 @@ interface StockStatCardProps {
   subtitle?: string;
   Icon: React.FC<{size?: number; color?: string}>;
   tone: Tone;
-  width: number;
+  width: DimensionValue;
 }
 
 const StockStatCard: React.FC<StockStatCardProps> = ({theme, label, value, subtitle, Icon, tone, width}) => {
@@ -136,6 +139,9 @@ export const StockScreen = () => {
       setLoading(false);
     }
   }, [token]);
+
+  // Refresh when returning to this tab (after creates/deletes/sync elsewhere).
+  useRefetchOnFocus(() => loadData());
 
   // Debounced backend fuzzy/partial search.
   useEffect(() => {
@@ -374,12 +380,30 @@ export const StockScreen = () => {
   const innerWidth = Math.min(bp.width, bp.contentMaxWidth) - bp.gutter * 2;
   const tileGap = bp.isMobile ? TILE_GAP : 16;
   const statCols = bp.isWide ? 6 : bp.isDesktop ? 4 : bp.isTablet ? 3 : 2;
-  const tileWidth = (innerWidth - tileGap * (statCols - 1)) / statCols;
+  // Percentage width (relative to the real parent) — robust on Android where
+  // exact-pixel widths + flexbox `gap` round up and overflow, wrapping to 1/row.
+  const tileWidth: DimensionValue = `${Math.floor(100 / statCols) - 2}%`;
   const totalCategories = currentData.items?.length || 0;
   const totalDiscr =
     currentData.totals?.totalDiscrepancyDifference !== undefined
       ? currentData.totals.totalDiscrepancyDifference
       : currentData.totals?.totalDiscrepancies || 0;
+
+  // Client-side numbered pagination over the (search-filtered) categories.
+  // Stock's summary is computed holistically server-side and search runs
+  // client-side, so we page the rendered categories rather than the API.
+  const stockScrollRef = useRef<ScrollView>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  useEffect(() => {
+    setPage(1);
+  }, [stockQuery, activeTab, pageSize]);
+  useEffect(() => {
+    stockScrollRef.current?.scrollTo({y: 0, animated: true});
+  }, [page]);
+  const totalCategoriesFiltered = filteredItems.length;
+  const totalCategoryPages = Math.max(1, Math.ceil(totalCategoriesFiltered / pageSize));
+  const visibleCategories = filteredItems.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
 
   if (loading) {
     return (
@@ -398,6 +422,7 @@ export const StockScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
+        ref={stockScrollRef}
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -653,7 +678,7 @@ export const StockScreen = () => {
         )}
 
         <View style={styles.categoriesList}>
-          {filteredItems.map((category: any) => {
+          {visibleCategories.map((category: any) => {
             const isExpanded = expandedCategories.has(category.categoryName);
             const isLoading = loadingCategories.has(category.categoryName);
             return (
@@ -1150,6 +1175,17 @@ export const StockScreen = () => {
             );
           })}
         </View>
+
+        {!error && totalCategoriesFiltered > 0 && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalCategoryPages}
+            totalItems={totalCategoriesFiltered}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
         </View>
       </ScrollView>
 
@@ -1626,7 +1662,8 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     statsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: tileGap,
+      justifyContent: 'space-between',
+      rowGap: tileGap,
       marginBottom: theme.spacing.sm,
     },
     statTileWrapper: {},

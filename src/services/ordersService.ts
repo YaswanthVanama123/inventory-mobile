@@ -13,6 +13,7 @@ class OrdersService {
       if (params.endDate) queryParams.append('endDate', params.endDate);
       if (params.vendor) queryParams.append('vendor', params.vendor);
       if (params.search) queryParams.append('search', params.search);
+      if (params.source) queryParams.append('source', params.source);
       const url = `${API_BASE_URL}/customerconnect/orders?${queryParams.toString()}`;
       console.log('[Orders] Fetching from:', url);
       const response = await fetch(url, {
