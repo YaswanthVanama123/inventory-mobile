@@ -8,6 +8,7 @@ import {RouteStarItemsScreen} from '../screens/RouteStarItemsScreen';
 import {UserManagementScreen} from '../screens/UserManagementScreen';
 import {FetchHistoryScreen} from '../screens/FetchHistoryScreen';
 import {DiscrepancyManagementScreen} from '../screens/DiscrepancyManagementScreen';
+import {EmployeeDiscrepanciesScreen} from '../screens/EmployeeDiscrepanciesScreen';
 import {ManualPOItemsScreen} from '../screens/ManualPOItemsScreen';
 import {VendorManagementScreen} from '../screens/VendorManagementScreen';
 import {ActivityLogScreen} from '../screens/ActivityLogScreen';
@@ -67,7 +68,13 @@ export const ExtraScreensProvider: React.FC<{children: ReactNode}> = ({children}
       <ItemAliasMappingScreen visible={is('itemAlias')} onClose={close} />
       <RouteStarItemsScreen visible={is('routeStarItems')} onClose={close} />
       <FetchHistoryScreen visible={is('fetchHistory')} onClose={close} />
-      <DiscrepancyManagementScreen visible={is('discrepancyManagement')} onClose={close} />
+      {/* Discrepancies: admins get the full management view; employees get a
+          read-only view of only their own discrepancies. */}
+      {isAdmin ? (
+        <DiscrepancyManagementScreen visible={is('discrepancyManagement')} onClose={close} />
+      ) : (
+        <EmployeeDiscrepanciesScreen visible={is('discrepancyManagement')} onClose={close} />
+      )}
       <ManualPOItemsScreen visible={is('manualPOItems')} onClose={close} />
       <VendorManagementScreen visible={is('vendors')} onClose={close} />
       <ItemsInvoiceUsageScreen visible={is('itemsInvoiceUsage')} onClose={close} />
