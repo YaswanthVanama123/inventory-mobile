@@ -161,6 +161,7 @@ class RouteStarItemsService {
       itemCategory?: string;
       forUse?: boolean;
       forSell?: boolean;
+      mapped?: string;
     } = {}
   ) {
     try {
@@ -173,6 +174,7 @@ class RouteStarItemsService {
       if (params.itemCategory) queryParams.append('itemCategory', params.itemCategory);
       if (params.forUse !== undefined) queryParams.append('forUse', params.forUse.toString());
       if (params.forSell !== undefined) queryParams.append('forSell', params.forSell.toString());
+      if (params.mapped) queryParams.append('mapped', params.mapped);
       const url = `${API_BASE_URL}/routestar-items/page-data?${queryParams.toString()}`;
       console.log('[RouteStarItems] Fetching combined page data from:', url);
       const response = await fetch(url, {
