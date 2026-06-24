@@ -23,6 +23,7 @@ import itemsInvoiceUsageService, {
 } from '../services/itemsInvoiceUsageService';
 import {BarChartIcon, SearchIcon, XIcon, BoxIcon, ClockIcon} from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
+import useDebounce from '../hooks/useDebounce';
 
 interface ItemsInvoiceUsageScreenProps {
   visible: boolean;
@@ -42,6 +43,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<ItemUsage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [error, setError] = useState<string | null>(null);
   const [totals, setTotals] = useState<InvoiceUsageTotals>({
     totalMappedItems: 0,
@@ -54,7 +56,8 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
     if (visible && token) {
       loadData();
     }
-  }, [visible, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, token, debouncedSearch]);
 
   const loadData = async () => {
     if (!token) return;
@@ -62,7 +65,9 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
       setLoading(true);
       setError(null);
 
-      const result = await itemsInvoiceUsageService.getItemsUsage(token);
+      const result = await itemsInvoiceUsageService.getItemsUsage(token, {
+        search: debouncedSearch,
+      });
 
       console.log('[ItemsInvoiceUsageScreen] Data loaded:', result.items?.length || 0);
       setItems(result.items || []);
@@ -83,15 +88,8 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
     loadData();
   };
 
-  const filteredItems = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      item =>
-        item.itemName.toLowerCase().includes(q) ||
-        item.aliases.some(alias => alias.toLowerCase().includes(q)),
-    );
-  }, [items, searchQuery]);
+  // Backend applies the search (itemName + aliases); render the result as-is.
+  const filteredItems = items;
 
   const renderItemCard = (item: ItemUsage, index: number) => (
     <Card key={index} variant="elevated" padding="md" style={styles.itemCard}>

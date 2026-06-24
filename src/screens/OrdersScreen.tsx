@@ -35,6 +35,7 @@ import {
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
+import useDebounce from '../hooks/useDebounce';
 
 interface OrdersScreenProps {
   visible: boolean;
@@ -59,6 +60,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   const [orders, setOrders] = useState<any[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,18 +82,19 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
     }
   }, [visible, token]);
 
+  // Search now runs on the backend; just mirror the returned page into the list.
   useEffect(() => {
-    if (searchQuery) {
-      const filtered = orders.filter(
-        order =>
-          order.orderNumber?.toString().includes(searchQuery) ||
-          order.vendor?.name?.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-      setFilteredOrders(filtered);
-    } else {
-      setFilteredOrders(orders);
+    setFilteredOrders(orders);
+  }, [orders]);
+
+  // Refetch from page 1 whenever the debounced search query changes.
+  useEffect(() => {
+    if (visible && token) {
+      setCurrentPage(1);
+      loadData(1);
     }
-  }, [searchQuery, orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   useEffect(() => {
     if (!autoSyncEnabled || !visible || !token) return;
@@ -136,7 +139,11 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
     try {
       setLoading(true);
       setError(null);
-      const response = await ordersService.getOrders(token, {page, limit: 20});
+      const response = await ordersService.getOrders(token, {
+        page,
+        limit: 20,
+        search: debouncedSearch,
+      });
       const ordersData = response.orders || [];
       setOrders(ordersData);
       setFilteredOrders(ordersData);

@@ -20,6 +20,7 @@ import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import inventoryService from '../services/inventoryService';
+import useDebounce from '../hooks/useDebounce';
 import {
   BoxIcon,
   AlertCircleIcon,
@@ -50,6 +51,7 @@ export const InventoryScreen = () => {
   const [expandedItems, setExpandedItems] = useState<{[key: string]: boolean}>({});
   const [loadingDetails, setLoadingDetails] = useState<{[key: string]: boolean}>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [activeTab, setActiveTab] = useState<'purchases' | 'sells'>('purchases');
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(true);
@@ -76,11 +78,14 @@ export const InventoryScreen = () => {
     } else if (isMounted) {
       setLoading(false);
     }
-  }, [token, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, activeTab, debouncedSearch]);
 
+  // Backend applies the search; just mirror the grouped result into the list.
   useEffect(() => {
     applySearch();
-  }, [searchQuery, groupedItems]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupedItems]);
 
   useEffect(() => {
     Animated.parallel([
@@ -121,9 +126,9 @@ export const InventoryScreen = () => {
       if (token && isMounted) {
         let items;
         if (activeTab === 'purchases') {
-          items = await inventoryService.getGroupedItems(token);
+          items = await inventoryService.getGroupedItems(token, debouncedSearch);
         } else {
-          items = await inventoryService.getGroupedSalesItems(token);
+          items = await inventoryService.getGroupedSalesItems(token, debouncedSearch);
         }
         if (isMounted) {
           setGroupedItems(Array.isArray(items) ? items : []);
@@ -146,23 +151,10 @@ export const InventoryScreen = () => {
     }
   };
 
+  // Search runs on the backend; mirror the grouped result straight through.
   const applySearch = () => {
     if (!isMounted) return;
-    if (!groupedItems || !Array.isArray(groupedItems)) {
-      setFilteredItems([]);
-      return;
-    }
-    if (!searchQuery) {
-      setFilteredItems(groupedItems);
-      return;
-    }
-    const search = searchQuery.toLowerCase();
-    const filtered = groupedItems.filter(
-      item =>
-        item.name?.toLowerCase().includes(search) ||
-        item.sku?.toLowerCase().includes(search),
-    );
-    setFilteredItems(filtered);
+    setFilteredItems(Array.isArray(groupedItems) ? groupedItems : []);
   };
 
   const onRefresh = () => {

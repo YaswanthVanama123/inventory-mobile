@@ -15,6 +15,7 @@ import {Card} from '../components/atoms/Card';
 import {PaginatedList} from '../components/molecules/PaginatedList';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
+import useDebounce from '../hooks/useDebounce';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import salesReportService from '../services/salesReportService';
@@ -48,9 +49,9 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<any[]>([]);
-  const [filteredItems, setFilteredItems] = useState<any[]>([]);
   const [totals, setTotals] = useState<any>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
@@ -60,21 +61,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
 
   useEffect(() => {
     if (visible && token) loadData();
-  }, [visible, token]);
-
-  useEffect(() => {
-    if (searchQuery) {
-      const filtered = items.filter(
-        item =>
-          item.itemName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.itemParent?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.description?.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-      setFilteredItems(filtered);
-    } else {
-      setFilteredItems(items);
-    }
-  }, [searchQuery, items]);
+  }, [visible, token, debouncedSearch]);
 
   useEffect(() => {
     if (visible) {
@@ -101,9 +88,8 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
     try {
       setLoading(true);
       setError(null);
-      const response = await salesReportService.getSalesReport(token);
+      const response = await salesReportService.getSalesReport(token, {search: debouncedSearch});
       setItems(response.items || []);
-      setFilteredItems(response.items || []);
       setTotals(response.totals || {});
     } catch (err: any) {
       console.error('Failed to fetch sales report:', err);
@@ -150,7 +136,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
           </View>
         ) : (
           <PaginatedList
-            data={filteredItems}
+            data={items}
             keyExtractor={(item, index) => item._id || String(index)}
             style={styles.scrollView}
             contentContainerStyle={[styles.scrollContent, {paddingBottom: 0}]}
@@ -270,11 +256,11 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
                     </Card>
                   )}
 
-                  {!error && filteredItems.length > 0 && (
+                  {!error && items.length > 0 && (
                     <View style={styles.sectionEyebrow}>
                       <View style={styles.eyebrowLine} />
                       <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-                        ITEMS · {filteredItems.length}
+                        ITEMS · {items.length}
                       </Typography>
                     </View>
                   )}

@@ -22,6 +22,7 @@ import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import vendorService, {Vendor} from '../services/vendorService';
+import useDebounce from '../hooks/useDebounce';
 import {
   AlertCircleIcon,
   ChevronDownIcon,
@@ -51,6 +52,7 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
@@ -71,39 +73,24 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
     }
   }, [visible, token]);
 
+  // Refetch from the backend whenever the debounced search text changes.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (visible && token) {
-        loadData();
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    if (visible && token) {
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const loadData = async () => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await vendorService.getVendors(token);
+      const data = await vendorService.getVendors(token, {search: debouncedSearch});
       console.log('[VendorManagementScreen] Data loaded:', data?.length || 0);
 
-      // Ensure data is an array
-      const vendors = Array.isArray(data) ? data : [];
-
-      // Filter by search query if present
-      let filteredData = vendors;
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        filteredData = vendors.filter(
-          vendor =>
-            vendor.name.toLowerCase().includes(query) ||
-            (vendor.email && vendor.email.toLowerCase().includes(query)) ||
-            (vendor.phone && vendor.phone.toLowerCase().includes(query))
-        );
-      }
-
-      setVendors(filteredData);
+      // Backend already applied the search filter; render the result directly.
+      setVendors(Array.isArray(data) ? data : []);
     } catch (error: any) {
       console.error('Failed to fetch vendors:', error);
       const wasHandled = await handleApiError(error);

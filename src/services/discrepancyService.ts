@@ -57,6 +57,7 @@ const discrepancyService = {
     if (params.type) queryParts.push(`type=${params.type}`);
     if (params.startDate) queryParts.push(`startDate=${params.startDate}`);
     if (params.endDate) queryParts.push(`endDate=${params.endDate}`);
+    if (params.search) queryParts.push(`search=${encodeURIComponent(params.search)}`);
     const queryString = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
     const response = await fetch(
       `${API_BASE_URL}/discrepancies${queryString}`,

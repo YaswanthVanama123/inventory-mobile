@@ -20,6 +20,7 @@ import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import screenPermissionService, {Screen} from '../services/screenPermissionService';
+import useDebounce from '../hooks/useDebounce';
 import {
   GridIcon,
   PlusIcon,
@@ -63,6 +64,7 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   });
   const [filteredScreens, setFilteredScreens] = useState<Screen[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -85,18 +87,22 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
     if (visible && token) {
       loadData();
     }
-  }, [visible, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, token, debouncedSearch]);
 
   useEffect(() => {
     filterScreens();
-  }, [searchQuery, categoryFilter, screens]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryFilter, screens]);
 
   const loadData = async () => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await screenPermissionService.getAllScreens(token);
+      const data = await screenPermissionService.getAllScreens(token, {
+        search: debouncedSearch,
+      });
       console.log('[ScreenManagementScreen] Data loaded:', data?.length || 0);
       setScreens(Array.isArray(data) ? data : []);
     } catch (error: any) {
@@ -110,18 +116,9 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
     }
   };
 
+  // Text search runs on the backend; only the category facet is applied locally.
   const filterScreens = () => {
     let filtered = screens;
-
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        screen =>
-          screen.displayName.toLowerCase().includes(query) ||
-          screen.name.toLowerCase().includes(query) ||
-          screen.path.toLowerCase().includes(query)
-      );
-    }
 
     if (categoryFilter) {
       filtered = filtered.filter(screen => screen.category === categoryFilter);

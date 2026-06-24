@@ -26,9 +26,12 @@ export interface UserWithPermissions {
 
 class ScreenPermissionService {
   // Get all screens
-  async getAllScreens(token: string): Promise<Screen[]> {
+  async getAllScreens(token: string, params: {search?: string} = {}): Promise<Screen[]> {
     try {
-      const url = `${API_BASE_URL}/screen-permissions/screens`;
+      const queryParams = new URLSearchParams();
+      if (params.search) queryParams.append('search', params.search);
+      const qs = queryParams.toString();
+      const url = `${API_BASE_URL}/screen-permissions/screens${qs ? `?${qs}` : ''}`;
       console.log('[ScreenPermissionService] Fetching all screens from:', url);
 
       const response = await fetch(url, {

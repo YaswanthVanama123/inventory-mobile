@@ -1,9 +1,12 @@
 import {API_BASE_URL} from '../config/api';
 
 class SalesReportService {
-  async getSalesReport(token: string) {
+  async getSalesReport(token: string, params: {search?: string} = {}) {
     try {
-      const response = await fetch(`${API_BASE_URL}/routestar-items/sales-report`, {
+      const queryParams = new URLSearchParams();
+      if (params.search) queryParams.append('search', params.search);
+      const qs = queryParams.toString();
+      const response = await fetch(`${API_BASE_URL}/routestar-items/sales-report${qs ? `?${qs}` : ''}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

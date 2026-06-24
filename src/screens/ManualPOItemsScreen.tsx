@@ -20,6 +20,7 @@ import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import manualPOItemService, {ManualPOItem} from '../services/manualPOItemService';
+import useDebounce from '../hooks/useDebounce';
 import {
   AlertCircleIcon,
   ChevronDownIcon,
@@ -49,6 +50,7 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<ManualPOItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
@@ -69,39 +71,24 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
     }
   }, [visible, token]);
 
+  // Refetch from the backend whenever the debounced search text changes.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (visible && token) {
-        loadData();
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    if (visible && token) {
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
 
   const loadData = async () => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await manualPOItemService.getManualPOItems(token);
+      const data = await manualPOItemService.getManualPOItems(token, {search: debouncedSearch});
       console.log('[ManualPOItemsScreen] Data loaded:', data?.length || 0);
 
-      // Ensure data is an array
-      const items = Array.isArray(data) ? data : [];
-
-      // Filter by search query if present
-      let filteredData = items;
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        filteredData = items.filter(
-          item =>
-            item.sku.toLowerCase().includes(query) ||
-            item.name.toLowerCase().includes(query) ||
-            (item.description && item.description.toLowerCase().includes(query))
-        );
-      }
-
-      setItems(filteredData);
+      // Backend already applied the search filter; render the result directly.
+      setItems(Array.isArray(data) ? data : []);
     } catch (error: any) {
       console.error('Failed to fetch manual PO items:', error);
       const wasHandled = await handleApiError(error);

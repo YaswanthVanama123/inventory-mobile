@@ -13,8 +13,11 @@ export interface Vendor {
 }
 
 class VendorService {
-  async getVendors(token: string): Promise<Vendor[]> {
-    const response = await fetch(`${API_BASE_URL}/vendors`, {
+  async getVendors(token: string, params: {search?: string} = {}): Promise<Vendor[]> {
+    const queryParams = new URLSearchParams();
+    if (params.search) queryParams.append('search', params.search);
+    const qs = queryParams.toString();
+    const response = await fetch(`${API_BASE_URL}/vendors${qs ? `?${qs}` : ''}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',

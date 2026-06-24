@@ -19,6 +19,7 @@ import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import discrepancyService from '../services/discrepancyService';
+import useDebounce from '../hooks/useDebounce';
 import {
   AlertCircleIcon,
   CheckCircleIcon,
@@ -91,6 +92,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   const [summary, setSummary] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [searchText, setSearchText] = useState('');
+  const debouncedSearch = useDebounce(searchText, 400);
   const [filters, setFilters] = useState({
     status: '',
     type: '',
@@ -100,7 +102,8 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     if (visible) {
       loadData();
     }
-  }, [visible, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, filters, debouncedSearch]);
 
   const loadData = async () => {
     try {
@@ -111,6 +114,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           limit: 100,
           status: filters.status,
           type: filters.type,
+          search: debouncedSearch,
         }),
         discrepancyService.getSummary(),
       ]);
@@ -243,17 +247,10 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     }
   };
 
+  // Text search runs on the backend; only the source tab is filtered locally.
   const filteredDiscrepancies = discrepancies.filter(d => {
     const source = getDiscrepancySource(d);
     if (activeTab !== 'all' && source !== activeTab) return false;
-    if (searchText) {
-      const search = searchText.toLowerCase();
-      return (
-        d.itemName?.toLowerCase().includes(search) ||
-        d.invoiceNumber?.toLowerCase().includes(search) ||
-        (d.itemSku && d.itemSku.toLowerCase().includes(search))
-      );
-    }
     return true;
   });
 

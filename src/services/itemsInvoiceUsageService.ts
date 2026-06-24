@@ -28,12 +28,16 @@ export interface InvoiceUsageTotals {
 }
 
 class ItemsInvoiceUsageService {
-  // Backend route is /routestar/items/invoice-usage and takes no query params —
-  // it returns all items with their invoices. Filtering happens client-side.
+  // Backend route is /routestar/items/invoice-usage and now supports a ?search=
+  // query param (matches itemName + aliases server-side).
   async getItemsUsage(
     token: string,
+    params: {search?: string} = {},
   ): Promise<{items: ItemUsage[]; totals: InvoiceUsageTotals}> {
-    const url = `${API_BASE_URL}/routestar/items/invoice-usage`;
+    const queryParams = new URLSearchParams();
+    if (params.search) queryParams.append('search', params.search);
+    const qs = queryParams.toString();
+    const url = `${API_BASE_URL}/routestar/items/invoice-usage${qs ? `?${qs}` : ''}`;
     console.log('[ItemsInvoiceUsageService] Fetching items usage from:', url);
 
     const response = await fetch(url, {

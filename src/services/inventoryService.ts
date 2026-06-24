@@ -12,9 +12,10 @@ interface InventoryParams {
 }
 
 class InventoryService {
-  async getGroupedItems(token: string) {
+  async getGroupedItems(token: string, search = '') {
     try {
-      const response = await fetch(`${API_BASE_URL}/customerconnect/items/grouped`, {
+      const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+      const response = await fetch(`${API_BASE_URL}/customerconnect/items/grouped${qs}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -30,9 +31,10 @@ class InventoryService {
       throw error;
     }
   }
-  async getGroupedSalesItems(token: string) {
+  async getGroupedSalesItems(token: string, search = '') {
     try {
-      const response = await fetch(`${API_BASE_URL}/routestar/items/grouped`, {
+      const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+      const response = await fetch(`${API_BASE_URL}/routestar/items/grouped${qs}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

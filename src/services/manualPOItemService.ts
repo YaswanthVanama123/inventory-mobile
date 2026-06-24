@@ -12,8 +12,11 @@ export interface ManualPOItem {
 }
 
 class ManualPOItemService {
-  async getManualPOItems(token: string): Promise<ManualPOItem[]> {
-    const response = await fetch(`${API_BASE_URL}/manual-po-items`, {
+  async getManualPOItems(token: string, params: {search?: string} = {}): Promise<ManualPOItem[]> {
+    const queryParams = new URLSearchParams();
+    if (params.search) queryParams.append('search', params.search);
+    const qs = queryParams.toString();
+    const response = await fetch(`${API_BASE_URL}/manual-po-items${qs ? `?${qs}` : ''}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
