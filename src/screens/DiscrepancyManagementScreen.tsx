@@ -11,6 +11,7 @@ import {
   TextInput,
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -19,6 +20,7 @@ import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import discrepancyService from '../services/discrepancyService';
+import orderDiscrepancyService from '../services/orderDiscrepancyService';
 import useDebounce from '../hooks/useDebounce';
 import {
   AlertCircleIcon,
@@ -34,12 +36,51 @@ interface DiscrepancyManagementScreenProps {
   onClose: () => void;
 }
 
+const TOP_TABS = [
+  {id: 'stock', label: 'Checkout / Stock'},
+  {id: 'order', label: 'Order'},
+];
+
 const TABS = [
   {id: 'all', label: 'All'},
   {id: 'truck-return', label: 'Truck Return'},
   {id: 'stock-check', label: 'Stock Check'},
   {id: 'stock-adjustment', label: 'Adjustment'},
 ];
+
+const PAGE_SIZE = 20;
+
+const getOrderTypeColors = (type: string) => {
+  switch (type) {
+    case 'Shortage':
+      return {bg: '#fff7ed', text: '#c2410c'};
+    case 'Overage':
+      return {bg: '#eff6ff', text: '#1d4ed8'};
+    case 'Matched':
+      return {bg: '#ecfdf5', text: '#047857'};
+    default:
+      return {bg: '#f8fafc', text: '#475569'};
+  }
+};
+
+const getOrderDiffColor = (qty: number) => {
+  if (qty > 0) return '#1d4ed8';
+  if (qty < 0) return '#c2410c';
+  return '#047857';
+};
+
+const getOrderStatusColors = (status: string, theme: Theme) => {
+  switch (status) {
+    case 'pending':
+      return {bg: theme.colors.primary[100], text: theme.colors.primary[700]};
+    case 'approved':
+      return {bg: theme.colors.success[100], text: theme.colors.success[700]};
+    case 'rejected':
+      return {bg: theme.colors.error[100], text: theme.colors.error[700]};
+    default:
+      return {bg: theme.colors.gray[100], text: theme.colors.gray[700]};
+  }
+};
 
 const getDiscrepancySource = (discrepancy: any): string => {
   const invoiceNumber = discrepancy.invoiceNumber || '';
@@ -84,7 +125,8 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  const {user} = useAuth();
+  const {user, token} = useAuth();
+  const [topTab, setTopTab] = useState<'stock' | 'order'>('stock');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
@@ -97,21 +139,56 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     status: '',
     type: '',
   });
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  }>({total: 0, page: 1, limit: PAGE_SIZE, pages: 1});
+
+  // Order tab state
+  const [orderDiscrepancies, setOrderDiscrepancies] = useState<any[]>([]);
+  const [orderExpandedRow, setOrderExpandedRow] = useState<string | null>(null);
+  const [orderStatusFilter, setOrderStatusFilter] = useState('');
+  const [orderPage, setOrderPage] = useState(1);
+  const [orderPagination, setOrderPagination] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  }>({total: 0, page: 1, limit: PAGE_SIZE, pages: 1});
+
+  // Reset to page 1 when switching top tab, sub-tab, status filter, or search.
+  useEffect(() => {
+    setPage(1);
+  }, [topTab, activeTab, filters.status, debouncedSearch]);
 
   useEffect(() => {
-    if (visible) {
+    setOrderPage(1);
+  }, [topTab, orderStatusFilter]);
+
+  useEffect(() => {
+    if (visible && topTab === 'stock') {
       loadData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, filters, debouncedSearch]);
+  }, [visible, topTab, filters.status, debouncedSearch, page]);
+
+  useEffect(() => {
+    if (visible && topTab === 'order') {
+      loadOrderData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, topTab, orderStatusFilter, orderPage]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [discrepancyResponse, summaryResponse] = await Promise.all([
         discrepancyService.getDiscrepancies({
-          page: 1,
-          limit: 100,
+          page,
+          limit: PAGE_SIZE,
           status: filters.status,
           type: filters.type,
           search: debouncedSearch,
@@ -120,6 +197,15 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       ]);
       if (discrepancyResponse.success) {
         setDiscrepancies(discrepancyResponse.data?.discrepancies || []);
+        const p = discrepancyResponse.data?.pagination;
+        if (p) {
+          setPagination({
+            total: p.total || 0,
+            page: p.page || page,
+            limit: p.limit || PAGE_SIZE,
+            pages: p.pages || 1,
+          });
+        }
       }
       if (summaryResponse.success) {
         setSummary(summaryResponse.data);
@@ -133,9 +219,44 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     }
   };
 
+  const loadOrderData = async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      const params: any = {page: orderPage, limit: PAGE_SIZE};
+      if (orderStatusFilter) params.status = orderStatusFilter;
+      const response = await orderDiscrepancyService.getOrderDiscrepancies(
+        token,
+        params,
+      );
+      setOrderDiscrepancies(response.discrepancies || []);
+      const p = response.pagination as any;
+      setOrderPagination({
+        total: p?.total || 0,
+        page: p?.page || orderPage,
+        limit: p?.limit || PAGE_SIZE,
+        pages: p?.pages || 1,
+      });
+    } catch (error: any) {
+      console.error('Failed to load order discrepancies:', error);
+      Alert.alert('Error', 'Failed to load order discrepancies');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const reload = () => {
+    if (topTab === 'order') {
+      loadOrderData();
+    } else {
+      loadData();
+    }
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
-    loadData();
+    reload();
   };
 
   const handleApprove = async (discrepancyId: string) => {
@@ -197,6 +318,77 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
               await discrepancyService.deleteDiscrepancy(discrepancyId);
               Alert.alert('Success', 'Discrepancy deleted successfully');
               loadData();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to delete discrepancy');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleOrderApprove = (id: string) => {
+    Alert.alert(
+      'Approve Discrepancy',
+      'Are you sure you want to approve this order discrepancy?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Approve',
+          onPress: async () => {
+            if (!token) return;
+            try {
+              await orderDiscrepancyService.approveOrderDiscrepancy(token, id);
+              Alert.alert('Success', 'Order discrepancy approved');
+              loadOrderData();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to approve discrepancy');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleOrderReject = (id: string) => {
+    Alert.alert(
+      'Reject Discrepancy',
+      'Are you sure you want to reject this order discrepancy?',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token) return;
+            try {
+              await orderDiscrepancyService.rejectOrderDiscrepancy(token, id);
+              Alert.alert('Success', 'Order discrepancy rejected');
+              loadOrderData();
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to reject discrepancy');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleOrderDelete = (id: string) => {
+    Alert.alert(
+      'Delete Discrepancy',
+      'Are you sure you want to delete this order discrepancy? This action cannot be undone.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!token) return;
+            try {
+              await orderDiscrepancyService.deleteOrderDiscrepancy(token, id);
+              Alert.alert('Success', 'Order discrepancy deleted');
+              loadOrderData();
             } catch (error: any) {
               Alert.alert('Error', error.message || 'Failed to delete discrepancy');
             }
@@ -270,7 +462,11 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
 
   const tabCounts = getTabCounts();
 
-  if (loading && discrepancies.length === 0) {
+  if (
+    loading &&
+    discrepancies.length === 0 &&
+    orderDiscrepancies.length === 0
+  ) {
     return (
       <Modal visible={visible} animationType="slide">
         <SafeAreaView style={styles.loadingContainer}>
@@ -285,6 +481,227 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       </Modal>
     );
   }
+
+  const renderOrderItem = ({item: discrepancy}: {item: any}) => {
+    const isExpanded = orderExpandedRow === discrepancy._id;
+    const typeColors = getOrderTypeColors(discrepancy.discrepancyType);
+    const statusColors = getOrderStatusColors(discrepancy.status, theme);
+
+    return (
+      <Card variant="elevated" padding="none" style={styles.discrepancyCard}>
+        <TouchableOpacity
+          style={[
+            styles.discrepancyHeader,
+            isExpanded && {backgroundColor: '#f0f9ff'},
+          ]}
+          onPress={() =>
+            setOrderExpandedRow(isExpanded ? null : discrepancy._id)
+          }
+          activeOpacity={0.7}>
+          <View style={styles.discrepancyHeaderLeft}>
+            {isExpanded ? (
+              <ChevronDownIcon size={18} color={theme.colors.primary[600]} />
+            ) : (
+              <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
+            )}
+            <View style={{marginLeft: 10, flex: 1}}>
+              <View style={styles.orderTitleRow}>
+                <Typography variant="body" weight="semibold" numberOfLines={1}>
+                  {discrepancy.itemName}
+                </Typography>
+                {discrepancy.sku ? (
+                  <View style={styles.skuBadge}>
+                    <Typography variant="caption" color={theme.colors.gray[600]}>
+                      {discrepancy.sku}
+                    </Typography>
+                  </View>
+                ) : null}
+              </View>
+              <View style={styles.rowMeta}>
+                <Typography variant="caption" color={theme.colors.gray[600]}>
+                  Order #{discrepancy.orderNumber}
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[400]}>
+                  {' • '}
+                  {formatDate(discrepancy.reportedAt)}
+                </Typography>
+              </View>
+            </View>
+          </View>
+          <View style={styles.rowRight}>
+            <View
+              style={[
+                styles.diffBadge,
+                {
+                  backgroundColor:
+                    discrepancy.discrepancyQuantity > 0
+                      ? '#dbeafe'
+                      : discrepancy.discrepancyQuantity < 0
+                      ? '#ffedd5'
+                      : '#d1fae5',
+                },
+              ]}>
+              <Typography
+                variant="small"
+                weight="bold"
+                color={getOrderDiffColor(discrepancy.discrepancyQuantity)}>
+                {discrepancy.discrepancyQuantity > 0 ? '+' : ''}
+                {discrepancy.discrepancyQuantity}
+              </Typography>
+            </View>
+            <View style={[styles.badge, {backgroundColor: typeColors.bg}]}>
+              <Typography
+                variant="caption"
+                weight="semibold"
+                color={typeColors.text}>
+                {discrepancy.discrepancyType}
+              </Typography>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {isExpanded && (
+          <View style={styles.expandedPanel}>
+            {/* Status badge */}
+            <View style={styles.sourceRow}>
+              <View style={[styles.badge, {backgroundColor: statusColors.bg}]}>
+                <Typography
+                  variant="caption"
+                  weight="semibold"
+                  color={statusColors.text}>
+                  {discrepancy.status}
+                </Typography>
+              </View>
+            </View>
+
+            {/* Quantities Grid */}
+            <View style={styles.quantityGrid}>
+              <View style={styles.quantityBox}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Expected
+                </Typography>
+                <Typography variant="h3" weight="bold">
+                  {discrepancy.expectedQuantity}
+                </Typography>
+              </View>
+              <View style={styles.quantityArrow}>
+                <Typography variant="body" color={theme.colors.gray[400]}>
+                  →
+                </Typography>
+              </View>
+              <View style={styles.quantityBox}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Received
+                </Typography>
+                <Typography variant="h3" weight="bold">
+                  {discrepancy.receivedQuantity}
+                </Typography>
+              </View>
+              <View style={styles.quantityArrow}>
+                <Typography variant="body" color={theme.colors.gray[400]}>
+                  =
+                </Typography>
+              </View>
+              <View style={styles.quantityBox}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Diff
+                </Typography>
+                <Typography
+                  variant="h3"
+                  weight="bold"
+                  color={getOrderDiffColor(discrepancy.discrepancyQuantity)}>
+                  {discrepancy.discrepancyQuantity > 0 ? '+' : ''}
+                  {discrepancy.discrepancyQuantity}
+                </Typography>
+              </View>
+            </View>
+
+            {/* Details */}
+            <View style={styles.detailSection}>
+              <View style={styles.detailRow}>
+                <Typography variant="small" color={theme.colors.gray[500]}>
+                  Order #
+                </Typography>
+                <Typography variant="small" weight="semibold">
+                  {discrepancy.orderNumber}
+                </Typography>
+              </View>
+              {discrepancy.sku && (
+                <View style={styles.detailRow}>
+                  <Typography variant="small" color={theme.colors.gray[500]}>
+                    SKU
+                  </Typography>
+                  <Typography variant="small" weight="semibold">
+                    {discrepancy.sku}
+                  </Typography>
+                </View>
+              )}
+              {discrepancy.reportedBy && (
+                <View style={styles.detailRow}>
+                  <Typography variant="small" color={theme.colors.gray[500]}>
+                    Reported By
+                  </Typography>
+                  <Typography variant="small" weight="semibold">
+                    {discrepancy.reportedBy.fullName ||
+                      discrepancy.reportedBy.username ||
+                      'N/A'}
+                  </Typography>
+                </View>
+              )}
+              <View style={styles.detailRow}>
+                <Typography variant="small" color={theme.colors.gray[500]}>
+                  Date
+                </Typography>
+                <Typography variant="small" weight="semibold">
+                  {new Date(discrepancy.reportedAt).toLocaleString()}
+                </Typography>
+              </View>
+            </View>
+
+            {/* Approve / Reject for pending */}
+            {discrepancy.status === 'pending' && (
+              <View style={styles.actionRow}>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.approveButton]}
+                  onPress={() => handleOrderApprove(discrepancy._id)}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={theme.colors.success[700]}>
+                    Approve
+                  </Typography>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.rejectButton]}
+                  onPress={() => handleOrderReject(discrepancy._id)}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={theme.colors.error[700]}>
+                    Reject
+                  </Typography>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Delete (admin) */}
+            {user?.role === 'admin' && (
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleOrderDelete(discrepancy._id)}>
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  color={theme.colors.error[600]}>
+                  Delete Discrepancy
+                </Typography>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+      </Card>
+    );
+  };
 
   return (
     <Modal visible={visible} animationType="slide">
@@ -306,6 +723,34 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           </TouchableOpacity>
         </View>
 
+        {/* Top-level Tab Switcher */}
+        <View style={styles.topTabContainer}>
+          {TOP_TABS.map(tab => {
+            const isActive = topTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[styles.topTabButton, isActive && styles.topTabButtonActive]}
+                onPress={() => {
+                  setTopTab(tab.id as 'stock' | 'order');
+                  setExpandedRow(null);
+                  setOrderExpandedRow(null);
+                }}>
+                <Typography
+                  variant="body"
+                  weight="semibold"
+                  color={
+                    isActive ? theme.colors.primary[700] : theme.colors.gray[600]
+                  }>
+                  {tab.label}
+                </Typography>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {topTab === 'stock' && (
+          <>
         {/* Summary Cards */}
         {summary && (
           <View style={styles.summaryContainer}>
@@ -441,8 +886,19 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           contentContainerStyle={styles.listContent}
           refreshing={refreshing}
           onRefresh={onRefresh}
-          resetKey={`${activeTab}|${searchText}|${filters.status}`}
+          pagedMode
+          scrollTopKey={page}
+          resetKey={`${activeTab}|${searchText}|${filters.status}|${page}`}
           ItemSeparatorComponent={() => <View style={{height: 0}} />}
+          ListFooterComponent={
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.pages}
+              totalItems={pagination.total}
+              pageSize={pagination.limit}
+              onPageChange={setPage}
+            />
+          }
           ListEmptyComponent={
             <Card variant="elevated" padding="lg" style={styles.emptyCard}>
               <AlertCircleIcon size={48} color={theme.colors.gray[400]} />
@@ -763,6 +1219,89 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
             );
           }}
         />
+          </>
+        )}
+
+        {topTab === 'order' && (
+          <>
+            {/* Order Status Filter */}
+            <View style={styles.filterContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterContent}>
+                {[
+                  {id: '', label: 'All Status'},
+                  {id: 'pending', label: 'Pending'},
+                  {id: 'approved', label: 'Approved'},
+                  {id: 'rejected', label: 'Rejected'},
+                ].map(opt => {
+                  const isActive = orderStatusFilter === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id || 'all'}
+                      style={[
+                        styles.filterButton,
+                        isActive && styles.filterButtonActive,
+                      ]}
+                      onPress={() => setOrderStatusFilter(opt.id)}>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={
+                          isActive ? theme.colors.white : theme.colors.gray[700]
+                        }>
+                        {opt.label}
+                      </Typography>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Order Discrepancy List */}
+            <PaginatedList
+              data={orderDiscrepancies}
+              keyExtractor={(item) => item._id}
+              style={styles.listContainer}
+              contentContainerStyle={styles.listContent}
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              pagedMode
+              scrollTopKey={orderPage}
+              resetKey={`${orderStatusFilter}|${orderPage}`}
+              ItemSeparatorComponent={() => <View style={{height: 0}} />}
+              ListFooterComponent={
+                <Pagination
+                  currentPage={orderPagination.page}
+                  totalPages={orderPagination.pages}
+                  totalItems={orderPagination.total}
+                  pageSize={orderPagination.limit}
+                  onPageChange={setOrderPage}
+                />
+              }
+              ListEmptyComponent={
+                <Card variant="elevated" padding="lg" style={styles.emptyCard}>
+                  <AlertCircleIcon size={48} color={theme.colors.gray[400]} />
+                  <Typography
+                    variant="h3"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}
+                    style={{marginTop: 16}}>
+                    No Order Discrepancies
+                  </Typography>
+                  <Typography
+                    variant="body"
+                    color={theme.colors.gray[500]}
+                    align="center">
+                    Discrepancies will appear here when orders are verified
+                  </Typography>
+                </Card>
+              }
+              renderItem={renderOrderItem}
+            />
+          </>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -790,6 +1329,54 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   closeButton: {
     padding: 8,
+  },
+  topTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[200],
+    paddingHorizontal: theme.spacing.lg,
+  },
+  topTabButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  topTabButtonActive: {
+    borderBottomColor: theme.colors.primary[600],
+  },
+  orderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  skuBadge: {
+    backgroundColor: theme.colors.gray[100],
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: theme.spacing.sm,
+  },
+  actionButton: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  approveButton: {
+    backgroundColor: theme.colors.success[100],
+    borderColor: theme.colors.success[200] || theme.colors.success[100],
+  },
+  rejectButton: {
+    backgroundColor: theme.colors.error[100],
+    borderColor: theme.colors.error[200] || theme.colors.error[100],
   },
   summaryContainer: {
     paddingHorizontal: theme.spacing.lg,

@@ -13,6 +13,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -64,6 +65,10 @@ export const OrderVerificationScreen: React.FC<
       fetchOrder();
     }
   }, [orderNumber, token]);
+
+  // Re-fetch the order whenever this screen regains focus so the receiving
+  // quantities reflect any verification done elsewhere.
+  useRefetchOnFocus(() => fetchOrder());
 
   useEffect(() => {
     const discrepancies = items.some(item => {

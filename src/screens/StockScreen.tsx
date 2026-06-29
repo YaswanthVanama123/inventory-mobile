@@ -141,7 +141,10 @@ export const StockScreen = () => {
   }, [token]);
 
   // Refresh when returning to this tab (after creates/deletes/sync elsewhere).
-  useRefetchOnFocus(() => loadData());
+  useRefetchOnFocus(() => {
+    loadData();
+    refreshExpandedCategories();
+  });
 
   // Debounced backend fuzzy/partial search.
   useEffect(() => {
@@ -227,6 +230,7 @@ export const StockScreen = () => {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+    refreshExpandedCategories();
   };
 
   const resetExpansionState = () => {
@@ -279,6 +283,26 @@ export const StockScreen = () => {
     if (newExpanded.has(skuId)) newExpanded.delete(skuId);
     else newExpanded.add(skuId);
     setExpandedSKUs(newExpanded);
+  };
+
+  // Force-refetch one category's detail (SKUs, sales/checkout history, and its
+  // discrepancy list) and overwrite the cache — used after adding a discrepancy
+  // and on focus so an open category shows fresh data without a collapse/expand.
+  const refreshCategory = async (categoryName: string) => {
+    if (!token || !categoryName) return;
+    try {
+      const response = await stockService.getCategorySales(token, categoryName);
+      setCategorySkuData(prev => ({...prev, [categoryName]: response.skus || []}));
+      setCategorySalesHistory(prev => ({...prev, [categoryName]: response.categorySalesHistory || []}));
+      setCategoryCheckoutHistory(prev => ({...prev, [categoryName]: response.categoryCheckoutHistory || []}));
+      setCategoryDiscrepancies(prev => ({...prev, [categoryName]: response.categoryDiscrepancies || []}));
+    } catch (err) {
+      // Non-fatal: the summary still refreshes via loadData.
+    }
+  };
+
+  const refreshExpandedCategories = () => {
+    expandedCategories.forEach(c => refreshCategory(c));
   };
 
   const toggleCategorySales = (categoryName: string) => {
@@ -351,6 +375,7 @@ export const StockScreen = () => {
     }
     try {
       setSubmittingDiscrepancy(true);
+      const affectedCategory = prefilledItem.categoryName;
       const data = {
         itemName: prefilledItem.itemName,
         itemSku: prefilledItem.itemSku,
@@ -366,7 +391,10 @@ export const StockScreen = () => {
       setShowDiscrepancyModal(false);
       setPrefilledItem(null);
       setDiscrepancyFormData({actualQuantity: 0, discrepancyType: '', reason: '', notes: ''});
+      // Refresh the summary AND the affected category's detail so the new
+      // discrepancy shows immediately in the open category (its detail is cached).
       loadData();
+      refreshCategory(affectedCategory);
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to record discrepancy');
     } finally {

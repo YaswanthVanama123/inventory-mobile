@@ -221,6 +221,7 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
       const newExpanded = new Set(expandedModels);
       newExpanded.delete(modelNumber);
       setExpandedModels(newExpanded);
+      loadData();
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to save mapping');
     } finally {

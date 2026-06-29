@@ -14,6 +14,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
 import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
@@ -47,6 +48,7 @@ export const TruckCheckoutListScreen = () => {
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token, user} = useAuth();
+  const isAdmin = user?.role === 'admin';
   const navigation = useNavigation<any>();
   const {handleApiError} = useApiErrorHandler();
   const [activeTab, setActiveTab] = useState<TabType>('checkouts');
@@ -100,7 +102,7 @@ export const TruckCheckoutListScreen = () => {
         loadSalesEmployees();
       }
     }
-  }, [activeTab, checkoutsSubTab, salesSubTab, statusFilter, employeeFilter, searchTerm, pagination.page]);
+  }, [activeTab, checkoutsSubTab, salesSubTab, statusFilter, employeeFilter, searchTerm, pagination.page, pagination.limit]);
 
   // Refresh the active tab/sub-tab when returning to this screen (e.g. after a checkout).
   useRefetchOnFocus(() => {
@@ -181,7 +183,11 @@ export const TruckCheckoutListScreen = () => {
     try {
       setLoading(true);
       const myName = user.fullName || user.username;
-      const result = await truckCheckoutService.getCheckouts(token, {employeeName: myName, limit: 500});
+      const result = await truckCheckoutService.getCheckouts(token, {
+        employeeName: myName,
+        page: pagination.page,
+        limit: pagination.limit,
+      });
       const allCheckouts: any[] = result.checkouts || [];
       const itemMap = new Map<string, any>();
       allCheckouts.forEach((checkout: any) => {
@@ -230,6 +236,7 @@ export const TruckCheckoutListScreen = () => {
       if (isMounted) {
         setMyItems(items);
         setMyTotals(totals);
+        setPagination(result.pagination || {total: 0, page: 1, limit: 50, pages: 0});
       }
     } catch (err: any) {
       console.error('Load my checkouts error:', err);
@@ -601,7 +608,10 @@ export const TruckCheckoutListScreen = () => {
           <View style={styles.tabsCard}>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'checkouts' && styles.tabActive]}
-              onPress={() => setActiveTab('checkouts')}
+              onPress={() => {
+                setActiveTab('checkouts');
+                setPagination(prev => ({...prev, page: 1}));
+              }}
               activeOpacity={0.85}>
               <TruckIcon size={14} color={activeTab === 'checkouts' ? theme.colors.white : theme.colors.gray[600]} />
               <Typography
@@ -613,7 +623,10 @@ export const TruckCheckoutListScreen = () => {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.tab, activeTab === 'sales' && styles.tabActive]}
-              onPress={() => setActiveTab('sales')}
+              onPress={() => {
+                setActiveTab('sales');
+                setPagination(prev => ({...prev, page: 1}));
+              }}
               activeOpacity={0.85}>
               <CheckCircleIcon size={14} color={activeTab === 'sales' ? theme.colors.white : theme.colors.gray[600]} />
               <Typography
@@ -629,11 +642,16 @@ export const TruckCheckoutListScreen = () => {
         {activeTab === 'checkouts' && (
           <View style={styles.subTabsWrap}>
             {(
-              [
-                {key: 'all', label: 'All Checkouts'},
-                {key: 'mine', label: 'My Items'},
-                {key: 'employees', label: 'By Employee'},
-              ] as const
+              (isAdmin
+                ? [
+                    {key: 'all', label: 'All Checkouts'},
+                    {key: 'mine', label: 'My Items'},
+                    {key: 'employees', label: 'By Employee'},
+                  ]
+                : [
+                    {key: 'all', label: 'My Checkouts'},
+                    {key: 'mine', label: 'My Items'},
+                  ]) as {key: SubTabType; label: string}[]
             ).map(opt => {
               const active = checkoutsSubTab === opt.key;
               return (
@@ -644,6 +662,7 @@ export const TruckCheckoutListScreen = () => {
                     setCheckoutsSubTab(opt.key);
                     setExpandedEmployee(null);
                     setEmployeeCheckouts([]);
+                    setPagination(prev => ({...prev, page: 1}));
                     if (opt.key !== 'all') setCheckouts([]);
                   }}
                   activeOpacity={0.85}>
@@ -662,10 +681,12 @@ export const TruckCheckoutListScreen = () => {
         {activeTab === 'sales' && (
           <View style={styles.subTabsWrap}>
             {(
-              [
-                {key: 'all', label: 'All Sales'},
-                {key: 'employees', label: 'By Employee'},
-              ] as const
+              (isAdmin
+                ? [
+                    {key: 'all', label: 'All Sales'},
+                    {key: 'employees', label: 'By Employee'},
+                  ]
+                : [{key: 'all', label: 'My Sales'}]) as {key: SubTabType; label: string}[]
             ).map(opt => {
               const active = salesSubTab === opt.key;
               return (
@@ -734,7 +755,10 @@ export const TruckCheckoutListScreen = () => {
                             styles.statusFilter,
                             statusFilter === status && styles.statusFilterActive,
                           ]}
-                          onPress={() => setStatusFilter(status)}
+                          onPress={() => {
+                            setStatusFilter(status);
+                            setPagination(prev => ({...prev, page: 1}));
+                          }}
                           activeOpacity={0.85}>
                           <Typography
                             variant="caption"
@@ -758,7 +782,10 @@ export const TruckCheckoutListScreen = () => {
                       <RNTextInput
                         style={styles.filterInput}
                         value={employeeFilter}
-                        onChangeText={setEmployeeFilter}
+                        onChangeText={text => {
+                          setEmployeeFilter(text);
+                          setPagination(prev => ({...prev, page: 1}));
+                        }}
                         placeholder="Filter by employee name"
                         placeholderTextColor={theme.colors.gray[400]}
                       />
@@ -1021,6 +1048,14 @@ export const TruckCheckoutListScreen = () => {
                 })}
               </View>
             )}
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.pages}
+              totalItems={pagination.total}
+              pageSize={pagination.limit}
+              onPageChange={p => setPagination(prev => ({...prev, page: p}))}
+              onPageSizeChange={s => setPagination(prev => ({...prev, limit: s, page: 1}))}
+            />
           </>
         )}
 
@@ -1100,6 +1135,14 @@ export const TruckCheckoutListScreen = () => {
                 ))}
               </View>
             )}
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.pages}
+              totalItems={pagination.total}
+              pageSize={pagination.limit}
+              onPageChange={p => setPagination(prev => ({...prev, page: p}))}
+              onPageSizeChange={s => setPagination(prev => ({...prev, limit: s, page: 1}))}
+            />
           </>
         )}
 

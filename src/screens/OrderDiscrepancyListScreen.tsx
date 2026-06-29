@@ -10,10 +10,12 @@ import {
   Alert,
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -44,24 +46,50 @@ export const OrderDiscrepancyListScreen: React.FC<
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState('');
   const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    pages: 0,
+  });
+
+  // Reset to the first page whenever the type filter or search changes.
+  useEffect(() => {
+    setPage(1);
+  }, [typeFilter, searchText]);
 
   useEffect(() => {
     if (token) {
       loadData();
     }
-  }, [token, typeFilter]);
+  }, [token, typeFilter, searchText, page, pageSize]);
+
+  // Refresh the discrepancy list whenever this screen regains focus (e.g. after
+  // verifying an order, which can create new discrepancies).
+  useRefetchOnFocus(() => loadData());
 
   const loadData = async () => {
     if (!token) return;
     try {
       setLoading(true);
-      const params: any = {limit: 100};
+      const params: any = {page, limit: pageSize};
       if (typeFilter) params.discrepancyType = typeFilter;
+      if (searchText.trim()) params.search = searchText.trim();
       const [discrepanciesResponse, statsResponse] = await Promise.all([
         orderDiscrepancyService.getOrderDiscrepancies(token, params),
         orderDiscrepancyService.getOrderDiscrepancyStats(token),
       ]);
       setDiscrepancies(discrepanciesResponse.discrepancies);
+      setPagination(
+        discrepanciesResponse.pagination || {
+          total: 0,
+          page: 1,
+          limit: pageSize,
+          pages: 0,
+        },
+      );
       setStats(statsResponse);
     } catch (error: any) {
       console.error('Failed to fetch discrepancies:', error);
@@ -133,17 +161,8 @@ export const OrderDiscrepancyListScreen: React.FC<
     return '#047857';
   };
 
-  const filteredDiscrepancies = discrepancies.filter(d => {
-    if (searchText) {
-      const search = searchText.toLowerCase();
-      return (
-        d.itemName?.toLowerCase().includes(search) ||
-        d.orderNumber?.toLowerCase().includes(search) ||
-        (d.sku && d.sku.toLowerCase().includes(search))
-      );
-    }
-    return true;
-  });
+  // Search and type filtering are handled server-side; render the current page as-is.
+  const filteredDiscrepancies = discrepancies;
 
   const formatDate = (date: string) => {
     if (!date) return 'N/A';
@@ -263,8 +282,23 @@ export const OrderDiscrepancyListScreen: React.FC<
         contentContainerStyle={styles.listContent}
         refreshing={refreshing}
         onRefresh={onRefresh}
+        pagedMode
+        scrollTopKey={`${page}|${pageSize}`}
         resetKey={`${typeFilter}|${searchText}`}
         ItemSeparatorComponent={() => <View style={{height: 0}} />}
+        ListFooterComponent={
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={pagination.pages}
+            totalItems={pagination.total}
+            pageSize={pagination.limit}
+            onPageChange={setPage}
+            onPageSizeChange={size => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
+        }
         ListEmptyComponent={
           <Card style={styles.emptyCard}>
             <AlertCircleIcon size={48} color="#94a3b8" />

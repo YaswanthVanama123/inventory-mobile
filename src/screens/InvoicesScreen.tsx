@@ -14,6 +14,7 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {PaginatedList} from '../components/molecules/PaginatedList';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -62,6 +63,13 @@ export const InvoicesScreen = () => {
       setLoading(false);
     }
   }, [token, statusFilter, paymentStatusFilter, invoiceType]);
+
+  // Refetch invoices when returning to this screen (e.g. after a sync or edit elsewhere).
+  useRefetchOnFocus(() => {
+    if (token) {
+      fetchInvoices();
+    }
+  });
   useEffect(() => {
     if (!autoSyncEnabled || !isMounted || !token) return;
     const intervalMs = autoSyncInterval * 60 * 1000;

@@ -661,6 +661,16 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                 </Typography>
               </View>
             </View>
+            {/* Save pinned at the top for quick access. */}
+            <View style={styles.topActionBar}>
+              <Button
+                title={saving ? 'Saving...' : `Map ${quickMapSelectedItems.size} items`}
+                variant="primary"
+                onPress={quickMapSubmit}
+                disabled={saving || !quickCanonicalName.trim()}
+                fullWidth
+              />
+            </View>
             <ScrollView style={{flex: 1}} contentContainerStyle={styles.subModalContent}>
               <View style={styles.mainItemCard}>
                 <Typography
@@ -755,16 +765,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                     </TouchableOpacity>
                   );
                 })}
-              </View>
-
-              <View style={styles.actionButtons}>
-                <Button
-                  title={saving ? 'Saving...' : `Map ${quickMapSelectedItems.size} items`}
-                  variant="primary"
-                  onPress={quickMapSubmit}
-                  disabled={saving || !quickCanonicalName.trim()}
-                  fullWidth
-                />
               </View>
             </ScrollView>
           </SafeAreaView>
@@ -1142,7 +1142,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     selectedItemsContainer: {flexDirection: 'row', flexWrap: 'wrap', gap: 6},
     selectedItemChip: {
       paddingHorizontal: 10, paddingVertical: 4,
-      borderRadius: 999,
+      borderRadius: 8,
       backgroundColor: theme.colors.white,
       borderWidth: 1,
       borderColor: theme.colors.success[200],
@@ -1150,7 +1150,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     editAliasChip: {
       flexDirection: 'row', alignItems: 'center', gap: 5,
       paddingHorizontal: 10, paddingVertical: 4,
-      borderRadius: 999,
+      borderRadius: 8,
       backgroundColor: theme.colors.white,
       borderWidth: 1,
       borderColor: theme.colors.success[200],
@@ -1181,5 +1181,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     selectableItemContent: {flex: 1, gap: 2},
 
     actionButtons: {marginTop: theme.spacing.md},
+    topActionBar: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.sm,
+      backgroundColor: theme.colors.white,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.gray[200],
+    },
   });
 };

@@ -12,6 +12,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {useAuth} from '../contexts/AuthContext';
+import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -48,6 +49,9 @@ export const TruckCheckoutDetailScreen: React.FC<
       loadCheckout();
     }
   }, [token, checkoutId]);
+
+  // Refresh the detail when returning to this screen (e.g. after an edit elsewhere).
+  useRefetchOnFocus(() => loadCheckout());
 
   const loadCheckout = async () => {
     if (!token) return;
