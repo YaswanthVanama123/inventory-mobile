@@ -71,6 +71,22 @@ class AuthService {
       };
     }
   }
+  async changePassword(
+    token: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{success: boolean; error?: string}> {
+    try {
+      await this.request('/auth/change-password', {
+        method: 'PUT',
+        headers: {Authorization: `Bearer ${token}`},
+        body: JSON.stringify({currentPassword, newPassword}),
+      });
+      return {success: true};
+    } catch (error: any) {
+      return {success: false, error: error.userMessage || 'Failed to change password'};
+    }
+  }
   async logout(): Promise<void> {
   }
 }

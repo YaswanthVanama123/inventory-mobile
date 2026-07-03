@@ -76,7 +76,7 @@ export const OrderDiscrepancyListScreen: React.FC<
       setLoading(true);
       const params: any = {page, limit: pageSize};
       if (typeFilter) params.discrepancyType = typeFilter;
-      if (searchText.trim()) params.search = searchText.trim();
+      if (searchText.trim()) params.orderNumber = searchText.trim();
       const [discrepanciesResponse, statsResponse] = await Promise.all([
         orderDiscrepancyService.getOrderDiscrepancies(token, params),
         orderDiscrepancyService.getOrderDiscrepancyStats(token),
@@ -178,7 +178,7 @@ export const OrderDiscrepancyListScreen: React.FC<
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={theme.colors.primary[600]} />
           <Typography style={styles.loadingText}>
             Loading discrepancies...
           </Typography>
@@ -233,7 +233,7 @@ export const OrderDiscrepancyListScreen: React.FC<
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search order or item"
+          placeholder="Search by order number"
           placeholderTextColor="#94a3b8"
           value={searchText}
           onChangeText={setSearchText}
@@ -644,7 +644,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     backgroundColor: '#e2e8f0',
   },
   filterButtonActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary[600],
   },
   filterButtonText: {
     color: '#334155',

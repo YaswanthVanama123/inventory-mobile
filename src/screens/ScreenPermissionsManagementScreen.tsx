@@ -284,7 +284,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
                         <View style={styles.screenItemLeft}>
                           <Checkbox
                             checked={isChecked}
-                            onToggle={() => handleToggleDefaultScreen(screen._id)}
+                            onChange={() => handleToggleDefaultScreen(screen._id)}
                           />
                           <View style={styles.screenInfo}>
                             <Typography variant="body" weight="medium">
@@ -400,7 +400,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
                           <View style={styles.screenItemLeft}>
                             <Checkbox
                               checked={isSelected}
-                              onToggle={() => handleToggleUserScreen(screen._id)}
+                              onChange={() => handleToggleUserScreen(screen._id)}
                             />
                             <View style={styles.screenInfo}>
                               <View style={styles.screenTitleRow}>

@@ -1,4 +1,4 @@
-import React, {useMemo, useEffect, useRef} from 'react';
+import React, {useMemo, useEffect, useRef, useState} from 'react';
 import {
   View,
   StyleSheet,
@@ -7,10 +7,14 @@ import {
   TouchableOpacity,
   Animated,
   Easing,
+  Modal,
+  TextInput as RNTextInput,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Button} from '../components/atoms/Button';
+import authService from '../services/authService';
 import {useAuth} from '../contexts/AuthContext';
 import {useUserScreens} from '../hooks/useUserScreens';
 import {useTheme, useThemeContext} from '../contexts/ThemeContext';
@@ -36,6 +40,10 @@ import {
   CheckCircleIcon,
   ArrowRightIcon,
   TrashIcon,
+  UserIcon,
+  WarningIcon,
+  RefreshIcon,
+  KeyIcon,
 } from '../components/icons';
 import userService from '../services/userService';
 
@@ -108,6 +116,41 @@ const MenuSection: React.FC<MenuSectionProps> = ({theme, bp, eyebrow, rows}) => 
 
 export const AccountScreen = () => {
   const {user, token, logout} = useAuth();
+
+  // Change password modal
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [curPw, setCurPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [cpLoading, setCpLoading] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!token) return;
+    if (!curPw || !newPw) {
+      Alert.alert('Validation', 'Please fill in all fields');
+      return;
+    }
+    if (newPw.length < 6) {
+      Alert.alert('Validation', 'New password must be at least 6 characters');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      Alert.alert('Validation', 'New password and confirmation do not match');
+      return;
+    }
+    setCpLoading(true);
+    const res = await authService.changePassword(token, curPw, newPw);
+    setCpLoading(false);
+    if (res.success) {
+      setShowChangePassword(false);
+      setCurPw('');
+      setNewPw('');
+      setConfirmPw('');
+      Alert.alert('Success', 'Your password has been changed');
+    } else {
+      Alert.alert('Error', res.error || 'Failed to change password');
+    }
+  };
   const {hasAccessToScreen} = useUserScreens();
   const theme = useTheme();
   const bp = useBreakpoint();
@@ -265,9 +308,33 @@ export const AccountScreen = () => {
       onPress: () => openScreen('screenManagement'),
       visible: !!isAdmin && canSee('/admin/screens'),
     },
+    {
+      Icon: RefreshIcon,
+      title: 'QuickBooks Sync',
+      subtitle: 'Snapshot queue and retries',
+      tone: 'accent',
+      onPress: () => openScreen('quickBooksSync'),
+      visible: !!isAdmin && canSee('/system/quickbooks-sync'),
+    },
+    {
+      Icon: SettingsIcon,
+      title: 'Settings',
+      subtitle: 'Stock cutoff date & low-stock threshold',
+      tone: 'accent',
+      onPress: () => openScreen('settings'),
+      visible: !!isAdmin && canSee('/settings'),
+    },
   ];
 
   const inventoryRows: MenuRow[] = [
+    {
+      Icon: BoxIcon,
+      title: 'Item Catalog',
+      subtitle: 'Create, edit and view inventory items',
+      tone: 'info',
+      onPress: () => openScreen('inventoryCatalog'),
+      visible: canSee('/inventory'),
+    },
     {
       Icon: LinkIcon,
       title: 'Model Mapping',
@@ -293,12 +360,52 @@ export const AccountScreen = () => {
       visible: canSee('/routestar/items'),
     },
     {
+      Icon: UserIcon,
+      title: 'RouteStar Customers',
+      subtitle: 'Customer records and locations',
+      tone: 'info',
+      onPress: () => openScreen('routeStarCustomers'),
+      visible: canSee('/routestar/customers'),
+    },
+    {
+      Icon: UserIcon,
+      title: 'Closed Invoice Customers',
+      subtitle: 'Customers from closed invoices',
+      tone: 'info',
+      onPress: () => openScreen('closedInvoiceCustomers'),
+      visible: canSee('/routestar/closed-invoice-customers'),
+    },
+    {
       Icon: ClipboardIcon,
       title: 'Manual PO Items',
       subtitle: 'Items captured from manual orders',
       tone: 'info',
       onPress: () => openScreen('manualPOItems'),
       visible: canSee('/manual-po-items'),
+    },
+    {
+      Icon: GridIcon,
+      title: 'Units',
+      subtitle: 'Units of measurement',
+      tone: 'info',
+      onPress: () => openScreen('units'),
+      visible: !!isAdmin && canSee('/units'),
+    },
+    {
+      Icon: TagIcon,
+      title: 'Coupons & Payments',
+      subtitle: 'Coupons and payment types',
+      tone: 'info',
+      onPress: () => openScreen('coupons'),
+      visible: !!isAdmin && canSee('/coupons'),
+    },
+    {
+      Icon: BoxIcon,
+      title: 'Stock Reconciliation',
+      subtitle: 'In-stock / out-of-stock / oversold',
+      tone: 'info',
+      onPress: () => openScreen('stockReconciliation'),
+      visible: !!isAdmin && canSee('/stock-reconciliation'),
     },
   ];
 
@@ -335,9 +442,25 @@ export const AccountScreen = () => {
       onPress: () => openScreen('discrepancyManagement'),
       visible: canSee('/discrepancies'),
     },
+    {
+      Icon: CheckCircleIcon,
+      title: 'Approvals',
+      subtitle: 'Approve invoices & purchase deletions',
+      tone: 'success',
+      onPress: () => openScreen('approvals'),
+      visible: canSee('/approvals'),
+    },
   ];
 
   const reportsRows: MenuRow[] = [
+    {
+      Icon: BarChartIcon,
+      title: 'Reports Hub',
+      subtitle: 'Sales, profit, orders & low-stock overview',
+      tone: 'primary',
+      onPress: () => openScreen('reportsHub'),
+      visible: canSee('/reports'),
+    },
     {
       Icon: FileTextIcon,
       title: 'Sales Report',
@@ -345,6 +468,30 @@ export const AccountScreen = () => {
       tone: 'primary',
       onPress: () => openScreen('salesReport'),
       visible: canSee('/routestar/sales-report'),
+    },
+    {
+      Icon: BarChartIcon,
+      title: 'Sales Analytics',
+      subtitle: 'Date-range & category sales breakdown',
+      tone: 'primary',
+      onPress: () => openScreen('salesAnalytics'),
+      visible: canSee('/reports/sales'),
+    },
+    {
+      Icon: WarningIcon,
+      title: 'Low Stock Report',
+      subtitle: 'Items at or below reorder point',
+      tone: 'warning',
+      onPress: () => openScreen('lowStockReport'),
+      visible: canSee('/reports/low-stock'),
+    },
+    {
+      Icon: FileTextIcon,
+      title: 'Customer Export',
+      subtitle: 'Export closed-invoice customers (CSV)',
+      tone: 'primary',
+      onPress: () => openScreen('customerExport'),
+      visible: canSee('/reports/customer-export'),
     },
     {
       Icon: BarChartIcon,
@@ -563,6 +710,26 @@ export const AccountScreen = () => {
 
           <TouchableOpacity
             style={styles.deleteAccountButton}
+            onPress={() => setShowChangePassword(true)}
+            activeOpacity={0.9}>
+            <View style={styles.deleteIconWrap}>
+              <KeyIcon size={20} color={theme.colors.primary[600]} />
+            </View>
+            <View style={{flex: 1}}>
+              <Typography variant="body" weight="semibold" color={theme.colors.gray[800]}>
+                Change password
+              </Typography>
+              <Typography variant="caption" color={theme.colors.gray[500]} style={styles.actionSubtitle}>
+                Update your account password
+              </Typography>
+            </View>
+            <View style={styles.deleteArrow}>
+              <ArrowRightIcon size={16} color={theme.colors.gray[400]} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.deleteAccountButton}
             onPress={handleDeleteAccount}
             activeOpacity={0.9}>
             <View style={styles.deleteIconWrap}>
@@ -597,6 +764,61 @@ export const AccountScreen = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Change Password Modal */}
+      <Modal
+        visible={showChangePassword}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !cpLoading && setShowChangePassword(false)}>
+        <View style={styles.cpOverlay}>
+          <View style={styles.cpCard}>
+            <Typography variant="h3" weight="bold" style={{marginBottom: 12}}>
+              Change Password
+            </Typography>
+            <RNTextInput
+              style={styles.cpInput}
+              placeholder="Current password"
+              value={curPw}
+              onChangeText={setCurPw}
+              secureTextEntry
+              placeholderTextColor={theme.colors.gray[400]}
+            />
+            <RNTextInput
+              style={styles.cpInput}
+              placeholder="New password (min 6 chars)"
+              value={newPw}
+              onChangeText={setNewPw}
+              secureTextEntry
+              placeholderTextColor={theme.colors.gray[400]}
+            />
+            <RNTextInput
+              style={styles.cpInput}
+              placeholder="Confirm new password"
+              value={confirmPw}
+              onChangeText={setConfirmPw}
+              secureTextEntry
+              placeholderTextColor={theme.colors.gray[400]}
+            />
+            <View style={styles.cpActions}>
+              <Button
+                title="Cancel"
+                variant="ghost"
+                onPress={() => setShowChangePassword(false)}
+                disabled={cpLoading}
+                style={{flex: 1}}
+              />
+              <Button
+                title="Change Password"
+                variant="primary"
+                onPress={handleChangePassword}
+                loading={cpLoading}
+                style={{flex: 1}}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -934,6 +1156,35 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       backgroundColor: theme.colors.error[50],
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    cpOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(15, 23, 42, 0.45)',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+    },
+    cpCard: {
+      backgroundColor: theme.colors.white,
+      borderRadius: 16,
+      padding: 20,
+      width: '100%',
+      maxWidth: 460,
+      alignSelf: 'center',
+    },
+    cpInput: {
+      backgroundColor: theme.colors.white,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderWidth: 1,
+      borderColor: theme.colors.gray[200],
+      color: theme.colors.gray[900],
+      marginBottom: 10,
+    },
+    cpActions: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 6,
     },
     actionSubtitle: {
       marginTop: 2,

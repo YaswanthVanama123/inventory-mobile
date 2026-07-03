@@ -1,12 +1,12 @@
 import {useState, useEffect} from 'react';
-import screenPermissionService from '../services/screenPermissionService';
+import screenPermissionService, {Screen} from '../services/screenPermissionService';
 import {useAuth} from '../contexts/AuthContext';
 
 export const useUserScreens = () => {
   const {token} = useAuth();
-  const [userScreens, setUserScreens] = useState([]);
+  const [userScreens, setUserScreens] = useState<Screen[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) {
@@ -23,7 +23,7 @@ export const useUserScreens = () => {
       console.log('[useUserScreens] Loaded screens:', screens?.length || 0);
       setUserScreens(Array.isArray(screens) ? screens : []);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[useUserScreens] Error loading user screens:', err);
       setError(err.message || 'Failed to load permissions');
     } finally {
@@ -31,7 +31,7 @@ export const useUserScreens = () => {
     }
   };
 
-  const hasAccessToScreen = (path) => {
+  const hasAccessToScreen = (path: string) => {
     if (!path) return false;
 
     // Normalize paths for comparison (remove query params and trailing slashes)
@@ -52,7 +52,7 @@ export const useUserScreens = () => {
     });
   };
 
-  const hasAccessToAnyScreen = (paths) => {
+  const hasAccessToAnyScreen = (paths: string[]) => {
     if (!paths || paths.length === 0) return false;
     return paths.some(path => hasAccessToScreen(path));
   };

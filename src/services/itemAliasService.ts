@@ -95,6 +95,38 @@ class ItemAliasService {
       throw error;
     }
   }
+  async updateMapping(
+    token: string,
+    id: string,
+    data: {
+      canonicalName: string;
+      aliases: string[];
+      description?: string;
+      autoMerge?: boolean;
+    }
+  ) {
+    try {
+      const url = `${API_BASE_URL}/routestar-item-alias/mapping/${id}`;
+      console.log('[ItemAlias] Updating mapping:', id);
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      return result.data;
+    } catch (error: any) {
+      console.error('[ItemAlias] Update mapping error:', error.message);
+      throw error;
+    }
+  }
   async deleteMapping(token: string, id: string) {
     try {
       const url = `${API_BASE_URL}/routestar-item-alias/mapping/${id}`;

@@ -299,6 +299,50 @@ class TruckCheckoutService {
     }
   }
   /**
+   * Get checkout statistics for a single employee
+   * Returns: totalCheckouts, completedCheckouts, activeCheckouts, totalInvoices
+   */
+  async getEmployeeStats(
+    token: string,
+    employeeName: string,
+    startDate?: string,
+    endDate?: string
+  ) {
+    try {
+      const queryParams = new URLSearchParams();
+      if (startDate) queryParams.append('startDate', startDate);
+      if (endDate) queryParams.append('endDate', endDate);
+      const qs = queryParams.toString();
+      const url = `${API_BASE_URL}/truck-checkouts/stats/employee/${encodeURIComponent(
+        employeeName
+      )}${qs ? `?${qs}` : ''}`;
+      console.log('[TruckCheckout] Getting employee stats:', url);
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return {
+        totalCheckouts: 0,
+        completedCheckouts: 0,
+        activeCheckouts: 0,
+        totalInvoices: 0,
+      };
+    } catch (error: any) {
+      console.error('[TruckCheckout] Get employee stats error:', error.message);
+      throw error;
+    }
+  }
+  /**
    * Get a single checkout by ID
    */
   async getCheckout(token: string, checkoutId: string) {
@@ -324,6 +368,98 @@ class TruckCheckoutService {
       throw error;
     }
   }
+  /**
+   * Check work: fetch the given invoices and compare sold vs taken quantities
+   * without finalizing the checkout. Returns { comparison, summary }.
+   */
+  async checkWork(
+    token: string,
+    checkoutId: string,
+    invoiceNumbers: string[],
+    invoiceType: string = 'closed',
+  ) {
+    try {
+      const url = `${API_BASE_URL}/truck-checkouts/${checkoutId}/check-work`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({invoiceNumbers, invoiceType}),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err: any = new Error(result?.message || `API Error ${response.status}`);
+        err.response = {data: result};
+        throw err;
+      }
+      return result;
+    } catch (error: any) {
+      console.error('[TruckCheckout] Check work error:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete a checkout with the given invoice numbers.
+   */
+  async completeCheckout(
+    token: string,
+    checkoutId: string,
+    invoiceNumbers: string[],
+    invoiceType: string = 'closed',
+  ) {
+    try {
+      const url = `${API_BASE_URL}/truck-checkouts/${checkoutId}/complete`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({invoiceNumbers, invoiceType}),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err: any = new Error(result?.message || `API Error ${response.status}`);
+        err.response = {data: result};
+        throw err;
+      }
+      return result;
+    } catch (error: any) {
+      console.error('[TruckCheckout] Complete checkout error:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a checkout with an optional reason.
+   */
+  async cancelCheckout(token: string, checkoutId: string, reason: string = '') {
+    try {
+      const url = `${API_BASE_URL}/truck-checkouts/${checkoutId}/cancel`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({reason}),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err: any = new Error(result?.message || `API Error ${response.status}`);
+        err.response = {data: result};
+        throw err;
+      }
+      return result;
+    } catch (error: any) {
+      console.error('[TruckCheckout] Cancel checkout error:', error.message);
+      throw error;
+    }
+  }
+
   /**
    * Delete a checkout
    */

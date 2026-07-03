@@ -38,7 +38,15 @@ export const TruckCheckoutScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
 
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${mm}-${dd}`;
+  }, []);
+
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [checkoutDate, setCheckoutDate] = useState(todayStr);
   const [quantityTaking, setQuantityTaking] = useState('');
   const [remainingQuantity, setRemainingQuantity] = useState('');
   const [actualTruckInventory, setActualTruckInventory] = useState(''); // NEW: Employee's actual count on truck
@@ -170,6 +178,21 @@ export const TruckCheckoutScreen = () => {
       return;
     }
 
+    // Validate checkout date (YYYY-MM-DD, not in the future)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(checkoutDate)) {
+      Alert.alert('Error', 'Please enter a valid checkout date (YYYY-MM-DD)');
+      return;
+    }
+    const parsedDate = new Date(`${checkoutDate}T00:00:00`);
+    if (isNaN(parsedDate.getTime())) {
+      Alert.alert('Error', 'Please enter a valid checkout date (YYYY-MM-DD)');
+      return;
+    }
+    if (checkoutDate > todayStr) {
+      Alert.alert('Error', 'Checkout date cannot be in the future');
+      return;
+    }
+
     const taking = parseFloat(quantityTaking);
     const remaining = parseFloat(remainingQuantity);
 
@@ -255,7 +278,7 @@ export const TruckCheckoutScreen = () => {
           ? parseFloat(actualTruckInventory)
           : undefined, // NEW: Include actual truck inventory
         notes: notes.trim(),
-        checkoutDate: new Date().toISOString(),
+        checkoutDate: new Date(`${checkoutDate}T00:00:00`).toISOString(),
         acceptDiscrepancy,
         acceptTruckDiscrepancy, // NEW: Accept truck discrepancy flag
       };
@@ -310,6 +333,7 @@ export const TruckCheckoutScreen = () => {
               onPress: () => {
                 setSelectedItem(null);
                 setSearchQuery('');
+                setCheckoutDate(todayStr);
                 setQuantityTaking('');
                 setRemainingQuantity('');
                 setActualTruckInventory('');
@@ -389,6 +413,21 @@ export const TruckCheckoutScreen = () => {
               value={user?.truckNumber || 'Not set'}
               editable={false}
               placeholderTextColor={theme.colors.gray[400]}
+            />
+          </View>
+          {/* Checkout Date */}
+          <View style={styles.formGroup}>
+            <Typography variant="body" weight="semibold" style={styles.label}>
+              Checkout Date
+            </Typography>
+            <RNTextInput
+              style={styles.input}
+              value={checkoutDate}
+              onChangeText={setCheckoutDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={theme.colors.gray[400]}
+              autoCapitalize="none"
+              autoCorrect={false}
             />
           </View>
           {/* Item Selector */}

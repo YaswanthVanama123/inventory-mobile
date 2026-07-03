@@ -22,7 +22,17 @@ import itemsInvoiceUsageService, {
   ItemUsage,
   InvoiceUsageTotals,
 } from '../services/itemsInvoiceUsageService';
-import {BarChartIcon, SearchIcon, XIcon, BoxIcon, ClockIcon} from '../components/icons';
+import {
+  BarChartIcon,
+  SearchIcon,
+  XIcon,
+  BoxIcon,
+  ClockIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  TagIcon,
+  FileTextIcon,
+} from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 import useDebounce from '../hooks/useDebounce';
 import {useServerPagination} from '../hooks/useServerPagination';
@@ -43,6 +53,25 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(itemName)) {
+        next.delete(itemName);
+      } else {
+        next.add(itemName);
+      }
+      return next;
+    });
+  };
+
+  const formatCurrency = (value?: number) =>
+    `$${(value || 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   const [totals, setTotals] = useState<InvoiceUsageTotals>({
     totalMappedItems: 0,
     totalUniqueItems: 0,
@@ -87,85 +116,269 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   // Backend applies the search (itemName + aliases); render the result as-is.
   const filteredItems = items;
 
-  const renderItemCard = (item: ItemUsage, index: number) => (
-    <Card key={index} variant="elevated" padding="md" style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <View style={styles.itemHeaderLeft}>
-          <View style={styles.itemIconContainer}>
-            <BoxIcon size={20} color={theme.colors.primary[600]} />
-          </View>
-          <View style={styles.itemInfo}>
-            <Typography variant="body" weight="semibold">
-              {item.itemName}
-            </Typography>
-            {item.aliases.length > 0 && (
-              <Typography variant="caption" color={theme.colors.gray[500]}>
-                {item.aliases.length} alias{item.aliases.length !== 1 ? 'es' : ''}
+  const renderItemCard = (item: ItemUsage, index: number) => {
+    const isExpanded = expandedItems.has(item.itemName);
+    return (
+      <Card key={index} variant="elevated" padding="md" style={styles.itemCard}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => toggleExpanded(item.itemName)}>
+          <View style={styles.itemHeader}>
+            <View style={styles.itemHeaderLeft}>
+              <View style={styles.chevron}>
+                {isExpanded ? (
+                  <ChevronDownIcon size={18} color={theme.colors.gray[500]} />
+                ) : (
+                  <ChevronRightIcon size={18} color={theme.colors.gray[500]} />
+                )}
+              </View>
+              <View style={styles.itemIconContainer}>
+                <BoxIcon size={20} color={theme.colors.primary[600]} />
+              </View>
+              <View style={styles.itemInfo}>
+                <Typography variant="body" weight="semibold">
+                  {item.itemName}
+                </Typography>
+                {item.aliases.length > 0 && (
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    {item.aliases.length} alias{item.aliases.length !== 1 ? 'es' : ''}
+                  </Typography>
+                )}
+              </View>
+            </View>
+            <View
+              style={[
+                styles.categoryBadge,
+                item.type === 'mapped' && {backgroundColor: theme.colors.accent[100]},
+              ]}>
+              <Typography
+                variant="caption"
+                color={
+                  item.type === 'mapped'
+                    ? theme.colors.accent[700]
+                    : theme.colors.info[700]
+                }
+                weight="medium">
+                {item.type === 'mapped' ? 'Mapped' : 'Unique'}
               </Typography>
+            </View>
+          </View>
+
+          <View style={styles.itemStats}>
+            <View style={styles.statItem}>
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                Total Quantity
+              </Typography>
+              <Typography variant="body" weight="bold" color={theme.colors.primary[600]}>
+                {item.totalQuantitySold.toLocaleString()}
+              </Typography>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                Invoices
+              </Typography>
+              <Typography variant="body" weight="bold" color={theme.colors.success[600]}>
+                {item.invoiceCount}
+              </Typography>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                Avg/Invoice
+              </Typography>
+              <Typography variant="body" weight="bold" color={theme.colors.accent[600]}>
+                {(item.averageQuantityPerInvoice || 0).toFixed(1)}
+              </Typography>
+            </View>
+          </View>
+
+          {item.lastUsedDate && (
+            <View style={styles.lastUsedContainer}>
+              <ClockIcon size={12} color={theme.colors.gray[400]} />
+              <Typography variant="caption" color={theme.colors.gray[500]}>
+                Last used: {formatDate(item.lastUsedDate)}
+              </Typography>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {isExpanded && (
+          <View style={styles.expandedContainer}>
+            {/* Alias chips */}
+            {item.aliases.length > 0 && (
+              <View style={styles.aliasSection}>
+                <View style={styles.expandHeading}>
+                  <TagIcon size={14} color={theme.colors.accent[600]} />
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}>
+                    Aliases
+                  </Typography>
+                </View>
+                <View style={styles.aliasChips}>
+                  {item.aliases.map((alias, aIdx) => (
+                    <View key={aIdx} style={styles.aliasChip}>
+                      <Typography
+                        variant="caption"
+                        color={theme.colors.accent[700]}
+                        weight="medium">
+                        {alias}
+                      </Typography>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Per-invoice table */}
+            {item.invoices.length > 0 ? (
+              <View style={styles.invoiceSection}>
+                <View style={styles.expandHeading}>
+                  <FileTextIcon size={14} color={theme.colors.primary[600]} />
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}>
+                    Invoices ({item.invoices.length})
+                  </Typography>
+                </View>
+
+                {/* Table header */}
+                <View style={[styles.invoiceRow, styles.invoiceHeaderRow]}>
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.gray[600]}
+                    style={styles.colInvoice}>
+                    Invoice #
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.gray[600]}
+                    style={styles.colDate}>
+                    Date
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.gray[600]}
+                    style={styles.colCustomer}>
+                    Customer
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.gray[600]}
+                    style={styles.colQty}>
+                    Qty
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.gray[600]}
+                    style={styles.colStatus}>
+                    Status
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    weight="semibold"
+                    color={theme.colors.gray[600]}
+                    style={styles.colTotal}>
+                    Total
+                  </Typography>
+                </View>
+
+                {/* Table rows */}
+                {item.invoices.map((invoice, invIdx) => {
+                  const isDone =
+                    invoice.status === 'Completed' || invoice.status === 'Closed';
+                  return (
+                    <View
+                      key={invIdx}
+                      style={[
+                        styles.invoiceRow,
+                        invIdx % 2 === 1 && styles.invoiceRowAlt,
+                      ]}>
+                      <Typography
+                        variant="caption"
+                        weight="medium"
+                        color={theme.colors.primary[600]}
+                        style={styles.colInvoice}>
+                        {invoice.invoiceNumber}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color={theme.colors.gray[600]}
+                        style={styles.colDate}>
+                        {invoice.invoiceDate ? formatDate(invoice.invoiceDate) : 'N/A'}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        color={theme.colors.gray[900]}
+                        style={styles.colCustomer}
+                        numberOfLines={1}>
+                        {invoice.customer || '-'}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={theme.colors.gray[900]}
+                        style={styles.colQty}>
+                        {invoice.totalQuantity}
+                      </Typography>
+                      <View style={styles.colStatus}>
+                        <View
+                          style={[
+                            styles.statusBadge,
+                            {
+                              backgroundColor: isDone
+                                ? theme.colors.success[100]
+                                : theme.colors.info[100],
+                            },
+                          ]}>
+                          <Typography
+                            variant="caption"
+                            weight="medium"
+                            color={
+                              isDone
+                                ? theme.colors.success[700]
+                                : theme.colors.info[700]
+                            }
+                            numberOfLines={1}>
+                            {invoice.status}
+                          </Typography>
+                        </View>
+                      </View>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={theme.colors.gray[900]}
+                        style={styles.colTotal}>
+                        {formatCurrency(invoice.total)}
+                      </Typography>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              <View style={styles.invoiceSection}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  No invoices for this item
+                </Typography>
+              </View>
             )}
           </View>
-        </View>
-        <View
-          style={[
-            styles.categoryBadge,
-            item.type === 'mapped' && {backgroundColor: theme.colors.accent[100]},
-          ]}>
-          <Typography
-            variant="caption"
-            color={
-              item.type === 'mapped'
-                ? theme.colors.accent[700]
-                : theme.colors.info[700]
-            }
-            weight="medium">
-            {item.type === 'mapped' ? 'Mapped' : 'Unique'}
-          </Typography>
-        </View>
-      </View>
-
-      <View style={styles.itemStats}>
-        <View style={styles.statItem}>
-          <Typography variant="caption" color={theme.colors.gray[500]}>
-            Total Quantity
-          </Typography>
-          <Typography variant="body" weight="bold" color={theme.colors.primary[600]}>
-            {item.totalQuantitySold.toLocaleString()}
-          </Typography>
-        </View>
-
-        <View style={styles.statDivider} />
-
-        <View style={styles.statItem}>
-          <Typography variant="caption" color={theme.colors.gray[500]}>
-            Invoices
-          </Typography>
-          <Typography variant="body" weight="bold" color={theme.colors.success[600]}>
-            {item.invoiceCount}
-          </Typography>
-        </View>
-
-        <View style={styles.statDivider} />
-
-        <View style={styles.statItem}>
-          <Typography variant="caption" color={theme.colors.gray[500]}>
-            Avg/Invoice
-          </Typography>
-          <Typography variant="body" weight="bold" color={theme.colors.accent[600]}>
-            {(item.averageQuantityPerInvoice || 0).toFixed(1)}
-          </Typography>
-        </View>
-      </View>
-
-      {item.lastUsedDate && (
-        <View style={styles.lastUsedContainer}>
-          <ClockIcon size={12} color={theme.colors.gray[400]} />
-          <Typography variant="caption" color={theme.colors.gray[500]}>
-            Last used: {formatDate(item.lastUsedDate)}
-          </Typography>
-        </View>
-      )}
-    </Card>
-  );
+        )}
+      </Card>
+    );
+  };
 
   return (
     <Modal
@@ -205,7 +418,22 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
                 {totals.totalItems}
               </Typography>
             </View>
-            <View style={styles.statsSeparator} />
+            <View style={styles.statsCard}>
+              <Typography variant="small" color={theme.colors.gray[600]}>
+                Mapped Items
+              </Typography>
+              <Typography variant="h2" weight="bold" color={theme.colors.accent[600]}>
+                {totals.totalMappedItems}
+              </Typography>
+            </View>
+            <View style={styles.statsCard}>
+              <Typography variant="small" color={theme.colors.gray[600]}>
+                Unique Items
+              </Typography>
+              <Typography variant="h2" weight="bold" color={theme.colors.info[600]}>
+                {totals.totalUniqueItems}
+              </Typography>
+            </View>
             <View style={styles.statsCard}>
               <Typography variant="small" color={theme.colors.gray[600]}>
                 Total Invoices
@@ -355,6 +583,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: theme.colors.white,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: bp.gutter,
@@ -362,13 +591,9 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     borderBottomColor: theme.colors.gray[200],
   },
   statsCard: {
-    flex: 1,
+    width: '25%',
     alignItems: 'center',
-  },
-  statsSeparator: {
-    width: 1,
-    backgroundColor: theme.colors.gray[200],
-    marginHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.xs,
   },
   searchSection: {
     paddingHorizontal: bp.gutter,
@@ -458,6 +683,78 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     paddingTop: theme.spacing.sm,
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray[200],
+  },
+  chevron: {
+    marginRight: 2,
+  },
+  expandedContainer: {
+    marginTop: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.gray[200],
+  },
+  expandHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: theme.spacing.sm,
+  },
+  aliasSection: {
+    marginBottom: theme.spacing.md,
+  },
+  aliasChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.xs,
+  },
+  aliasChip: {
+    backgroundColor: theme.colors.accent[100],
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  invoiceSection: {
+    marginTop: theme.spacing.xs,
+  },
+  invoiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  invoiceHeaderRow: {
+    backgroundColor: theme.colors.gray[100],
+    borderRadius: theme.borderRadius.sm,
+  },
+  invoiceRowAlt: {
+    backgroundColor: theme.colors.gray[50],
+  },
+  colInvoice: {
+    flex: 1.6,
+  },
+  colDate: {
+    flex: 1.6,
+  },
+  colCustomer: {
+    flex: 2,
+  },
+  colQty: {
+    flex: 0.8,
+    textAlign: 'center',
+  },
+  colStatus: {
+    flex: 1.4,
+    alignItems: 'flex-start',
+  },
+  colTotal: {
+    flex: 1.4,
+    textAlign: 'right',
+  },
+  statusBadge: {
+    borderRadius: theme.borderRadius.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
   },
   loadingContainer: {
     flex: 1,

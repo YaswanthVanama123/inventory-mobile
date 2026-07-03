@@ -49,15 +49,65 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
   const [vendors, setVendors] = useState<any[]>([]);
   const [manualPOItems, setManualPOItems] = useState<any[]>([]);
   const [selectedVendorId, setSelectedVendorId] = useState('');
-  const [orderDate, setOrderDate] = useState(
-    new Date().toISOString().split('T')[0],
-  );
+  const [showNewVendorForm, setShowNewVendorForm] = useState(false);
+  const [newVendor, setNewVendor] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+  });
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const [orderDate, setOrderDate] = useState(today);
+  const [orderDateError, setOrderDateError] = useState('');
   const [items, setItems] = useState<OrderItem[]>([
     {sku: '', name: '', qty: 1, unitPrice: 0, lineTotal: 0},
   ]);
   const [notes, setNotes] = useState('');
   const [vendorPickerVisible, setVendorPickerVisible] = useState(false);
   const [activeItemPicker, setActiveItemPicker] = useState<number | null>(null);
+
+  // Sentinel option appended to the vendor picker to trigger the inline form.
+  const NEW_VENDOR_VALUE = '__new__';
+
+  const validateOrderDate = (value: string): string => {
+    if (!value) return 'Order date is required';
+    // Enforce strict YYYY-MM-DD format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return 'Use YYYY-MM-DD format';
+    }
+    const parsed = new Date(value);
+    if (isNaN(parsed.getTime())) {
+      return 'Invalid date';
+    }
+    if (value > today) {
+      return 'Order date cannot be in the future';
+    }
+    return '';
+  };
+
+  const handleOrderDateChange = (value: string) => {
+    setOrderDate(value);
+    setOrderDateError(validateOrderDate(value));
+  };
+
+  const handleVendorSelected = (value: string) => {
+    if (value === NEW_VENDOR_VALUE) {
+      setShowNewVendorForm(true);
+      setSelectedVendorId('');
+    } else {
+      setShowNewVendorForm(false);
+      setSelectedVendorId(value);
+    }
+  };
+
+  const handleNewVendorChange = (field: keyof typeof newVendor, value: string) => {
+    setNewVendor(prev => ({...prev, [field]: value}));
+  };
+
+  const handleCancelNewVendor = () => {
+    setShowNewVendorForm(false);
+    setNewVendor({name: '', email: '', phone: '', address: ''});
+  };
 
   useEffect(() => {
     if (token) {
@@ -138,13 +188,23 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
 
   const handleSubmit = async () => {
     // Validation
-    if (!selectedVendorId) {
+    if (!selectedVendorId && !showNewVendorForm) {
       Alert.alert('Validation Error', 'Please select a vendor');
       return;
     }
 
-    if (!orderDate) {
-      Alert.alert('Validation Error', 'Order date is required');
+    if (showNewVendorForm && !newVendor.name.trim()) {
+      Alert.alert(
+        'Validation Error',
+        'Please enter vendor name or select existing vendor',
+      );
+      return;
+    }
+
+    const dateError = validateOrderDate(orderDate);
+    if (dateError) {
+      setOrderDateError(dateError);
+      Alert.alert('Validation Error', dateError);
       return;
     }
 
@@ -160,27 +220,45 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
     try {
       setSubmitting(true);
 
-      // Get selected vendor details
-      const selectedVendor = vendors.find(v => v._id === selectedVendorId);
-      if (!selectedVendor) {
-        throw new Error('Selected vendor not found');
+      // Resolve vendor details, creating a new vendor inline if requested.
+      let vendorData: any = null;
+
+      if (showNewVendorForm) {
+        vendorData = await vendorService.createVendor(token!, {
+          name: newVendor.name.trim(),
+          email: newVendor.email.trim(),
+          phone: newVendor.phone.trim(),
+          address: newVendor.address.trim(),
+        });
+      } else {
+        vendorData = vendors.find(v => (v._id || v.id) === selectedVendorId);
       }
 
-      // Prepare order data
+      if (!vendorData || !vendorData.name) {
+        throw new Error('Invalid vendor data received');
+      }
+
+      // Prepare order data. Backend reads `qty`/`unitPrice` and recomputes
+      // lineTotal; we include lineTotal for web parity.
       const orderData = {
         vendor: {
-          name: selectedVendor.name,
-          email: selectedVendor.email || '',
-          phone: selectedVendor.phone || '',
-          address: selectedVendor.address || '',
+          name: vendorData.name,
+          email: vendorData.email || '',
+          phone: vendorData.phone || '',
+          address: vendorData.address || '',
         },
         orderDate,
-        items: validItems.map(item => ({
-          sku: item.sku,
-          name: item.name,
-          qty: parseFloat(String(item.qty)),
-          unitPrice: parseFloat(String(item.unitPrice)),
-        })),
+        items: validItems.map(item => {
+          const qty = parseFloat(String(item.qty));
+          const unitPrice = parseFloat(String(item.unitPrice));
+          return {
+            sku: item.sku,
+            name: item.name,
+            qty,
+            unitPrice,
+            lineTotal: qty * unitPrice,
+          };
+        }),
         notes,
       };
 
@@ -252,21 +330,74 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
             <Typography variant="body" weight="medium" style={styles.label}>
               Vendor *
             </Typography>
-            <TouchableOpacity
-              style={styles.selectField}
-              onPress={() => setVendorPickerVisible(true)}
-              activeOpacity={0.7}>
-              <Typography
-                variant="body"
-                numberOfLines={1}
-                color={selectedVendorId ? theme.colors.gray[900] : theme.colors.gray[400]}
-                style={{flex: 1}}>
-                {selectedVendorId
-                  ? vendors.find(v => v._id === selectedVendorId)?.name || 'Select vendor'
-                  : 'Select vendor'}
-              </Typography>
-              <ChevronDownIcon size={18} color={theme.colors.gray[500]} />
-            </TouchableOpacity>
+            {!showNewVendorForm ? (
+              <TouchableOpacity
+                style={styles.selectField}
+                onPress={() => setVendorPickerVisible(true)}
+                activeOpacity={0.7}>
+                <Typography
+                  variant="body"
+                  numberOfLines={1}
+                  color={selectedVendorId ? theme.colors.gray[900] : theme.colors.gray[400]}
+                  style={{flex: 1}}>
+                  {selectedVendorId
+                    ? vendors.find(v => (v._id || v.id) === selectedVendorId)?.name || 'Select vendor'
+                    : 'Select vendor'}
+                </Typography>
+                <ChevronDownIcon size={18} color={theme.colors.gray[500]} />
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.newVendorForm}>
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  color={theme.colors.primary[700]}
+                  style={{marginBottom: 4}}>
+                  New Vendor Details
+                </Typography>
+                <RNTextInput
+                  style={styles.input}
+                  value={newVendor.name}
+                  onChangeText={t => handleNewVendorChange('name', t)}
+                  placeholder="Vendor Name *"
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+                <RNTextInput
+                  style={styles.input}
+                  value={newVendor.email}
+                  onChangeText={t => handleNewVendorChange('email', t)}
+                  placeholder="Email"
+                  placeholderTextColor={theme.colors.gray[400]}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+                <RNTextInput
+                  style={styles.input}
+                  value={newVendor.phone}
+                  onChangeText={t => handleNewVendorChange('phone', t)}
+                  placeholder="Phone"
+                  placeholderTextColor={theme.colors.gray[400]}
+                  keyboardType="phone-pad"
+                />
+                <RNTextInput
+                  style={styles.input}
+                  value={newVendor.address}
+                  onChangeText={t => handleNewVendorChange('address', t)}
+                  placeholder="Address"
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+                <TouchableOpacity
+                  style={styles.newVendorCancel}
+                  onPress={handleCancelNewVendor}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}>
+                    Cancel New Vendor
+                  </Typography>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {/* Order Date */}
@@ -275,12 +406,22 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
               Order Date *
             </Typography>
             <RNTextInput
-              style={styles.input}
+              style={[styles.input, orderDateError ? styles.inputError : null]}
               value={orderDate}
-              onChangeText={setOrderDate}
+              onChangeText={handleOrderDateChange}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={theme.colors.gray[400]}
+              keyboardType="numbers-and-punctuation"
+              maxLength={10}
             />
+            {orderDateError ? (
+              <Typography
+                variant="caption"
+                color={theme.colors.error[600]}
+                style={{marginTop: 4}}>
+                {orderDateError}
+              </Typography>
+            ) : null}
           </View>
         </Card>
 
@@ -481,12 +622,15 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
       <PickerModal
         visible={vendorPickerVisible}
         onClose={() => setVendorPickerVisible(false)}
-        items={vendors}
+        items={[
+          ...vendors.filter(v => (v._id || v.id) && v.name),
+          {_id: NEW_VENDOR_VALUE, name: '+ Add New Vendor'},
+        ]}
         selectedValue={selectedVendorId}
-        onValueChange={setSelectedVendorId}
+        onValueChange={handleVendorSelected}
         placeholder="Select Vendor"
         getLabel={v => v.name}
-        getValue={v => v._id}
+        getValue={v => v._id || v.id}
       />
       <PickerModal
         visible={activeItemPicker !== null}
@@ -566,6 +710,26 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   },
   disabledInput: {
     backgroundColor: theme.colors.gray[100],
+  },
+  inputError: {
+    borderColor: theme.colors.error[600],
+  },
+  newVendorForm: {
+    borderWidth: 1,
+    borderColor: theme.colors.primary[200],
+    backgroundColor: theme.colors.primary[50],
+    borderRadius: 10,
+    padding: 12,
+    gap: 10,
+  },
+  newVendorCancel: {
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[300],
+    backgroundColor: theme.colors.white,
   },
   notesInput: {
     minHeight: 100,

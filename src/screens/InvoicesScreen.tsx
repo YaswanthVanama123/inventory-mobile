@@ -3,80 +3,138 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
   TextInput as RNTextInput,
   Switch,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Button} from '../components/atoms/Button';
+import {Checkbox} from '../components/atoms/Checkbox';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
-import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import invoiceService from '../services/invoiceService';
-import {AlertCircleIcon, FileTextIcon} from '../components/icons';
+import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
+import {AlertCircleIcon, FileTextIcon, TrashIcon} from '../components/icons';
 import {InvoiceDetailScreen} from './InvoiceDetailScreen';
 import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
-type StatusFilter = '' | 'draft' | 'issued' | 'paid' | 'cancelled';
-type PaymentStatusFilter = '' | 'pending' | 'paid' | 'overdue';
+// Real status enum used by web/backend.
+type StatusFilter = '' | 'Pending' | 'Completed' | 'Closed' | 'Cancelled';
+type StockProcessedFilter = '' | 'true' | 'false';
 
 export const InvoicesScreen = () => {
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  const {token} = useAuth();
+  const {token, user} = useAuth();
+  const isAdmin = user?.role === 'admin';
   const {handleApiError} = useApiErrorHandler();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncingNew, setSyncingNew] = useState(false);
   const [syncingOld, setSyncingOld] = useState(false);
   const [syncingAll, setSyncingAll] = useState(false);
-  const [invoices, setInvoices] = useState<any[]>([]);
+  const [syncingDetails, setSyncingDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [invoiceType, setInvoiceType] = useState<'pending' | 'closed'>('pending');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatusFilter>('');
-  const [error, setError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(true);
+  const [stockProcessedFilter, setStockProcessedFilter] = useState<StockProcessedFilter>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [syncLimit, setSyncLimit] = useState<0 | 50 | 100 | 500>(0);
+  const [invoiceRange, setInvoiceRange] = useState<{
+    highest: number | string | null;
+    lowest: number | string | null;
+    totalInvoices: number;
+  }>({highest: null, lowest: null, totalInvoices: 0});
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [deletingBulk, setDeletingBulk] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
-  const [autoSyncInterval, setAutoSyncInterval] = useState(30);
-  useEffect(() => {
-    setIsMounted(true);
-    return () => {
-      setIsMounted(false);
-    };
-  }, []);
-  useEffect(() => {
-    if (token && isMounted) {
-      fetchInvoices();
-    } else if (isMounted) {
-      setLoading(false);
-    }
-  }, [token, statusFilter, paymentStatusFilter, invoiceType]);
+  const [autoSyncInterval] = useState(30);
 
-  // Refetch invoices when returning to this screen (e.g. after a sync or edit elsewhere).
-  useRefetchOnFocus(() => {
-    if (token) {
-      fetchInvoices();
+  const resetKey = `${invoiceType}|${debouncedSearch}|${statusFilter}|${stockProcessedFilter}|${dateFrom}|${dateTo}`;
+
+  // Server-side numbered pagination.
+  const {
+    items: invoices,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    loading,
+    refreshing,
+    error,
+    refresh,
+    refetch,
+  } = useServerPagination<any>(
+    async (pg, limit) => {
+      const params: any = {
+        page: pg,
+        limit,
+        invoiceType,
+      };
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (statusFilter) params.status = statusFilter;
+      if (stockProcessedFilter !== '') params.stockProcessed = stockProcessedFilter;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      if ((dateFrom || dateTo) && invoiceType === 'closed') {
+        params.dateField = 'dateCompleted';
+      }
+      try {
+        const res = await invoiceService.getInvoices(token!, params);
+        return {items: res.invoices, total: res.total, pages: res.totalPages};
+      } catch (e) {
+        await handleApiError(e);
+        throw e;
+      }
+    },
+    {pageSize: 20, resetKey, enabled: !!token},
+  );
+
+  const fetchInvoices = refetch;
+  const onRefresh = refresh;
+
+  // Invoice range banner (#lowest – #highest (total)).
+  const fetchInvoiceRange = async () => {
+    if (!token) return;
+    try {
+      const range = await invoiceService.getInvoiceRange(token, invoiceType);
+      setInvoiceRange(range);
+    } catch (e) {
+      console.error('Error fetching invoice range:', e);
     }
-  });
+  };
   useEffect(() => {
-    if (!autoSyncEnabled || !isMounted || !token) return;
+    fetchInvoiceRange();
+    // Reset selection when switching tabs.
+    setSelectMode(false);
+    setSelectedInvoices([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, invoiceType]);
+
+  useEffect(() => {
+    if (!autoSyncEnabled || !token || !isAdmin) return;
     const intervalMs = autoSyncInterval * 60 * 1000;
     const autoSyncTimer = setInterval(async () => {
       if (!syncing) {
         try {
-          console.log('Running auto-sync for invoices...');
           const response = invoiceType === 'pending'
             ? await invoiceService.syncPendingInvoices(token, 0, 'new')
             : await invoiceService.syncClosedInvoices(token, 0, 'new');
@@ -89,74 +147,36 @@ export const InvoicesScreen = () => {
       }
     }, intervalMs);
     return () => clearInterval(autoSyncTimer);
-  }, [autoSyncEnabled, autoSyncInterval, syncing, isMounted, token, invoiceType]);
-  useEffect(() => {
-    if (!isMounted) return;
-    const timer = setTimeout(() => {
-      if (token) {
-        fetchInvoices();
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-  const fetchInvoices = async () => {
-    try {
-      if (token && isMounted) {
-        const params: any = {
-          limit: 50,
-          status: invoiceType === 'pending' ? 'Pending' : 'Closed',
-          dateField: invoiceType === 'closed' ? 'dateCompleted' : 'invoiceDate',
-        };
-        if (searchQuery) params.search = searchQuery;
-        if (statusFilter) params.status = statusFilter;
-        if (paymentStatusFilter) params.paymentStatus = paymentStatusFilter;
-        const response = await invoiceService.getInvoices(token, params);
-        console.log('Fetched invoices response:', response);
-        console.log('Number of invoices:', response.invoices?.length);
-        if (response.invoices && response.invoices.length > 0) {
-          console.log('First invoice structure:', JSON.stringify(response.invoices[0], null, 2));
-        }
-        if (isMounted) {
-          setInvoices(response.invoices || []);
-          setError(null);
-        }
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch invoices:', error);
-      const wasHandled = await handleApiError(error);
-      if (wasHandled) return;
-      if (isMounted) {
-        setError(error.message || 'Failed to load invoices');
-        setInvoices([]);
-      }
-    } finally {
-      if (isMounted) {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    }
+  }, [autoSyncEnabled, autoSyncInterval, syncing, token, invoiceType, isAdmin]);
+
+  // Build a "Synced: X new, Y updated, Z skipped" summary, omitting any
+  // count the backend didn't return (mirrors web PendingInvoices/ClosedInvoices).
+  const buildSyncSummary = (data: any, detailsSynced?: number) => {
+    if (!data) return 'Sync complete';
+    const parts: string[] = [];
+    if (data.created != null) parts.push(`${data.created} new`);
+    if (data.updated != null) parts.push(`${data.updated} updated`);
+    if (data.skipped != null) parts.push(`${data.skipped} skipped`);
+    if (detailsSynced != null) parts.push(`${detailsSynced} details synced`);
+    return parts.length ? `Synced: ${parts.join(', ')}` : 'Sync complete';
   };
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchInvoices();
-  };
+
   const handleSyncNew = async () => {
     if (!token) return;
     setSyncingNew(true);
     setSyncing(true);
     try {
       const response = invoiceType === 'pending'
-        ? await invoiceService.syncPendingInvoices(token, 0, 'new')
-        : await invoiceService.syncClosedInvoices(token, 0, 'new');
+        ? await invoiceService.syncPendingInvoices(token, syncLimit, 'new')
+        : await invoiceService.syncClosedInvoices(token, syncLimit, 'new');
       if (response.success) {
         fetchInvoices();
+        fetchInvoiceRange();
+        Alert.alert('Sync complete', buildSyncSummary(response.data));
       }
     } catch (error: any) {
       console.error('Failed to sync new invoices:', error);
-      const wasHandled = await handleApiError(error);
-      if (!wasHandled) {
-        setError(error.message || 'Failed to sync new invoices');
-      }
+      await handleApiError(error);
     } finally {
       setSyncingNew(false);
       setSyncing(false);
@@ -168,17 +188,16 @@ export const InvoicesScreen = () => {
     setSyncing(true);
     try {
       const response = invoiceType === 'pending'
-        ? await invoiceService.syncPendingInvoices(token, 0, 'old')
-        : await invoiceService.syncClosedInvoices(token, 0, 'old');
+        ? await invoiceService.syncPendingInvoices(token, syncLimit, 'old')
+        : await invoiceService.syncClosedInvoices(token, syncLimit, 'old');
       if (response.success) {
         fetchInvoices();
+        fetchInvoiceRange();
+        Alert.alert('Sync complete', buildSyncSummary(response.data));
       }
     } catch (error: any) {
       console.error('Failed to sync old invoices:', error);
-      const wasHandled = await handleApiError(error);
-      if (!wasHandled) {
-        setError(error.message || 'Failed to sync old invoices');
-      }
+      await handleApiError(error);
     } finally {
       setSyncingOld(false);
       setSyncing(false);
@@ -190,83 +209,184 @@ export const InvoicesScreen = () => {
     setSyncing(true);
     try {
       const invoicesResponse = invoiceType === 'pending'
-        ? await invoiceService.syncPendingInvoices(token, 0, 'new')
-        : await invoiceService.syncClosedInvoices(token, 0, 'new');
+        ? await invoiceService.syncPendingInvoices(token, syncLimit, 'new')
+        : await invoiceService.syncClosedInvoices(token, syncLimit, 'new');
       if (invoicesResponse.success) {
-        let detailsSynced = 0;
+        let detailsSynced: number | undefined;
         try {
           const detailsResponse = await invoiceService.syncAllInvoiceDetails(token, invoiceType, 0);
-          if (detailsResponse.success) {
-            detailsSynced = detailsResponse.data.synced || 0;
-          }
+          detailsSynced = detailsResponse?.data?.synced;
         } catch (detailsError) {
           console.error('Error syncing details:', detailsError);
         }
         fetchInvoices();
+        fetchInvoiceRange();
+        Alert.alert('Sync complete', buildSyncSummary(invoicesResponse.data, detailsSynced));
       }
     } catch (error: any) {
       console.error('Failed to sync all invoices:', error);
-      const wasHandled = await handleApiError(error);
-      if (!wasHandled) {
-        setError(error.message || 'Failed to sync all invoices');
-      }
+      await handleApiError(error);
     } finally {
       setSyncingAll(false);
       setSyncing(false);
     }
   };
+  // Details-only sync (line items) for the current tab.
+  const handleSyncDetails = async () => {
+    if (!token) return;
+    setSyncingDetails(true);
+    setSyncing(true);
+    try {
+      const response = invoiceType === 'pending'
+        ? await invoiceService.syncPendingInvoiceDetails(token, 0)
+        : await invoiceService.syncClosedInvoiceDetails(token, 0);
+      if (response.success) {
+        fetchInvoices();
+        const parts: string[] = [];
+        if (response.data?.synced != null) parts.push(`${response.data.synced} details synced`);
+        if (response.data?.skipped != null) parts.push(`${response.data.skipped} skipped`);
+        Alert.alert('Sync complete', parts.length ? parts.join(', ') : 'Details sync complete');
+      }
+    } catch (error: any) {
+      console.error('Failed to sync invoice details:', error);
+      await handleApiError(error);
+    } finally {
+      setSyncingDetails(false);
+      setSyncing(false);
+    }
+  };
+  // Admin: clear all invoices for the active tab.
+  const handleClearAll = () => {
+    if (!token || !isAdmin) return;
+    const label = invoiceType === 'pending' ? 'pending' : 'closed';
+    Alert.alert(
+      'Confirm Deletion',
+      `Are you sure you want to delete all ${total} ${label} invoices? This action cannot be undone.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Yes, Delete All',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingAll(true);
+            try {
+              const res = invoiceType === 'pending'
+                ? await invoiceService.deleteAllPendingInvoices(token)
+                : await invoiceService.deleteAllClosedInvoices(token);
+              if (res.success) {
+                fetchInvoices();
+                fetchInvoiceRange();
+              }
+            } catch (error: any) {
+              console.error('Failed to delete invoices:', error);
+              await handleApiError(error);
+            } finally {
+              setDeletingAll(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+  // Admin: delete a single manual invoice.
+  const handleDeleteManual = (invoiceNumber: string) => {
+    if (!token || !isAdmin) return;
+    Alert.alert(
+      'Delete Manual Invoice',
+      `Delete manual invoice ${invoiceNumber}? This action cannot be undone.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await invoiceService.deleteManualInvoice(token, invoiceNumber);
+              fetchInvoices();
+              fetchInvoiceRange();
+            } catch (error: any) {
+              console.error('Failed to delete manual invoice:', error);
+              await handleApiError(error);
+            }
+          },
+        },
+      ],
+    );
+  };
+  // Admin (closed tab): bulk delete selected invoices by number.
+  const toggleSelectInvoice = (invoiceNumber: string) => {
+    setSelectedInvoices((prev) =>
+      prev.includes(invoiceNumber)
+        ? prev.filter((n) => n !== invoiceNumber)
+        : [...prev, invoiceNumber],
+    );
+  };
+  const handleBulkDelete = () => {
+    if (!token || !isAdmin || selectedInvoices.length === 0) return;
+    Alert.alert(
+      'Delete Selected Invoices',
+      `Permanently delete ${selectedInvoices.length} selected invoice(s)? This action cannot be undone.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete Selected',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingBulk(true);
+            try {
+              const res = await invoiceService.deleteBulkClosedInvoicesByNumbers(
+                token,
+                selectedInvoices,
+              );
+              if (res.success) {
+                setSelectedInvoices([]);
+                setSelectMode(false);
+                fetchInvoices();
+                fetchInvoiceRange();
+              }
+            } catch (error: any) {
+              console.error('Failed to bulk delete invoices:', error);
+              await handleApiError(error);
+            } finally {
+              setDeletingBulk(false);
+            }
+          },
+        },
+      ],
+    );
+  };
   const handleInvoicePress = (invoice: any) => {
-    console.log('Invoice pressed - Full invoice object:', JSON.stringify(invoice, null, 2));
-    console.log('Invoice _id:', invoice._id);
-    console.log('Invoice id:', invoice.id);
-    console.log('Invoice invoiceNumber:', invoice.invoiceNumber);
     const invoiceIdentifier = invoice.invoiceNumber || invoice._id || invoice.id;
-    console.log('Using invoice identifier:', invoiceIdentifier);
     setSelectedInvoiceId(invoiceIdentifier);
     setDetailModalVisible(true);
   };
   const handleCloseDetail = () => {
     setDetailModalVisible(false);
     setSelectedInvoiceId(null);
+    fetchInvoices();
   };
   const formatCurrency = (amount: number) => {
     return `$${(amount || 0).toFixed(2)}`;
   };
   const getStatusColor = (status: string) => {
     const colors: {[key: string]: string} = {
-      draft: theme.colors.gray[500],
-      issued: theme.colors.primary[600],
-      paid: theme.colors.success[600],
+      pending: theme.colors.primary[600],
+      completed: theme.colors.success[600],
+      closed: theme.colors.primary[600],
       cancelled: theme.colors.error[600],
     };
     return colors[status?.toLowerCase()] || theme.colors.gray[500];
   };
-  const getPaymentStatusColor = (paymentStatus: string) => {
-    const colors: {[key: string]: string} = {
-      pending: theme.colors.primary[600],
-      paid: theme.colors.success[600],
-      overdue: theme.colors.error[600],
-    };
-    return colors[paymentStatus?.toLowerCase()] || theme.colors.gray[500];
-  };
   const getStatusBgColor = (status: string) => {
     const colors: {[key: string]: string} = {
-      draft: theme.colors.gray[100],
-      issued: theme.colors.primary[100],
-      paid: theme.colors.success[100],
+      pending: theme.colors.primary[100],
+      completed: theme.colors.success[100],
+      closed: theme.colors.primary[100],
       cancelled: theme.colors.error[100],
     };
     return colors[status?.toLowerCase()] || theme.colors.gray[100];
   };
-  const getPaymentStatusBgColor = (paymentStatus: string) => {
-    const colors: {[key: string]: string} = {
-      pending: theme.colors.primary[100],
-      paid: theme.colors.success[100],
-      overdue: theme.colors.error[100],
-    };
-    return colors[paymentStatus?.toLowerCase()] || theme.colors.gray[100];
-  };
-  if (loading) {
+  if (loading && !refreshing && invoices.length === 0) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -288,8 +408,22 @@ export const InvoicesScreen = () => {
         contentContainerStyle={styles.scrollContent}
         refreshing={refreshing}
         onRefresh={onRefresh}
-        resetKey={`${invoiceType}|${searchQuery}|${statusFilter}|${paymentStatusFilter}`}
+        resetKey={resetKey}
+        pagedMode
+        scrollTopKey={page}
         ItemSeparatorComponent={() => <View style={{height: 12}} />}
+        ListFooterComponent={
+          total > 0 ? (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          ) : null
+        }
         ListHeaderComponent={
           <View>
             {/* Header */}
@@ -301,8 +435,16 @@ export const InvoicesScreen = () => {
                 variant="body"
                 color={theme.colors.gray[500]}
                 style={styles.headerSubtitle}>
-                {invoices.length} {invoices.length === 1 ? 'invoice' : 'invoices'} found
+                {total} {total === 1 ? 'invoice' : 'invoices'} found
               </Typography>
+              {invoiceRange.highest ? (
+                <Typography
+                  variant="caption"
+                  color={theme.colors.gray[500]}
+                  style={styles.rangeBanner}>
+                  Range: #{invoiceRange.lowest} – #{invoiceRange.highest} ({invoiceRange.totalInvoices} total)
+                </Typography>
+              ) : null}
             </View>
 
             {/* Invoice Type Tabs */}
@@ -329,79 +471,150 @@ export const InvoicesScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Sync Buttons */}
-            <View style={styles.syncButtonsContainer}>
-              <TouchableOpacity
-                onPress={handleSyncNew}
-                disabled={syncing}
-                style={[
-                  styles.syncActionButton,
-                  styles.syncNewButton,
-                  syncing && styles.syncButtonDisabled
-                ]}>
-                {syncingNew ? (
-                  <ActivityIndicator size="small" color={theme.colors.white} />
-                ) : (
-                  <Typography variant="small" weight="semibold" color={theme.colors.white}>
-                    ↑ New Sync
-                  </Typography>
-                )}
-              </TouchableOpacity>
+            {/* Sync Buttons (admin only) */}
+            {isAdmin && (
+              <>
+                <View style={styles.syncButtonsContainer}>
+                  <TouchableOpacity
+                    onPress={handleSyncNew}
+                    disabled={syncing}
+                    style={[
+                      styles.syncActionButton,
+                      styles.syncNewButton,
+                      syncing && styles.syncButtonDisabled,
+                    ]}>
+                    {syncingNew ? (
+                      <ActivityIndicator size="small" color={theme.colors.white} />
+                    ) : (
+                      <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                        ↑ New Sync
+                      </Typography>
+                    )}
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={handleSyncOld}
-                disabled={syncing}
-                style={[
-                  styles.syncActionButton,
-                  styles.syncOldButton,
-                  syncing && styles.syncButtonDisabled
-                ]}>
-                {syncingOld ? (
-                  <ActivityIndicator size="small" color={theme.colors.primary[600]} />
-                ) : (
-                  <Typography variant="small" weight="semibold" color={theme.colors.primary[600]}>
-                    ↓ Old Sync
-                  </Typography>
-                )}
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleSyncOld}
+                    disabled={syncing}
+                    style={[
+                      styles.syncActionButton,
+                      styles.syncOldButton,
+                      syncing && styles.syncButtonDisabled,
+                    ]}>
+                    {syncingOld ? (
+                      <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+                    ) : (
+                      <Typography variant="small" weight="semibold" color={theme.colors.primary[600]}>
+                        ↓ Old Sync
+                      </Typography>
+                    )}
+                  </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={handleSyncAll}
-                disabled={syncing}
-                style={[
-                  styles.syncActionButton,
-                  styles.syncAllButton,
-                  syncing && styles.syncButtonDisabled
-                ]}>
-                {syncingAll ? (
-                  <ActivityIndicator size="small" color={theme.colors.white} />
-                ) : (
-                  <Typography variant="small" weight="semibold" color={theme.colors.white}>
-                    ⟳ Sync All
-                  </Typography>
-                )}
-              </TouchableOpacity>
-            </View>
+                  <TouchableOpacity
+                    onPress={handleSyncAll}
+                    disabled={syncing}
+                    style={[
+                      styles.syncActionButton,
+                      styles.syncAllButton,
+                      syncing && styles.syncButtonDisabled,
+                    ]}>
+                    {syncingAll ? (
+                      <ActivityIndicator size="small" color={theme.colors.white} />
+                    ) : (
+                      <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                        ⟳ Sync All
+                      </Typography>
+                    )}
+                  </TouchableOpacity>
+                </View>
 
-            {/* Automation Settings */}
-            <View style={styles.automationContainer}>
-              <View style={styles.automationRow}>
-                <View style={styles.automationLabel}>
-                  <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
-                    Auto-Sync
+                {/* Details-only sync */}
+                <View style={styles.syncButtonsContainer}>
+                  <TouchableOpacity
+                    onPress={handleSyncDetails}
+                    disabled={syncing}
+                    style={[
+                      styles.syncActionButton,
+                      styles.syncDetailsButton,
+                      syncing && styles.syncButtonDisabled,
+                    ]}>
+                    {syncingDetails ? (
+                      <ActivityIndicator size="small" color={theme.colors.white} />
+                    ) : (
+                      <Typography variant="small" weight="semibold" color={theme.colors.white}>
+                        ⤓ Sync Details
+                      </Typography>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {/* Sync Limit Control */}
+                <View style={styles.syncLimitContainer}>
+                  <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.syncLimitLabel}>
+                    Sync Limit
                   </Typography>
-                  <Typography variant="caption" color={theme.colors.gray[500]}>
-                    Every {autoSyncInterval} min
+                  <View style={styles.syncLimitChips}>
+                    {([
+                      {label: 'AUTO', value: 0 as const},
+                      {label: '50', value: 50 as const},
+                      {label: '100', value: 100 as const},
+                      {label: '500', value: 500 as const},
+                    ]).map((opt) => (
+                      <TouchableOpacity
+                        key={opt.label}
+                        style={[
+                          styles.filterChip,
+                          syncLimit === opt.value && styles.filterChipActive,
+                        ]}
+                        onPress={() => setSyncLimit(opt.value)}>
+                        <Typography
+                          variant="small"
+                          weight="semibold"
+                          color={syncLimit === opt.value ? theme.colors.white : theme.colors.gray[600]}>
+                          {opt.label}
+                        </Typography>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                    AUTO (0) only syncs new invoices since last sync.
                   </Typography>
                 </View>
-                <Switch
-                  value={autoSyncEnabled}
-                  onValueChange={setAutoSyncEnabled}
-                  trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[400] }}
-                  thumbColor={autoSyncEnabled ? theme.colors.primary[600] : theme.colors.gray[50]}
-                />
-              </View>
-            </View>
+
+                {/* Danger Zone: Clear All */}
+                <View style={styles.dangerZone}>
+                  <Button
+                    title={`Clear All (${total})`}
+                    variant="danger"
+                    size="sm"
+                    fullWidth
+                    loading={deletingAll}
+                    disabled={total === 0 || deletingAll}
+                    leftIcon={<TrashIcon size={16} color={theme.colors.white} />}
+                    onPress={handleClearAll}
+                  />
+                </View>
+
+                {/* Automation Settings */}
+                <View style={styles.automationContainer}>
+                  <View style={styles.automationRow}>
+                    <View style={styles.automationLabel}>
+                      <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
+                        Auto-Sync
+                      </Typography>
+                      <Typography variant="caption" color={theme.colors.gray[500]}>
+                        Every {autoSyncInterval} min
+                      </Typography>
+                    </View>
+                    <Switch
+                      value={autoSyncEnabled}
+                      onValueChange={setAutoSyncEnabled}
+                      trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[400]}}
+                      thumbColor={autoSyncEnabled ? theme.colors.primary[600] : theme.colors.gray[50]}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
@@ -413,6 +626,64 @@ export const InvoicesScreen = () => {
                 placeholderTextColor={theme.colors.gray[400]}
               />
             </View>
+            {/* Date Range Filters */}
+            <View style={styles.dateRow}>
+              <View style={styles.dateField}>
+                <Typography variant="small" weight="semibold" style={styles.filterLabel}>
+                  From Date
+                </Typography>
+                <RNTextInput
+                  style={styles.searchInput}
+                  placeholder="YYYY-MM-DD"
+                  value={dateFrom}
+                  onChangeText={setDateFrom}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+              <View style={styles.dateField}>
+                <Typography variant="small" weight="semibold" style={styles.filterLabel}>
+                  To Date
+                </Typography>
+                <RNTextInput
+                  style={styles.searchInput}
+                  placeholder="YYYY-MM-DD"
+                  value={dateTo}
+                  onChangeText={setDateTo}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+            </View>
+            {/* Stat Cards */}
+            <View style={styles.statsRow}>
+              <Card variant="elevated" padding="md" style={styles.statCard}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Total
+                </Typography>
+                <Typography variant="h3" weight="bold" color={theme.colors.text.primary} style={styles.statValue}>
+                  {total}
+                </Typography>
+              </Card>
+              <Card variant="elevated" padding="md" style={styles.statCard}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Processed
+                </Typography>
+                <Typography variant="h3" weight="bold" color={theme.colors.success[600]} style={styles.statValue}>
+                  {invoices.filter((i: any) => i.stockProcessed).length}
+                </Typography>
+              </Card>
+              <Card variant="elevated" padding="md" style={styles.statCard}>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Pending Processing
+                </Typography>
+                <Typography variant="h3" weight="bold" color={theme.colors.primary[600]} style={styles.statValue}>
+                  {invoices.filter((i: any) => !i.stockProcessed).length}
+                </Typography>
+              </Card>
+            </View>
             {/* Status Filter */}
             <View style={styles.filterSection}>
               <Typography variant="small" weight="semibold" style={styles.filterLabel}>
@@ -422,10 +693,10 @@ export const InvoicesScreen = () => {
                 <View style={styles.filterChips}>
                   {[
                     {label: 'All', value: ''},
-                    {label: 'Draft', value: 'draft'},
-                    {label: 'Issued', value: 'issued'},
-                    {label: 'Paid', value: 'paid'},
-                    {label: 'Cancelled', value: 'cancelled'},
+                    {label: 'Pending', value: 'Pending'},
+                    {label: 'Completed', value: 'Completed'},
+                    {label: 'Closed', value: 'Closed'},
+                    {label: 'Cancelled', value: 'Cancelled'},
                   ].map((filter) => (
                     <TouchableOpacity
                       key={filter.value}
@@ -449,31 +720,30 @@ export const InvoicesScreen = () => {
                 </View>
               </ScrollView>
             </View>
-            {/* Payment Status Filter */}
+            {/* Stock Processed Filter */}
             <View style={styles.filterSection}>
               <Typography variant="small" weight="semibold" style={styles.filterLabel}>
-                Payment Status
+                Stock Processed
               </Typography>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
                 <View style={styles.filterChips}>
                   {[
-                    {label: 'All', value: ''},
-                    {label: 'Pending', value: 'pending'},
-                    {label: 'Paid', value: 'paid'},
-                    {label: 'Overdue', value: 'overdue'},
+                    {label: 'All Invoices', value: ''},
+                    {label: 'Stock Processed', value: 'true'},
+                    {label: 'Not Processed', value: 'false'},
                   ].map((filter) => (
                     <TouchableOpacity
                       key={filter.value}
                       style={[
                         styles.filterChip,
-                        paymentStatusFilter === filter.value && styles.filterChipActive,
+                        stockProcessedFilter === filter.value && styles.filterChipActive,
                       ]}
-                      onPress={() => setPaymentStatusFilter(filter.value as PaymentStatusFilter)}>
+                      onPress={() => setStockProcessedFilter(filter.value as StockProcessedFilter)}>
                       <Typography
                         variant="small"
                         weight="semibold"
                         color={
-                          paymentStatusFilter === filter.value
+                          stockProcessedFilter === filter.value
                             ? theme.colors.white
                             : theme.colors.gray[600]
                         }>
@@ -484,6 +754,31 @@ export const InvoicesScreen = () => {
                 </View>
               </ScrollView>
             </View>
+            {/* Select / Bulk-delete bar (admin, closed tab only) */}
+            {isAdmin && invoiceType === 'closed' && total > 0 && (
+              <View style={styles.selectBar}>
+                <Button
+                  title={selectMode ? 'Cancel Select' : 'Select'}
+                  variant={selectMode ? 'secondary' : 'outline'}
+                  size="sm"
+                  onPress={() => {
+                    setSelectMode((m) => !m);
+                    setSelectedInvoices([]);
+                  }}
+                />
+                {selectMode && (
+                  <Button
+                    title={`Delete Selected (${selectedInvoices.length})`}
+                    variant="danger"
+                    size="sm"
+                    loading={deletingBulk}
+                    disabled={selectedInvoices.length === 0 || deletingBulk}
+                    leftIcon={<TrashIcon size={16} color={theme.colors.white} />}
+                    onPress={handleBulkDelete}
+                  />
+                )}
+              </View>
+            )}
             {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -515,33 +810,55 @@ export const InvoicesScreen = () => {
                 variant="body"
                 color={theme.colors.gray[500]}
                 align="center">
-                {searchQuery || statusFilter || paymentStatusFilter
+                {searchQuery || statusFilter || stockProcessedFilter
                   ? 'Try adjusting your filters'
                   : 'No invoices to display'}
               </Typography>
             </Card>
           )
         }
-        renderItem={({item: invoice}) => (
+        renderItem={({item: invoice}) => {
+          const invNum = invoice.invoiceNumber;
+          const isManual = invoice.source === 'manual';
+          const isSelectable = isAdmin && invoiceType === 'closed' && selectMode;
+          const isSelected = selectedInvoices.includes(invNum);
+          return (
           <TouchableOpacity
-            onPress={() => handleInvoicePress(invoice)}>
+            onPress={() =>
+              isSelectable ? toggleSelectInvoice(invNum) : handleInvoicePress(invoice)
+            }>
             <Card
               variant="elevated"
               padding="none"
-              style={styles.invoiceCard}>
+              style={[styles.invoiceCard, isSelected && styles.invoiceCardSelected]}>
               {/* Invoice Header */}
               <View style={styles.invoiceHeader}>
                 <View style={styles.invoiceHeaderLeft}>
+                  {isSelectable && (
+                    <Checkbox
+                      checked={isSelected}
+                      onChange={() => toggleSelectInvoice(invNum)}
+                    />
+                  )}
                   <View style={styles.iconContainer}>
                     <FileTextIcon size={20} color={theme.colors.primary[600]} />
                   </View>
                   <View style={styles.invoiceHeaderInfo}>
-                    <Typography
-                      variant="body"
-                      weight="bold"
-                      style={styles.invoiceNumber}>
-                      {invoice.invoiceNumber}
-                    </Typography>
+                    <View style={styles.invoiceNumberRow}>
+                      <Typography
+                        variant="body"
+                        weight="bold"
+                        style={styles.invoiceNumber}>
+                        {invoice.invoiceNumber}
+                      </Typography>
+                      {isManual && (
+                        <View style={styles.manualBadge}>
+                          <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                            MANUAL
+                          </Typography>
+                        </View>
+                      )}
+                    </View>
                     <Typography
                       variant="caption"
                       color={theme.colors.gray[500]}>
@@ -554,12 +871,12 @@ export const InvoicesScreen = () => {
                     variant="body"
                     weight="bold"
                     color={theme.colors.success[600]}>
-                    {formatCurrency(invoice.totalAmount || invoice.total)}
+                    {formatCurrency(invoice.total || invoice.totalAmount)}
                   </Typography>
                   <Typography
                     variant="caption"
                     color={theme.colors.gray[500]}>
-                    {formatDate(invoice.date || invoice.createdAt)}
+                    {formatDate(invoice.invoiceDate || invoice.date || invoice.createdAt)}
                   </Typography>
                 </View>
               </View>
@@ -578,7 +895,7 @@ export const InvoicesScreen = () => {
                       variant="caption"
                       weight="semibold"
                       color={getStatusColor(invoice.status)}>
-                      {invoice.status || 'Draft'}
+                      {invoice.status || 'Pending'}
                     </Typography>
                   </View>
                 </View>
@@ -594,25 +911,45 @@ export const InvoicesScreen = () => {
                 )}
                 <View style={styles.detailRow}>
                   <Typography variant="caption" color={theme.colors.gray[500]}>
-                    Payment
+                    Stock
                   </Typography>
                   <View
                     style={[
                       styles.badge,
-                      {backgroundColor: getPaymentStatusBgColor(invoice.paymentStatus)},
+                      {
+                        backgroundColor: invoice.stockProcessed
+                          ? theme.colors.success[100]
+                          : theme.colors.primary[100],
+                      },
                     ]}>
                     <Typography
                       variant="caption"
                       weight="semibold"
-                      color={getPaymentStatusColor(invoice.paymentStatus)}>
-                      {invoice.paymentStatus || 'Pending'}
+                      color={
+                        invoice.stockProcessed
+                          ? theme.colors.success[600]
+                          : theme.colors.primary[600]
+                      }>
+                      {invoice.stockProcessed ? 'Processed' : 'Pending'}
                     </Typography>
                   </View>
                 </View>
+                {isAdmin && isManual && (
+                  <View style={styles.rowActions}>
+                    <Button
+                      title="Delete"
+                      variant="danger"
+                      size="sm"
+                      leftIcon={<TrashIcon size={14} color={theme.colors.white} />}
+                      onPress={() => handleDeleteManual(invNum)}
+                    />
+                  </View>
+                )}
               </View>
             </Card>
           </TouchableOpacity>
-        )}
+          );
+        }}
       />
       {/* Invoice Detail Modal */}
       <InvoiceDetailScreen
@@ -660,6 +997,70 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     fontSize: theme.typography.fontSizes.md,
     color: theme.colors.text.tertiary,
   },
+  rangeBanner: {
+    marginTop: theme.spacing.xs,
+  },
+  syncLimitContainer: {
+    marginBottom: theme.spacing.md,
+  },
+  syncLimitLabel: {
+    marginBottom: theme.spacing.xs,
+  },
+  syncLimitChips: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dangerZone: {
+    marginBottom: theme.spacing.md,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: theme.spacing.md,
+  },
+  dateField: {
+    flex: 1,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: theme.spacing.md,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: theme.borderRadius.xl,
+  },
+  statValue: {
+    marginTop: theme.spacing.xs,
+  },
+  selectBar: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: theme.spacing.md,
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
+  invoiceCardSelected: {
+    borderWidth: 2,
+    borderColor: theme.colors.primary[500],
+  },
+  invoiceNumberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  manualBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.primary[100],
+  },
+  rowActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: theme.spacing.xs,
+  },
   tabsContainer: {
     flexDirection: 'row',
     marginBottom: theme.spacing.md,
@@ -706,6 +1107,9 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   },
   syncAllButton: {
     backgroundColor: theme.colors.success[600],
+  },
+  syncDetailsButton: {
+    backgroundColor: theme.colors.primary[500],
   },
   syncButtonDisabled: {
     opacity: 0.5,

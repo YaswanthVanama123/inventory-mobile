@@ -868,7 +868,31 @@ export const StockScreen = () => {
                                     {record.status && (
                                       <View style={styles.historyRow}>
                                         <Typography variant="caption" color={theme.colors.gray[500]}>Status</Typography>
-                                        <Typography variant="small" weight="medium">{record.status}</Typography>
+                                        <View
+                                          style={[
+                                            styles.statusBadge,
+                                            {
+                                              backgroundColor:
+                                                record.status === 'Completed' || record.status === 'Closed'
+                                                  ? theme.colors.success[50]
+                                                  : record.status === 'Pending'
+                                                  ? theme.colors.info[50]
+                                                  : theme.colors.gray[100],
+                                            },
+                                          ]}>
+                                          <Typography
+                                            variant="caption"
+                                            weight="medium"
+                                            color={
+                                              record.status === 'Completed' || record.status === 'Closed'
+                                                ? theme.colors.success[700]
+                                                : record.status === 'Pending'
+                                                ? theme.colors.info[700]
+                                                : theme.colors.gray[700]
+                                            }>
+                                            {record.status}
+                                          </Typography>
+                                        </View>
                                       </View>
                                     )}
                                   </View>
@@ -1146,9 +1170,18 @@ export const StockScreen = () => {
                                                 <View key={index} style={styles.historyItem}>
                                                   <View style={styles.historyRow}>
                                                     <Typography variant="caption" color={theme.colors.gray[500]}>Order #</Typography>
-                                                    <Typography variant="small" weight="semibold">
-                                                      {record.orderNumber}
-                                                    </Typography>
+                                                    <View style={styles.orderNumberCell}>
+                                                      <Typography variant="small" weight="semibold">
+                                                        {record.orderNumber}
+                                                      </Typography>
+                                                      {record.source === 'manual' && (
+                                                        <View style={styles.manualBadge}>
+                                                          <Typography variant="caption" weight="semibold" color={theme.colors.info[700]}>
+                                                            MANUAL
+                                                          </Typography>
+                                                        </View>
+                                                      )}
+                                                    </View>
                                                   </View>
                                                   <View style={styles.historyRow}>
                                                     <Typography variant="caption" color={theme.colors.gray[500]}>Date</Typography>
@@ -1977,6 +2010,22 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+    },
+    orderNumberCell: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    manualBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+      backgroundColor: theme.colors.info[50],
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
     },
 
     modalOverlay: {

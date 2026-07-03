@@ -15,6 +15,7 @@ import {Pagination} from '../components/molecules/Pagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
@@ -132,6 +133,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [summary, setSummary] = useState<any>(null);
+  const [showRecordModal, setShowRecordModal] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [searchText, setSearchText] = useState('');
   const debouncedSearch = useDebounce(searchText, 400);
@@ -751,6 +753,18 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
 
         {topTab === 'stock' && (
           <>
+        {/* Record Discrepancy (admin) */}
+        {user?.role === 'admin' && (
+          <View style={styles.recordButtonContainer}>
+            <Button
+              title="Record Discrepancy"
+              variant="primary"
+              size="md"
+              fullWidth
+              onPress={() => setShowRecordModal(true)}
+            />
+          </View>
+        )}
         {/* Summary Cards */}
         {summary && (
           <View style={styles.summaryContainer}>
@@ -1303,9 +1317,489 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           </>
         )}
       </SafeAreaView>
+
+      {showRecordModal && (
+        <RecordDiscrepancyModal
+          theme={theme}
+          bp={bp}
+          onClose={() => setShowRecordModal(false)}
+          onSuccess={() => {
+            setShowRecordModal(false);
+            loadData();
+          }}
+        />
+      )}
     </Modal>
   );
 };
+
+interface RecordDiscrepancyModalProps {
+  theme: Theme;
+  bp: BreakpointInfo;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const RecordDiscrepancyModal: React.FC<RecordDiscrepancyModalProps> = ({
+  theme,
+  bp,
+  onClose,
+  onSuccess,
+}) => {
+  const styles = useMemo(() => makeRecordStyles(theme, bp), [theme, bp]);
+  const [loading, setLoading] = useState(false);
+  const [searchingInvoice, setSearchingInvoice] = useState(false);
+  const [invoiceSearch, setInvoiceSearch] = useState('');
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const debouncedInvoiceSearch = useDebounce(invoiceSearch, 400);
+
+  const [form, setForm] = useState({
+    invoiceNumber: '',
+    invoiceId: '',
+    invoiceType: 'RouteStarInvoice',
+    itemName: '',
+    itemSku: '',
+    categoryName: '',
+    systemQuantity: 0,
+    actualQuantity: 0,
+    discrepancyType: '',
+    reason: '',
+    notes: '',
+  });
+  const [actualQtyText, setActualQtyText] = useState('');
+
+  // Debounced invoice search.
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const term = debouncedInvoiceSearch.trim();
+      if (term.length < 2) {
+        setInvoices([]);
+        return;
+      }
+      try {
+        setSearchingInvoice(true);
+        const response = await discrepancyService.searchInvoices(term, 10);
+        if (!cancelled && response.success) {
+          setInvoices(response.data?.invoices || []);
+        }
+      } catch (error) {
+        console.error('Search invoices error:', error);
+      } finally {
+        if (!cancelled) setSearchingInvoice(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedInvoiceSearch]);
+
+  // Auto-detect discrepancy type from quantities.
+  useEffect(() => {
+    const diff = form.actualQuantity - form.systemQuantity;
+    let type = '';
+    if (diff > 0) type = 'Overage';
+    else if (diff < 0) type = 'Shortage';
+    setForm(prev => (prev.discrepancyType === type ? prev : {...prev, discrepancyType: type}));
+  }, [form.systemQuantity, form.actualQuantity]);
+
+  const handleInvoiceSelect = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setInvoiceSearch(invoice.invoiceNumber);
+    setInvoices([]);
+    setActualQtyText('');
+    setForm(prev => ({
+      ...prev,
+      invoiceNumber: invoice.invoiceNumber,
+      invoiceId: invoice._id,
+      invoiceType: 'RouteStarInvoice',
+      itemName: '',
+      itemSku: '',
+      systemQuantity: 0,
+      actualQuantity: 0,
+      discrepancyType: '',
+    }));
+  };
+
+  const handleLineItemSelect = (item: any) => {
+    setActualQtyText('');
+    setForm(prev => ({
+      ...prev,
+      itemName: item.itemName,
+      itemSku: item.itemCode || '',
+      systemQuantity: Number(item.quantity) || 0,
+      actualQuantity: 0,
+      discrepancyType: '',
+    }));
+  };
+
+  const difference = form.actualQuantity - form.systemQuantity;
+
+  const handleSubmit = async () => {
+    if (!form.invoiceNumber) {
+      Alert.alert('Missing Invoice', 'Please select an invoice.');
+      return;
+    }
+    if (!form.itemName) {
+      Alert.alert('Missing Item', 'Please select an item.');
+      return;
+    }
+    if (form.actualQuantity === form.systemQuantity) {
+      Alert.alert(
+        'No Discrepancy',
+        'Actual quantity matches system quantity - no discrepancy to record.',
+      );
+      return;
+    }
+    if (!form.discrepancyType) {
+      Alert.alert('Missing Type', 'Discrepancy type could not be determined.');
+      return;
+    }
+    try {
+      setLoading(true);
+      const response = await discrepancyService.createDiscrepancy(form);
+      if (response.success) {
+        Alert.alert('Success', 'Discrepancy recorded successfully');
+        onSuccess();
+      } else {
+        Alert.alert('Error', response.message || 'Failed to record discrepancy');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Error recording discrepancy');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const diffColor =
+    difference > 0
+      ? theme.colors.success[600]
+      : difference < 0
+      ? theme.colors.error[600]
+      : theme.colors.gray[600];
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <View style={styles.sheet}>
+          <View style={styles.sheetHeader}>
+            <View style={{flex: 1}}>
+              <Typography variant="h3" weight="bold">
+                Record Stock Discrepancy
+              </Typography>
+              <Typography
+                variant="caption"
+                color={theme.colors.gray[500]}
+                style={{marginTop: 2}}>
+                Enter the details of the stock count difference
+              </Typography>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.sheetClose}>
+              <Typography variant="h3" color={theme.colors.gray[600]}>
+                ✕
+              </Typography>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.sheetBody}
+            contentContainerStyle={styles.sheetBodyContent}
+            keyboardShouldPersistTaps="handled">
+            {/* Invoice search */}
+            <Typography variant="small" weight="semibold" style={styles.fieldLabel}>
+              Invoice Number *
+            </Typography>
+            <View style={styles.searchWrap}>
+              <TextInput
+                style={styles.input}
+                placeholder="Search invoice by number..."
+                placeholderTextColor={theme.colors.gray[400]}
+                value={invoiceSearch}
+                onChangeText={text => {
+                  setInvoiceSearch(text);
+                  if (selectedInvoice) {
+                    setSelectedInvoice(null);
+                  }
+                }}
+              />
+              {searchingInvoice && (
+                <ActivityIndicator
+                  style={styles.searchSpinner}
+                  size="small"
+                  color={theme.colors.primary[600]}
+                />
+              )}
+            </View>
+            {invoices.length > 0 && (
+              <View style={styles.optionsList}>
+                {invoices.map(invoice => (
+                  <TouchableOpacity
+                    key={invoice._id}
+                    style={styles.optionRow}
+                    onPress={() => handleInvoiceSelect(invoice)}>
+                    <Typography variant="small" weight="semibold">
+                      {invoice.invoiceNumber}
+                    </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                      {invoice.customerName || 'Unknown'}
+                      {invoice.invoiceDate
+                        ? ` • ${new Date(invoice.invoiceDate).toLocaleDateString()}`
+                        : ''}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Line item select */}
+            {selectedInvoice &&
+              Array.isArray(selectedInvoice.lineItems) &&
+              selectedInvoice.lineItems.length > 0 && (
+                <>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    style={styles.fieldLabel}>
+                    Select Item *
+                  </Typography>
+                  <View style={styles.optionsList}>
+                    {selectedInvoice.lineItems.map((item: any, index: number) => {
+                      const active = form.itemName === item.itemName;
+                      return (
+                        <TouchableOpacity
+                          key={index}
+                          style={[
+                            styles.optionRow,
+                            active && {backgroundColor: theme.colors.primary[50]},
+                          ]}
+                          onPress={() => handleLineItemSelect(item)}>
+                          <Typography variant="small" weight="semibold">
+                            {item.itemName}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color={theme.colors.gray[500]}>
+                            SKU: {item.itemCode || 'N/A'} • Qty: {item.quantity}
+                          </Typography>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </>
+              )}
+
+            {/* Quantities + type */}
+            {form.itemName ? (
+              <>
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  style={styles.fieldLabel}>
+                  System Quantity
+                </Typography>
+                <TextInput
+                  style={[styles.input, styles.inputReadonly]}
+                  value={String(form.systemQuantity)}
+                  editable={false}
+                />
+
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  style={styles.fieldLabel}>
+                  Actual Quantity (Physical Count) *
+                </Typography>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter actual counted quantity"
+                  placeholderTextColor={theme.colors.gray[400]}
+                  keyboardType="number-pad"
+                  value={actualQtyText}
+                  onChangeText={text => {
+                    setActualQtyText(text);
+                    const parsed = parseFloat(text);
+                    setForm(prev => ({
+                      ...prev,
+                      actualQuantity: isNaN(parsed) ? 0 : parsed,
+                    }));
+                  }}
+                />
+
+                <View style={styles.diffBox}>
+                  <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
+                    Difference
+                  </Typography>
+                  <Typography variant="h3" weight="bold" color={diffColor}>
+                    {difference > 0 ? '+' : ''}
+                    {difference}
+                  </Typography>
+                </View>
+
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  style={styles.fieldLabel}>
+                  Discrepancy Type
+                </Typography>
+                <TextInput
+                  style={[styles.input, styles.inputReadonly]}
+                  value={form.discrepancyType}
+                  placeholder="Auto-detected based on quantities"
+                  placeholderTextColor={theme.colors.gray[400]}
+                  editable={false}
+                />
+
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  style={styles.fieldLabel}>
+                  Reason
+                </Typography>
+                <TextInput
+                  style={[styles.input, styles.inputMultiline]}
+                  placeholder="Explain the reason for this discrepancy..."
+                  placeholderTextColor={theme.colors.gray[400]}
+                  multiline
+                  value={form.reason}
+                  onChangeText={text => setForm(prev => ({...prev, reason: text}))}
+                />
+
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  style={styles.fieldLabel}>
+                  Additional Notes
+                </Typography>
+                <TextInput
+                  style={[styles.input, styles.inputMultiline]}
+                  placeholder="Any additional information..."
+                  placeholderTextColor={theme.colors.gray[400]}
+                  multiline
+                  value={form.notes}
+                  onChangeText={text => setForm(prev => ({...prev, notes: text}))}
+                />
+              </>
+            ) : (
+              <Typography
+                variant="small"
+                color={theme.colors.gray[500]}
+                style={{marginTop: theme.spacing.md}}>
+                Search and select an invoice, then choose an item to continue.
+              </Typography>
+            )}
+          </ScrollView>
+
+          <View style={styles.sheetFooter}>
+            <Button
+              title="Cancel"
+              variant="outline"
+              size="md"
+              style={{flex: 1}}
+              disabled={loading}
+              onPress={onClose}
+            />
+            <Button
+              title="Record Discrepancy"
+              variant="primary"
+              size="md"
+              style={{flex: 1}}
+              loading={loading}
+              disabled={loading || !form.itemName || !form.discrepancyType}
+              onPress={handleSubmit}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const makeRecordStyles = (theme: Theme, bp: BreakpointInfo) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      justifyContent: 'flex-end',
+    },
+    sheet: {
+      backgroundColor: theme.colors.white,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      maxHeight: '90%',
+      width: '100%',
+      maxWidth: bp.contentMaxWidth,
+      alignSelf: 'center',
+    },
+    sheetHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: theme.spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.gray[200],
+    },
+    sheetClose: {padding: 4, marginLeft: 8},
+    sheetBody: {flexGrow: 0},
+    sheetBodyContent: {
+      padding: theme.spacing.lg,
+      paddingBottom: theme.spacing.md,
+    },
+    fieldLabel: {
+      marginTop: theme.spacing.md,
+      marginBottom: 6,
+      color: theme.colors.gray[700],
+    },
+    searchWrap: {justifyContent: 'center'},
+    searchSpinner: {position: 'absolute', right: 12},
+    input: {
+      backgroundColor: theme.colors.gray[50],
+      borderWidth: 1,
+      borderColor: theme.colors.gray[300],
+      borderRadius: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: theme.typography.roles.body.fontSize,
+      color: theme.colors.gray[900],
+    },
+    inputReadonly: {
+      backgroundColor: theme.colors.gray[100],
+      color: theme.colors.gray[600],
+    },
+    inputMultiline: {
+      minHeight: 64,
+      textAlignVertical: 'top',
+    },
+    optionsList: {
+      marginTop: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.gray[200],
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    optionRow: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.gray[100],
+    },
+    diffBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.gray[50],
+      borderRadius: 8,
+      padding: theme.spacing.md,
+      marginTop: theme.spacing.md,
+    },
+    sheetFooter: {
+      flexDirection: 'row',
+      gap: 10,
+      padding: theme.spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.gray[200],
+    },
+  });
 
 const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
@@ -1381,6 +1875,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   summaryContainer: {
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.white,
+  },
+  recordButtonContainer: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
     backgroundColor: theme.colors.white,
   },
   summaryGrid: {

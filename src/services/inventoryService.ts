@@ -181,11 +181,116 @@ class InventoryService {
       return imagePath;
     }
     if (imagePath.startsWith('/uploads')) {
-      const backendUrl = 'http://192.168.1.18:5001';
+      // Derive the backend origin from the configured API base URL rather than
+      // hardcoding an IP, so uploaded images resolve in every environment.
+      const backendUrl = API_BASE_URL.replace(/\/api\/?$/, '');
       return `${backendUrl}${imagePath}`;
     }
     return imagePath;
   }
+
+  /**
+   * Create a catalog inventory item. Sends multipart/form-data to match the
+   * web form (backend route uses multer). Image files may be attached as
+   * {uri, name, type} objects under the `images` key.
+   */
+  async createItem(token: string, data: any) {
+    return this._saveItem(token, 'POST', `${API_BASE_URL}/inventory`, data);
+  }
+
+  /**
+   * Update a catalog inventory item (SKU rename cascades server-side).
+   */
+  async updateItem(token: string, id: string, data: any) {
+    return this._saveItem(token, 'PUT', `${API_BASE_URL}/inventory/${id}`, data);
+  }
+
+  private async _saveItem(token: string, method: string, url: string, data: any) {
+    try {
+      const form = new FormData();
+      form.append('itemName', data.itemName ?? '');
+      form.append('skuCode', data.skuCode ?? '');
+      form.append('description', data.description ?? '');
+      form.append('category', data.category ?? '');
+      form.append('unit', data.unit ?? 'pieces');
+      form.append('tags', JSON.stringify(data.tags || []));
+      form.append('primaryImageIndex', String(data.primaryImageIndex ?? 0));
+      (data.images || []).forEach((img: any) => {
+        if (img && img.uri) {
+          form.append('images', {
+            uri: img.uri,
+            name: img.name || 'photo.jpg',
+            type: img.type || 'image/jpeg',
+          } as any);
+        }
+      });
+      const response = await fetch(url, {
+        method,
+        headers: {
+          // Do NOT set Content-Type; fetch sets the multipart boundary.
+          Authorization: `Bearer ${token}`,
+        },
+        body: form,
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result?.message || `Failed to save item (${response.status})`);
+      }
+      return result;
+    } catch (error) {
+      console.error('Save Item Service Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a catalog inventory item.
+   */
+  async deleteItem(token: string, id: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/inventory/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result?.message || `Failed to delete item (${response.status})`);
+      }
+      return result;
+    } catch (error) {
+      console.error('Delete Item Service Error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch the activity history for a single inventory item.
+   */
+  async getItemActivities(token: string, itemId: string) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/activities?resource=INVENTORY&search=${encodeURIComponent(itemId)}&limit=50`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch item activities');
+      }
+      const data = await response.json();
+      return data.data?.activities || data.activities || data.data || [];
+    } catch (error) {
+      console.error('Item Activities Service Error:', error);
+      return [];
+    }
+  }
+
   async verifyOrderItem(
     token: string,
     orderNumber: string,

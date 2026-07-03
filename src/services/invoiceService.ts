@@ -5,7 +5,8 @@ interface InvoiceParams {
   limit?: number;
   search?: string;
   status?: string;
-  paymentStatus?: string;
+  invoiceType?: string;
+  stockProcessed?: string;
   dateFrom?: string;
   dateTo?: string;
   dateField?: string;
@@ -19,7 +20,10 @@ class InvoiceService {
       if (params.limit) queryParams.append('limit', params.limit.toString());
       if (params.search) queryParams.append('search', params.search);
       if (params.status) queryParams.append('status', params.status);
-      if (params.paymentStatus) queryParams.append('paymentStatus', params.paymentStatus);
+      if (params.invoiceType) queryParams.append('invoiceType', params.invoiceType);
+      if (params.stockProcessed !== undefined && params.stockProcessed !== '') {
+        queryParams.append('stockProcessed', params.stockProcessed);
+      }
       if (params.dateFrom) queryParams.append('startDate', params.dateFrom);
       if (params.dateTo) queryParams.append('endDate', params.dateTo);
       if (params.dateField) queryParams.append('dateField', params.dateField);
@@ -213,6 +217,191 @@ class InvoiceService {
       throw new Error('Invalid response format');
     } catch (error: any) {
       console.error('[SyncAllInvoiceDetails] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async syncPendingInvoiceDetails(token: string, limit: number = 0) {
+    try {
+      const url = `${API_BASE_URL}/routestar/sync/pending-details`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({limit}),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const json = await response.json();
+      const payload = json.data || json;
+      return {success: json.success !== false, data: payload};
+    } catch (error: any) {
+      console.error('[SyncPendingInvoiceDetails] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async syncClosedInvoiceDetails(token: string, limit: number = 0) {
+    try {
+      const url = `${API_BASE_URL}/routestar/sync/closed-details`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({limit}),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const json = await response.json();
+      const payload = json.data || json;
+      return {success: json.success !== false, data: payload};
+    } catch (error: any) {
+      console.error('[SyncClosedInvoiceDetails] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async getInvoiceRange(token: string, invoiceType?: 'pending' | 'closed') {
+    try {
+      const queryParams = new URLSearchParams();
+      if (invoiceType) queryParams.append('invoiceType', invoiceType);
+      const url = `${API_BASE_URL}/routestar/invoice-range${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const json = await response.json();
+      const data = json.data || json;
+      return {
+        highest: data?.highest ?? null,
+        lowest: data?.lowest ?? null,
+        totalInvoices: data?.totalInvoices ?? 0,
+      };
+    } catch (error: any) {
+      console.error('[GetInvoiceRange] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async deleteAllPendingInvoices(token: string) {
+    try {
+      const url = `${API_BASE_URL}/routestar/invoices/pending/all`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const json = await response.json();
+      const payload = json.data || json;
+      return {success: json.success !== false, data: payload};
+    } catch (error: any) {
+      console.error('[DeleteAllPendingInvoices] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async deleteAllClosedInvoices(token: string) {
+    try {
+      const url = `${API_BASE_URL}/routestar/invoices/closed/all`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const json = await response.json();
+      const payload = json.data || json;
+      return {success: json.success !== false, data: payload};
+    } catch (error: any) {
+      console.error('[DeleteAllClosedInvoices] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async deleteBulkClosedInvoicesByNumbers(token: string, invoiceNumbers: string[]) {
+    try {
+      const url = `${API_BASE_URL}/routestar/invoices/bulk-delete-by-numbers`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({invoiceNumbers}),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const json = await response.json();
+      const payload = json.data || json;
+      return {success: json.success !== false, data: payload};
+    } catch (error: any) {
+      console.error('[DeleteBulkClosedInvoices] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async deleteManualInvoice(token: string, invoiceNumber: string) {
+    try {
+      const url = `${API_BASE_URL}/routestar/invoices/manual/${encodeURIComponent(invoiceNumber)}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const json = await response.json();
+      const payload = json.data || json;
+      return {success: json.success !== false, data: payload};
+    } catch (error: any) {
+      console.error('[DeleteManualInvoice] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async syncInvoiceDetails(token: string, invoiceNumber: string) {
+    try {
+      const url = `${API_BASE_URL}/routestar/sync/details/${encodeURIComponent(invoiceNumber)}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const json = await response.json();
+      const payload = json.data || json;
+      return {success: json.success !== false, data: payload};
+    } catch (error: any) {
+      console.error('[SyncInvoiceDetails] Service Error:', error.message);
       throw error;
     }
   }

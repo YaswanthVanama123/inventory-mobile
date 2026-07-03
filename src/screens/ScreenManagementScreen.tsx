@@ -53,10 +53,13 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addSaving, setAddSaving] = useState(false);
+  const [editingScreen, setEditingScreen] = useState<Screen | null>(null);
   const [newScreen, setNewScreen] = useState({
     name: '',
     displayName: '',
     path: '',
+    icon: 'ViewGridIcon',
+    order: '0',
     category: 'Other',
     description: '',
     isDefault: false,
@@ -120,14 +123,33 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   const onRefresh = refresh;
 
   const openAddModal = () => {
+    setEditingScreen(null);
     setNewScreen({
       name: '',
       displayName: '',
       path: '',
+      icon: 'ViewGridIcon',
+      order: '0',
       category: 'Other',
       description: '',
       isDefault: false,
       isActive: true,
+    });
+    setShowAddModal(true);
+  };
+
+  const openEditModal = (screen: Screen) => {
+    setEditingScreen(screen);
+    setNewScreen({
+      name: screen.name || '',
+      displayName: screen.displayName || '',
+      path: screen.path || '',
+      icon: screen.icon || 'ViewGridIcon',
+      order: String(screen.order ?? 0),
+      category: screen.category || 'Other',
+      description: screen.description || '',
+      isDefault: !!screen.isDefault,
+      isActive: !!screen.isActive,
     });
     setShowAddModal(true);
   };
@@ -139,12 +161,30 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
     }
     try {
       setAddSaving(true);
-      await screenPermissionService.createScreen(token!, newScreen);
-      setShowAddModal(false);
-      Alert.alert('Success', 'Screen created successfully');
+      const payload = {
+        name: newScreen.name,
+        displayName: newScreen.displayName,
+        path: newScreen.path,
+        icon: newScreen.icon,
+        order: parseInt(newScreen.order, 10) || 0,
+        category: newScreen.category,
+        description: newScreen.description,
+        isDefault: newScreen.isDefault,
+        isActive: newScreen.isActive,
+      };
+      if (editingScreen) {
+        await screenPermissionService.updateScreen(token!, editingScreen._id, payload);
+        setShowAddModal(false);
+        setEditingScreen(null);
+        Alert.alert('Success', 'Screen updated successfully');
+      } else {
+        await screenPermissionService.createScreen(token!, payload);
+        setShowAddModal(false);
+        Alert.alert('Success', 'Screen created successfully');
+      }
       loadData();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create screen');
+      Alert.alert('Error', error.message || `Failed to ${editingScreen ? 'update' : 'create'} screen`);
     } finally {
       setAddSaving(false);
     }
@@ -212,9 +252,14 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
             {screen.path}
           </Typography>
         </View>
-        <TouchableOpacity onPress={() => handleDelete(screen)} style={styles.deleteButton}>
-          <TrashIcon size={18} color={theme.colors.error[600]} />
-        </TouchableOpacity>
+        <View style={styles.cardActions}>
+          <TouchableOpacity onPress={() => openEditModal(screen)} style={styles.iconButton}>
+            <EditIcon size={18} color={theme.colors.primary[600]} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleDelete(screen)} style={styles.iconButton}>
+            <TrashIcon size={18} color={theme.colors.error[600]} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.screenDetails}>
@@ -433,19 +478,26 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
         )}
       </SafeAreaView>
 
-      {/* Add Screen Modal */}
+      {/* Add / Edit Screen Modal */}
       <Modal
         visible={showAddModal}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowAddModal(false)}>
+        onRequestClose={() => {
+          setShowAddModal(false);
+          setEditingScreen(null);
+        }}>
         <View style={styles.addModalOverlay}>
           <View style={styles.addModalCard}>
             <View style={styles.addModalHeader}>
               <Typography variant="h3" weight="bold">
-                Add New Screen
+                {editingScreen ? 'Edit Screen' : 'Add New Screen'}
               </Typography>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowAddModal(false);
+                  setEditingScreen(null);
+                }}>
                 <XIcon size={22} color={theme.colors.gray[600]} />
               </TouchableOpacity>
             </View>
@@ -508,6 +560,28 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
                 })}
               </ScrollView>
               <Typography variant="caption" color={theme.colors.gray[600]} style={styles.addLabel}>
+                Icon
+              </Typography>
+              <RNTextInput
+                style={styles.addInput}
+                value={newScreen.icon}
+                onChangeText={t => setNewScreen({...newScreen, icon: t})}
+                placeholder="e.g. ViewGridIcon"
+                autoCapitalize="none"
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+              <Typography variant="caption" color={theme.colors.gray[600]} style={styles.addLabel}>
+                Order
+              </Typography>
+              <RNTextInput
+                style={styles.addInput}
+                value={newScreen.order}
+                onChangeText={t => setNewScreen({...newScreen, order: t.replace(/[^0-9-]/g, '')})}
+                placeholder="0"
+                keyboardType="number-pad"
+                placeholderTextColor={theme.colors.gray[400]}
+              />
+              <Typography variant="caption" color={theme.colors.gray[600]} style={styles.addLabel}>
                 Description
               </Typography>
               <RNTextInput
@@ -540,11 +614,14 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
                 title="Cancel"
                 variant="outline"
                 size="sm"
-                onPress={() => setShowAddModal(false)}
+                onPress={() => {
+                  setShowAddModal(false);
+                  setEditingScreen(null);
+                }}
                 style={{flex: 1}}
               />
               <Button
-                title={addSaving ? 'Saving...' : 'Save'}
+                title={addSaving ? 'Saving...' : editingScreen ? 'Update' : 'Save'}
                 variant="primary"
                 size="sm"
                 onPress={handleSaveNewScreen}
@@ -686,7 +763,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     marginTop: 2,
     fontFamily: 'monospace',
   },
-  deleteButton: {
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
     padding: theme.spacing.sm,
   },
   screenDetails: {

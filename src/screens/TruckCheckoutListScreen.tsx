@@ -63,6 +63,8 @@ export const TruckCheckoutListScreen = () => {
   const [employees, setEmployees] = useState<any[]>([]);
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
   const [employeeCheckouts, setEmployeeCheckouts] = useState<any[]>([]);
+  const [employeeStats, setEmployeeStats] = useState<any>(null);
+  const [employeeStatsLoading, setEmployeeStatsLoading] = useState(false);
   const [salesTracking, setSalesTracking] = useState<any[]>([]);
   const [salesSummary, setSalesSummary] = useState<any>({});
   const [salesEmployees, setSalesEmployees] = useState<any[]>([]);
@@ -344,22 +346,31 @@ export const TruckCheckoutListScreen = () => {
     if (expandedEmployee === key) {
       setExpandedEmployee(null);
       setEmployeeCheckouts([]);
+      setEmployeeStats(null);
       return;
     }
     setExpandedEmployee(key);
+    setEmployeeStats(null);
     if (!token) return;
     try {
+      setEmployeeStatsLoading(true);
       const filters: any = {employeeName, limit: 100};
-      const result = await truckCheckoutService.getCheckouts(token, filters);
+      const [result, stats] = await Promise.all([
+        truckCheckoutService.getCheckouts(token, filters),
+        truckCheckoutService.getEmployeeStats(token, employeeName),
+      ]);
       if (isMounted) {
         const filtered = (result.checkouts || []).filter(
           (c: any) => (c.truckNumber || 'N/A') === truckNumber,
         );
         setEmployeeCheckouts(filtered);
+        setEmployeeStats(stats);
       }
     } catch (err: any) {
       console.error('Load employee checkouts error:', err);
       await handleApiError(err);
+    } finally {
+      if (isMounted) setEmployeeStatsLoading(false);
     }
   };
 
@@ -1215,6 +1226,46 @@ export const TruckCheckoutListScreen = () => {
                       </TouchableOpacity>
                       {isExpanded && (
                         <View style={styles.expandedPanel}>
+                          {employeeStatsLoading && !employeeStats ? (
+                            <View style={styles.empStatsLoading}>
+                              <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+                            </View>
+                          ) : (
+                            <View style={styles.empStatsGrid}>
+                              <View style={[styles.empStatCard, {backgroundColor: theme.colors.primary[50]}]}>
+                                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]}>
+                                  Total
+                                </Typography>
+                                <Typography variant="h3" weight="bold" color={theme.colors.primary[700]}>
+                                  {employeeStats?.totalCheckouts || 0}
+                                </Typography>
+                              </View>
+                              <View style={[styles.empStatCard, {backgroundColor: theme.colors.success[50]}]}>
+                                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]}>
+                                  Completed
+                                </Typography>
+                                <Typography variant="h3" weight="bold" color={theme.colors.success[700]}>
+                                  {employeeStats?.completedCheckouts || 0}
+                                </Typography>
+                              </View>
+                              <View style={[styles.empStatCard, {backgroundColor: theme.colors.warning[50]}]}>
+                                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]}>
+                                  Active
+                                </Typography>
+                                <Typography variant="h3" weight="bold" color={theme.colors.warning[700]}>
+                                  {employeeStats?.activeCheckouts || 0}
+                                </Typography>
+                              </View>
+                              <View style={[styles.empStatCard, {backgroundColor: theme.colors.accent[50]}]}>
+                                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]}>
+                                  Total Invoices
+                                </Typography>
+                                <Typography variant="h3" weight="bold" color={theme.colors.accent[700]}>
+                                  {employeeStats?.totalInvoices || 0}
+                                </Typography>
+                              </View>
+                            </View>
+                          )}
                           {employeeCheckouts.length === 0 ? (
                             <Typography variant="small" color={theme.colors.gray[500]}>
                               No checkouts found
@@ -2019,6 +2070,24 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       flexDirection: 'row',
       gap: 8,
       marginTop: 4,
+    },
+    empStatsGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    empStatCard: {
+      width: '48.5%',
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      gap: 2,
+      marginBottom: 8,
+    },
+    empStatsLoading: {
+      paddingVertical: theme.spacing.md,
+      alignItems: 'center',
     },
 
     subCheckoutCard: {

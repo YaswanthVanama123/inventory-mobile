@@ -449,6 +449,38 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
                                     {formatCurrency(invoice.amount || 0)}
                                   </Typography>
                                 </View>
+                                {invoice.status ? (
+                                  <View style={styles.detailRow}>
+                                    <Typography variant="caption" color={theme.colors.gray[500]}>
+                                      Status
+                                    </Typography>
+                                    <View
+                                      style={[
+                                        styles.statusBadge,
+                                        {
+                                          backgroundColor:
+                                            invoice.status === 'Completed' || invoice.status === 'Closed'
+                                              ? theme.colors.success[50]
+                                              : invoice.status === 'Pending'
+                                              ? theme.colors.info[50]
+                                              : theme.colors.gray[100],
+                                        },
+                                      ]}>
+                                      <Typography
+                                        variant="caption"
+                                        weight="medium"
+                                        color={
+                                          invoice.status === 'Completed' || invoice.status === 'Closed'
+                                            ? theme.colors.success[700]
+                                            : invoice.status === 'Pending'
+                                            ? theme.colors.info[700]
+                                            : theme.colors.gray[700]
+                                        }>
+                                        {invoice.status}
+                                      </Typography>
+                                    </View>
+                                  </View>
+                                ) : null}
                               </View>
                             ))}
                           </>
@@ -647,6 +679,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     invoiceItemTop: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4},
     detailIdBadge: {paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999},
     detailRow: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+    statusBadge: {paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6},
 
     noInvoicesContainer: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,

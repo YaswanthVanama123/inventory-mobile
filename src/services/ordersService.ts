@@ -9,6 +9,7 @@ class OrdersService {
       if (params.limit) queryParams.append('limit', params.limit.toString());
       if (params.status) queryParams.append('status', params.status);
       if (params.stockProcessed !== undefined) queryParams.append('stockProcessed', params.stockProcessed.toString());
+      if (params.verified !== undefined) queryParams.append('verified', params.verified.toString());
       if (params.startDate) queryParams.append('startDate', params.startDate);
       if (params.endDate) queryParams.append('endDate', params.endDate);
       if (params.vendor) queryParams.append('vendor', params.vendor);
@@ -126,6 +127,63 @@ class OrdersService {
       throw new Error('Invalid response format');
     } catch (error: any) {
       console.error('[SyncOrders] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async deleteAllOrders(token: string) {
+    try {
+      const url = `${API_BASE_URL}/customerconnect/orders/all`;
+      console.log('[DeleteAllOrders] Deleting all orders');
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      console.log('[DeleteAllOrders] Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[DeleteAllOrders] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('[DeleteAllOrders] Response data:', result);
+      if (result.success) {
+        return result;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      console.error('[DeleteAllOrders] Service Error:', error.message);
+      throw error;
+    }
+  }
+  async deleteBulkOrdersByNumbers(token: string, orderNumbers: string[]) {
+    try {
+      const url = `${API_BASE_URL}/customerconnect/orders/bulk-delete-by-numbers`;
+      console.log('[BulkDeleteOrders] Deleting orders:', orderNumbers);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({orderNumbers}),
+      });
+      console.log('[BulkDeleteOrders] Response status:', response.status);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[BulkDeleteOrders] Error response:', errorText);
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      console.log('[BulkDeleteOrders] Response data:', result);
+      if (result.success) {
+        return result;
+      }
+      throw new Error('Invalid response format');
+    } catch (error: any) {
+      console.error('[BulkDeleteOrders] Service Error:', error.message);
       throw error;
     }
   }

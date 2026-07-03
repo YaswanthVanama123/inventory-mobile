@@ -45,8 +45,8 @@ export const TextInput: React.FC<TextInputProps> = ({
           {...props}
           style={[
             styles.input,
-            leftIcon && styles.inputWithLeftIcon,
-            rightIcon && styles.inputWithRightIcon,
+            !!leftIcon && styles.inputWithLeftIcon,
+            !!rightIcon && styles.inputWithRightIcon,
             inputStyle,
           ]}
           placeholderTextColor={theme.colors.gray[400]}

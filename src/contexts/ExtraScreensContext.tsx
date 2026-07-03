@@ -15,6 +15,19 @@ import {ActivityLogScreen} from '../screens/ActivityLogScreen';
 import {ScreenPermissionsManagementScreen} from '../screens/ScreenPermissionsManagementScreen';
 import {ScreenManagementScreen} from '../screens/ScreenManagementScreen';
 import {ItemsInvoiceUsageScreen} from '../screens/ItemsInvoiceUsageScreen';
+import {InventoryCatalogScreen} from '../screens/InventoryCatalogScreen';
+import {RouteStarCustomersScreen} from '../screens/RouteStarCustomersScreen';
+import {ClosedInvoiceCustomersScreen} from '../screens/ClosedInvoiceCustomersScreen';
+import {LowStockReportScreen} from '../screens/LowStockReportScreen';
+import {QuickBooksSyncScreen} from '../screens/QuickBooksSyncScreen';
+import {SalesAnalyticsReportScreen} from '../screens/SalesAnalyticsReportScreen';
+import {ReportsHubScreen} from '../screens/ReportsHubScreen';
+import {CustomerExportScreen} from '../screens/CustomerExportScreen';
+import {SettingsScreen} from '../screens/SettingsScreen';
+import {ApprovalsScreen} from '../screens/ApprovalsScreen';
+import {UnitsScreen} from '../screens/UnitsScreen';
+import {CouponsScreen} from '../screens/CouponsScreen';
+import {StockReconciliationScreen} from '../screens/StockReconciliationScreen';
 
 // Screens that historically lived as modals opened from the Account screen.
 // They are centralized here so BOTH the sidebar (wide) and the Account menu
@@ -33,7 +46,20 @@ export type ExtraScreenKey =
   | 'activityLog'
   | 'screenPermissions'
   | 'screenManagement'
-  | 'itemsInvoiceUsage';
+  | 'itemsInvoiceUsage'
+  | 'inventoryCatalog'
+  | 'routeStarCustomers'
+  | 'closedInvoiceCustomers'
+  | 'lowStockReport'
+  | 'quickBooksSync'
+  | 'salesAnalytics'
+  | 'reportsHub'
+  | 'customerExport'
+  | 'settings'
+  | 'approvals'
+  | 'units'
+  | 'coupons'
+  | 'stockReconciliation';
 
 interface ExtraScreensContextValue {
   openKey: ExtraScreenKey | null;
@@ -78,6 +104,19 @@ export const ExtraScreensProvider: React.FC<{children: ReactNode}> = ({children}
       <ManualPOItemsScreen visible={is('manualPOItems')} onClose={close} />
       <VendorManagementScreen visible={is('vendors')} onClose={close} />
       <ItemsInvoiceUsageScreen visible={is('itemsInvoiceUsage')} onClose={close} />
+      <InventoryCatalogScreen visible={is('inventoryCatalog')} onClose={close} />
+      <RouteStarCustomersScreen visible={is('routeStarCustomers')} onClose={close} />
+      <ClosedInvoiceCustomersScreen visible={is('closedInvoiceCustomers')} onClose={close} />
+      <LowStockReportScreen visible={is('lowStockReport')} onClose={close} />
+      <SalesAnalyticsReportScreen visible={is('salesAnalytics')} onClose={close} />
+      <ReportsHubScreen visible={is('reportsHub')} onClose={close} />
+      <CustomerExportScreen visible={is('customerExport')} onClose={close} />
+      <ApprovalsScreen visible={is('approvals')} onClose={close} />
+      <UnitsScreen visible={is('units')} onClose={close} />
+      <CouponsScreen visible={is('coupons')} onClose={close} />
+      {isAdmin && <QuickBooksSyncScreen visible={is('quickBooksSync')} onClose={close} />}
+      {isAdmin && <SettingsScreen visible={is('settings')} onClose={close} />}
+      {isAdmin && <StockReconciliationScreen visible={is('stockReconciliation')} onClose={close} />}
       {isAdmin && <UserManagementScreen visible={is('userManagement')} onClose={close} />}
       {isAdmin && <ActivityLogScreen visible={is('activityLog')} onClose={close} />}
       {isAdmin && <ScreenPermissionsManagementScreen visible={is('screenPermissions')} onClose={close} />}

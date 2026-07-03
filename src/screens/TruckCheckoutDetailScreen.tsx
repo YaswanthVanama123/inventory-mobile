@@ -6,11 +6,14 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput as RNTextInput,
+  Modal,
   Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
@@ -38,11 +41,25 @@ export const TruckCheckoutDetailScreen: React.FC<
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {checkoutId} = route.params;
-  const {token} = useAuth();
+  const {token, user} = useAuth();
+  const isAdmin = user?.role === 'admin';
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [checkout, setCheckout] = useState<any>(null);
+
+  // Complete / Add-invoices modal state
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [invoiceNumbers, setInvoiceNumbers] = useState<string[]>([]);
+  const [currentInput, setCurrentInput] = useState('');
+  const [invoiceType, setInvoiceType] = useState<'closed' | 'pending'>('closed');
+  const [comparisonData, setComparisonData] = useState<any>(null);
+  const [checkWorkDone, setCheckWorkDone] = useState(false);
+  const [addMoreMode, setAddMoreMode] = useState(false);
+  // Cancel modal state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   useEffect(() => {
     if (token && checkoutId) {
@@ -103,6 +120,155 @@ export const TruckCheckoutDetailScreen: React.FC<
         },
       ],
     );
+  };
+
+  // ---- Invoice chip input helpers ----
+  const addInvoice = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed && !invoiceNumbers.includes(trimmed)) {
+      setInvoiceNumbers(prev => [...prev, trimmed]);
+    }
+  };
+  const removeInvoice = (inv: string) => {
+    setInvoiceNumbers(prev => prev.filter(i => i !== inv));
+  };
+  const handleInvoiceInputChange = (value: string) => {
+    if (value.includes(',')) {
+      value
+        .split(',')
+        .map(p => p.trim())
+        .filter(Boolean)
+        .forEach(addInvoice);
+      setCurrentInput('');
+    } else {
+      setCurrentInput(value);
+    }
+  };
+  const commitCurrentInput = () => {
+    if (currentInput.trim()) {
+      addInvoice(currentInput);
+      setCurrentInput('');
+    }
+  };
+
+  const resetCompleteModal = () => {
+    setShowCompleteModal(false);
+    setInvoiceNumbers([]);
+    setCurrentInput('');
+    setComparisonData(null);
+    setCheckWorkDone(false);
+    setAddMoreMode(false);
+  };
+
+  const openCompleteModal = () => {
+    setInvoiceNumbers([]);
+    setCurrentInput('');
+    setInvoiceType((checkout?.invoiceType as any) || 'closed');
+    setComparisonData(null);
+    setCheckWorkDone(false);
+    setAddMoreMode(false);
+    setShowCompleteModal(true);
+  };
+
+  const openAddMoreModal = () => {
+    // Seed with the existing invoices; completing sends the full merged list.
+    setInvoiceNumbers([...(checkout?.invoiceNumbers || [])]);
+    setCurrentInput('');
+    setInvoiceType((checkout?.invoiceType as any) || 'closed');
+    setComparisonData(null);
+    setCheckWorkDone(false);
+    setAddMoreMode(true);
+    setShowCompleteModal(true);
+  };
+
+  const showCheckWorkError = (error: any) => {
+    const data = error?.response?.data;
+    if (data?.duplicateCheckouts && data.duplicateCheckouts.length > 0) {
+      const details = data.duplicateCheckouts
+        .map(
+          (dup: any) =>
+            `${dup.employeeName} (Checkout #${dup.checkoutId}): ${(dup.invoices || []).join(', ')}`,
+        )
+        .join('\n');
+      Alert.alert(
+        'Duplicate Invoices',
+        `${data.message}\n\nDuplicate invoices found in:\n${details}`,
+      );
+    } else {
+      Alert.alert('Error', data?.message || error?.message || 'Failed to check work');
+    }
+  };
+
+  const handleCheckWork = async () => {
+    if (invoiceNumbers.length === 0) {
+      Alert.alert('Validation', 'Please enter at least one invoice number');
+      return;
+    }
+    if (!token) return;
+    try {
+      setActionLoading('check-work');
+      const response = await truckCheckoutService.checkWork(
+        token,
+        checkoutId,
+        invoiceNumbers,
+        invoiceType,
+      );
+      setComparisonData(response.data);
+      setCheckWorkDone(true);
+    } catch (error: any) {
+      console.error('Check work error:', error);
+      showCheckWorkError(error);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleComplete = async () => {
+    if (!checkWorkDone) {
+      Alert.alert('Validation', 'Please tap "Check Work" first to review the comparison');
+      return;
+    }
+    if (!token) return;
+    try {
+      setActionLoading('complete');
+      await truckCheckoutService.completeCheckout(
+        token,
+        checkoutId,
+        invoiceNumbers,
+        invoiceType,
+      );
+      Alert.alert('Success', addMoreMode ? 'Checkout updated successfully' : 'Checkout completed successfully');
+      resetCompleteModal();
+      loadCheckout();
+    } catch (error: any) {
+      console.error('Complete error:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        Alert.alert('Error', error?.response?.data?.message || error?.message || 'Failed to complete checkout');
+      }
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!token) return;
+    try {
+      setActionLoading('cancel');
+      await truckCheckoutService.cancelCheckout(token, checkoutId, cancelReason);
+      Alert.alert('Success', 'Checkout cancelled');
+      setShowCancelModal(false);
+      setCancelReason('');
+      loadCheckout();
+    } catch (error: any) {
+      console.error('Cancel error:', error);
+      const wasHandled = await handleApiError(error);
+      if (!wasHandled) {
+        Alert.alert('Error', error?.response?.data?.message || error?.message || 'Failed to cancel checkout');
+      }
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const getStatusConfig = (status: string) => {
@@ -200,6 +366,49 @@ export const TruckCheckoutDetailScreen: React.FC<
             </View>
           </View>
         </Card>
+
+        {/* Status-driven actions */}
+        {checkout.status === 'checked_out' && (
+          <Card style={styles.actionCard}>
+            <Button
+              title="Add Invoices & Complete"
+              variant="primary"
+              fullWidth
+              onPress={openCompleteModal}
+              style={{marginBottom: 10}}
+            />
+            <Button
+              title="Cancel Checkout"
+              variant="outline"
+              fullWidth
+              onPress={() => {
+                setCancelReason('');
+                setShowCancelModal(true);
+              }}
+            />
+          </Card>
+        )}
+        {checkout.status === 'completed' &&
+          !checkout.stockProcessed &&
+          checkout.invoiceNumbers &&
+          checkout.invoiceNumbers.length > 0 && (
+            <Card style={styles.actionCard}>
+              <Button
+                title="Add More Invoices"
+                variant="secondary"
+                fullWidth
+                onPress={openAddMoreModal}
+              />
+            </Card>
+          )}
+        {checkout.status === 'completed' && checkout.stockProcessed && (
+          <Card style={[styles.actionCard, styles.stockProcessedRow]}>
+            <CheckCircleIcon size={16} color="#059669" />
+            <Typography variant="small" weight="semibold" color="#059669">
+              Stock Processed
+            </Typography>
+          </Card>
+        )}
 
         {/* Info Grid */}
         <View style={styles.infoGrid}>
@@ -568,14 +777,313 @@ export const TruckCheckoutDetailScreen: React.FC<
             </Card>
           )}
 
-        {/* Delete Button */}
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-          <Typography variant="small" weight="semibold" color="#dc2626">
-            Delete Checkout
-          </Typography>
-        </TouchableOpacity>
+        {/* Delete Button (admin only) */}
+        {isAdmin && (
+          <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+            <Typography variant="small" weight="semibold" color="#dc2626">
+              Delete Checkout
+            </Typography>
+          </TouchableOpacity>
+        )}
         </View>
       </ScrollView>
+
+      {/* Complete / Add-More Invoices Modal */}
+      <Modal
+        visible={showCompleteModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => !actionLoading && resetCompleteModal()}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Typography variant="h3" weight="bold">
+                {checkWorkDone
+                  ? addMoreMode
+                    ? 'Review & Update'
+                    : 'Review & Complete'
+                  : addMoreMode
+                  ? 'Add More Invoices'
+                  : 'Add Invoices & Complete'}
+              </Typography>
+              <TouchableOpacity
+                onPress={() => !actionLoading && resetCompleteModal()}>
+                <Typography variant="h3" color={theme.colors.gray[400]}>
+                  ×
+                </Typography>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalBody}>
+              {!checkWorkDone ? (
+                <>
+                  {addMoreMode && (
+                    <View style={styles.infoBanner}>
+                      <Typography variant="caption" color="#1d4ed8">
+                        This checkout already has{' '}
+                        {checkout.invoiceNumbers?.length || 0} invoice(s). Add
+                        more below; the full list is re-checked on complete.
+                      </Typography>
+                    </View>
+                  )}
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}
+                    style={{marginBottom: 8}}>
+                    Invoice Numbers
+                  </Typography>
+                  <View style={styles.chipInputWrap}>
+                    <View style={styles.chipRow}>
+                      {invoiceNumbers.map((inv, idx) => (
+                        <TouchableOpacity
+                          key={idx}
+                          style={styles.chip}
+                          onPress={() => removeInvoice(inv)}>
+                          <Typography variant="caption" color="#1d4ed8">
+                            {inv} ×
+                          </Typography>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                    <RNTextInput
+                      value={currentInput}
+                      onChangeText={handleInvoiceInputChange}
+                      onSubmitEditing={commitCurrentInput}
+                      onBlur={commitCurrentInput}
+                      blurOnSubmit={false}
+                      placeholder="Type invoice # and press return or comma"
+                      placeholderTextColor={theme.colors.gray[400]}
+                      style={styles.chipTextInput}
+                    />
+                  </View>
+                  <Typography
+                    variant="caption"
+                    color={theme.colors.gray[500]}
+                    style={{marginTop: 6, marginBottom: 14}}>
+                    Press return or comma to add. Tap a chip to remove.
+                  </Typography>
+
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={theme.colors.gray[700]}
+                    style={{marginBottom: 8}}>
+                    Invoice Type
+                  </Typography>
+                  <View style={styles.typeToggle}>
+                    {(['closed', 'pending'] as const).map(t => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[
+                          styles.typeOption,
+                          invoiceType === t && styles.typeOptionActive,
+                        ]}
+                        onPress={() => setInvoiceType(t)}>
+                        <Typography
+                          variant="small"
+                          weight="semibold"
+                          color={
+                            invoiceType === t
+                              ? theme.colors.primary[600]
+                              : theme.colors.gray[500]
+                          }>
+                          {t === 'closed' ? 'Closed' : 'Pending'}
+                        </Typography>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              ) : (
+                comparisonData && (
+                  <>
+                    <View style={styles.successBanner}>
+                      <Typography variant="caption" color="#059669">
+                        {comparisonData.summary?.fetchedInvoices} of{' '}
+                        {comparisonData.summary?.totalInvoices} invoices fetched.
+                        Matched: {comparisonData.summary?.matched} |
+                        Discrepancies: {comparisonData.summary?.discrepancies}
+                      </Typography>
+                    </View>
+                    <View style={styles.compHeaderRow}>
+                      <Typography
+                        variant="caption"
+                        weight="bold"
+                        color={theme.colors.gray[500]}
+                        style={{flex: 2}}>
+                        ITEM
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        weight="bold"
+                        color={theme.colors.gray[500]}
+                        style={styles.compNumCol}>
+                        TAKEN
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        weight="bold"
+                        color={theme.colors.gray[500]}
+                        style={styles.compNumCol}>
+                        SOLD
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        weight="bold"
+                        color={theme.colors.gray[500]}
+                        style={styles.compNumCol}>
+                        DIFF
+                      </Typography>
+                    </View>
+                    {(comparisonData.comparison?.discrepancies || []).map(
+                      (item: any, idx: number) => (
+                        <View
+                          key={idx}
+                          style={[
+                            styles.compRow,
+                            item.status !== 'matched' && {
+                              backgroundColor: '#fffbeb',
+                            },
+                          ]}>
+                          <View style={{flex: 2}}>
+                            <Typography variant="caption" weight="semibold">
+                              {item.name}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color={
+                                item.status === 'matched'
+                                  ? '#059669'
+                                  : item.status === 'excess'
+                                  ? '#2563eb'
+                                  : '#dc2626'
+                              }>
+                              {item.status === 'matched'
+                                ? 'Matched'
+                                : item.status === 'excess'
+                                ? 'Excess (Returns)'
+                                : 'Shortage'}
+                            </Typography>
+                          </View>
+                          <Typography variant="caption" style={styles.compNumCol}>
+                            {item.quantityTaken}
+                          </Typography>
+                          <Typography variant="caption" style={styles.compNumCol}>
+                            {item.quantitySold}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            weight="bold"
+                            color={
+                              item.difference === 0
+                                ? '#059669'
+                                : item.difference > 0
+                                ? '#2563eb'
+                                : '#dc2626'
+                            }
+                            style={styles.compNumCol}>
+                            {item.difference > 0
+                              ? `+${item.difference}`
+                              : item.difference}
+                          </Typography>
+                        </View>
+                      ),
+                    )}
+                  </>
+                )
+              )}
+            </ScrollView>
+            <View style={styles.modalFooter}>
+              <Button
+                title="Cancel"
+                variant="ghost"
+                onPress={resetCompleteModal}
+                disabled={!!actionLoading}
+                style={{flex: 1}}
+              />
+              {!checkWorkDone ? (
+                <Button
+                  title="Check Work"
+                  variant="secondary"
+                  onPress={handleCheckWork}
+                  loading={actionLoading === 'check-work'}
+                  disabled={invoiceNumbers.length === 0}
+                  style={{flex: 1}}
+                />
+              ) : (
+                <Button
+                  title={addMoreMode ? 'Update Checkout' : 'Complete Checkout'}
+                  variant="primary"
+                  onPress={handleComplete}
+                  loading={actionLoading === 'complete'}
+                  style={{flex: 1}}
+                />
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Cancel Modal */}
+      <Modal
+        visible={showCancelModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !actionLoading && setShowCancelModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Typography variant="h3" weight="bold">
+                Cancel Checkout
+              </Typography>
+              <TouchableOpacity
+                onPress={() => !actionLoading && setShowCancelModal(false)}>
+                <Typography variant="h3" color={theme.colors.gray[400]}>
+                  ×
+                </Typography>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              <View style={styles.warnBanner}>
+                <Typography variant="caption" color="#b45309">
+                  This will cancel the checkout. This action cannot be undone.
+                </Typography>
+              </View>
+              <Typography
+                variant="small"
+                weight="semibold"
+                color={theme.colors.gray[700]}
+                style={{marginBottom: 8}}>
+                Reason for Cancellation
+              </Typography>
+              <RNTextInput
+                value={cancelReason}
+                onChangeText={setCancelReason}
+                placeholder="Enter reason for cancelling this checkout"
+                placeholderTextColor={theme.colors.gray[400]}
+                multiline
+                numberOfLines={3}
+                style={styles.reasonInput}
+              />
+            </View>
+            <View style={styles.modalFooter}>
+              <Button
+                title="Close"
+                variant="ghost"
+                onPress={() => setShowCancelModal(false)}
+                disabled={!!actionLoading}
+                style={{flex: 1}}
+              />
+              <Button
+                title="Cancel Checkout"
+                variant="danger"
+                onPress={handleCancel}
+                loading={actionLoading === 'cancel'}
+                style={{flex: 1}}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -761,6 +1269,139 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     maxWidth: actionBtnMaxWidth,
     alignSelf: actionBtnMaxWidth ? 'center' : 'stretch',
     width: '100%',
+  },
+  actionCard: {
+    marginBottom: 12,
+    padding: 16,
+  },
+  stockProcessedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+    width: '100%',
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  modalBody: {
+    padding: 16,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  chipInputWrap: {
+    minHeight: 90,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#fff',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    backgroundColor: '#dbeafe',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  chipTextInput: {
+    marginTop: 6,
+    fontSize: 15,
+    color: '#0f172a',
+    paddingVertical: 4,
+  },
+  typeToggle: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  typeOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+  },
+  typeOptionActive: {
+    borderColor: '#2563eb',
+    backgroundColor: '#eff6ff',
+  },
+  infoBanner: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 14,
+  },
+  successBanner: {
+    backgroundColor: '#ecfdf5',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  warnBanner: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 14,
+  },
+  compHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  compRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    borderRadius: 6,
+  },
+  compNumCol: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    fontSize: 15,
+    color: '#0f172a',
   },
 });
 };

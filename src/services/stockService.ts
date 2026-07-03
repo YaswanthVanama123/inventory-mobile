@@ -108,5 +108,29 @@ class StockService {
       throw error;
     }
   }
+  // Admin stock reconciliation: per-SKU purchased vs sold with IN_STOCK /
+  // OUT_OF_STOCK / OVERSOLD status. Returns { items, summary }.
+  async getStockReconciliation(token: string) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/stock-reconciliation`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch stock reconciliation');
+      }
+      const result = await response.json();
+      const data = result.data || result;
+      return {
+        items: data.items || [],
+        summary: data.summary || null,
+      };
+    } catch (error) {
+      console.error('Stock Reconciliation Service Error:', error);
+      throw error;
+    }
+  }
 }
 export default new StockService();

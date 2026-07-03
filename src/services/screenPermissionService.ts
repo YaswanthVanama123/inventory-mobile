@@ -346,6 +346,29 @@ class ScreenPermissionService {
     }
   }
 
+  // Get user-specific (non-default) permissions for a user.
+  // Backend route: GET /screen-permissions/users/:userId/permissions
+  async getUserSpecificPermissions(token: string, userId: string): Promise<Screen[]> {
+    try {
+      const url = `${API_BASE_URL}/screen-permissions/users/${userId}/permissions`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      return result.data || [];
+    } catch (error: any) {
+      console.error('[ScreenPermissionService] Get user-specific permissions error:', error.message);
+      throw error;
+    }
+  }
+
   // Update user-specific permissions
   async updateUserPermissions(token: string, userId: string, screenIds: string[]): Promise<void> {
     try {

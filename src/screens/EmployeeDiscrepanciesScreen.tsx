@@ -20,7 +20,7 @@ import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import discrepancyService from '../services/discrepancyService';
 import orderDiscrepancyService from '../services/orderDiscrepancyService';
-import {CheckCircleIcon, TruckIcon, ClipboardIcon} from '../components/icons';
+import {CheckCircleIcon, TruckIcon, ClipboardIcon, ChevronDownIcon, ChevronRightIcon} from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 
 interface EmployeeDiscrepanciesScreenProps {
@@ -53,6 +53,7 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Checkout / Stock tab
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
@@ -68,6 +69,7 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
   useEffect(() => {
     setPage(1);
     setOrderPage(1);
+    setExpandedId(null);
   }, [topTab, statusFilter]);
 
   useEffect(() => {
@@ -154,53 +156,157 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
     return theme.colors.success; // approved / resolved
   };
 
+  const renderDetailRow = (label: string, value: any) => {
+    if (value === null || value === undefined || value === '') return null;
+    return (
+      <View style={styles.detailRow}>
+        <Typography variant="small" color={theme.colors.gray[500]}>
+          {label}
+        </Typography>
+        <Typography variant="small" weight="semibold" style={styles.detailValue}>
+          {String(value)}
+        </Typography>
+      </View>
+    );
+  };
+
+  const renderNoteBox = (label: string, value: any) => {
+    if (!value) return null;
+    return (
+      <View style={styles.noteBox}>
+        <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]}>
+          {label}
+        </Typography>
+        <Typography variant="small" color={theme.colors.gray[800]} style={{marginTop: 4}}>
+          {String(value)}
+        </Typography>
+      </View>
+    );
+  };
+
   const renderStockCard = (d: any, index: number) => {
     const tone = stockTypeStyle(d);
     const sTone = statusStyle(d.status);
     const isTruck = d._discrepancySource === 'truck';
     const qty = Math.abs(Number(d.difference || 0));
+    const id = d._id || `stock-${index}`;
+    const isExpanded = expandedId === id;
+    const diff = Number(d.difference || 0);
     return (
-      <Card key={d._id || index} variant="elevated" padding="md" style={styles.card}>
+      <Card key={id} variant="elevated" padding="none" style={styles.card}>
         <View style={[styles.accent, {backgroundColor: tone[500]}]} />
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderLeft}>
-            <View style={[styles.typeIcon, {backgroundColor: tone[50]}]}>
-              {isTruck ? (
-                <TruckIcon size={18} color={tone[600]} />
-              ) : (
-                <ClipboardIcon size={18} color={tone[600]} />
-              )}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setExpandedId(isExpanded ? null : id)}
+          style={styles.cardBody}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <View style={styles.chevron}>
+                {isExpanded ? (
+                  <ChevronDownIcon size={16} color={theme.colors.gray[400]} />
+                ) : (
+                  <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+                )}
+              </View>
+              <View style={[styles.typeIcon, {backgroundColor: tone[50]}]}>
+                {isTruck ? (
+                  <TruckIcon size={18} color={tone[600]} />
+                ) : (
+                  <ClipboardIcon size={18} color={tone[600]} />
+                )}
+              </View>
+              <View style={styles.cardTitleWrap}>
+                <Typography variant="body" weight="bold" numberOfLines={1}>
+                  {d.itemName || d.categoryName || 'Item'}
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  {isTruck ? `Truck ${d.truckNumber || '—'}` : d.invoiceNumber || d.itemSku || 'Stock'}
+                </Typography>
+              </View>
             </View>
-            <View style={styles.cardTitleWrap}>
-              <Typography variant="body" weight="bold" numberOfLines={1}>
-                {d.itemName || d.categoryName || 'Item'}
-              </Typography>
-              <Typography variant="caption" color={theme.colors.gray[500]}>
-                {isTruck ? `Truck ${d.truckNumber || '—'}` : d.invoiceNumber || d.itemSku || 'Stock'}
+            <View style={[styles.statusBadge, {backgroundColor: sTone[50]}]}>
+              <Typography variant="caption" weight="semibold" color={sTone[700]}>
+                {d.status || 'Pending'}
               </Typography>
             </View>
           </View>
-          <View style={[styles.statusBadge, {backgroundColor: sTone[50]}]}>
-            <Typography variant="caption" weight="semibold" color={sTone[700]}>
-              {d.status || 'Pending'}
-            </Typography>
-          </View>
-        </View>
 
-        <View style={styles.cardMeta}>
-          <View style={[styles.typePill, {backgroundColor: tone[50]}]}>
+          <View style={styles.cardMeta}>
+            <View style={[styles.typePill, {backgroundColor: tone[50]}]}>
+              <Typography variant="caption" weight="semibold" color={tone[700]}>
+                {d.discrepancyType || 'Discrepancy'}
+              </Typography>
+            </View>
             <Typography variant="caption" weight="semibold" color={tone[700]}>
-              {d.discrepancyType || 'Discrepancy'}
+              {qty} unit{qty === 1 ? '' : 's'}
+            </Typography>
+            <View style={styles.metaSpacer} />
+            <Typography variant="caption" color={theme.colors.gray[400]}>
+              {d.reportedAt ? formatDate(d.reportedAt) : ''}
             </Typography>
           </View>
-          <Typography variant="caption" weight="semibold" color={tone[700]}>
-            {qty} unit{qty === 1 ? '' : 's'}
-          </Typography>
-          <View style={styles.metaSpacer} />
-          <Typography variant="caption" color={theme.colors.gray[400]}>
-            {d.reportedAt ? formatDate(d.reportedAt) : ''}
-          </Typography>
-        </View>
+        </TouchableOpacity>
+
+        {isExpanded && (
+          <View style={styles.detailPanel}>
+            {/* System → Actual → Diff */}
+            <View style={styles.qtyRow}>
+              <View style={styles.qtyCell}>
+                <Typography variant="caption" color={theme.colors.gray[400]}>
+                  System
+                </Typography>
+                <Typography variant="body" weight="semibold">
+                  {d.systemQuantity ?? 0}
+                </Typography>
+              </View>
+              <View style={styles.qtyCell}>
+                <Typography variant="caption" color={theme.colors.gray[400]}>
+                  Actual
+                </Typography>
+                <Typography variant="body" weight="semibold">
+                  {d.actualQuantity ?? 0}
+                </Typography>
+              </View>
+              <View style={styles.qtyCell}>
+                <Typography variant="caption" color={theme.colors.gray[400]}>
+                  Diff
+                </Typography>
+                <Typography
+                  variant="body"
+                  weight="bold"
+                  color={diff > 0 ? theme.colors.success[600] : diff < 0 ? theme.colors.error[600] : theme.colors.gray[600]}>
+                  {diff > 0 ? '+' : ''}
+                  {diff}
+                </Typography>
+              </View>
+            </View>
+
+            {renderDetailRow('Invoice', d.invoiceNumber)}
+            {renderDetailRow('SKU', d.itemSku)}
+            {renderDetailRow('Category', d.categoryName)}
+            {renderDetailRow('Type', d.discrepancyType)}
+            {renderDetailRow('Reported At', d.reportedAt ? new Date(d.reportedAt).toLocaleString() : null)}
+            {renderNoteBox('Reason', d.reason)}
+            {renderNoteBox('Notes', d.notes)}
+            {(d.resolvedBy || d.resolvedAt || d.resolutionNotes) && (
+              <View style={styles.resolutionSection}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={{marginBottom: 6}}>
+                  Resolution
+                </Typography>
+                {renderDetailRow(
+                  'Resolved By',
+                  d.resolvedBy?.fullName || d.resolvedBy?.username || (typeof d.resolvedBy === 'string' ? d.resolvedBy : null),
+                )}
+                {renderDetailRow('Resolved At', d.resolvedAt ? new Date(d.resolvedAt).toLocaleString() : null)}
+                {d.resolutionNotes ? (
+                  <Typography variant="small" color={theme.colors.gray[800]} style={{marginTop: 4}}>
+                    {d.resolutionNotes}
+                  </Typography>
+                ) : null}
+              </View>
+            )}
+          </View>
+        )}
       </Card>
     );
   };
@@ -216,71 +322,118 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
     const tone = orderTypeStyle(d.discrepancyType);
     const sTone = statusStyle(d.status);
     const diff = Number(d.discrepancyQuantity || 0);
+    const id = d._id || `order-${index}`;
+    const isExpanded = expandedId === id;
     return (
-      <Card key={d._id || index} variant="elevated" padding="md" style={styles.card}>
+      <Card key={id} variant="elevated" padding="none" style={styles.card}>
         <View style={[styles.accent, {backgroundColor: tone[500]}]} />
-        <View style={styles.cardHeader}>
-          <View style={styles.cardHeaderLeft}>
-            <View style={[styles.typeIcon, {backgroundColor: tone[50]}]}>
-              <ClipboardIcon size={18} color={tone[600]} />
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setExpandedId(isExpanded ? null : id)}
+          style={styles.cardBody}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderLeft}>
+              <View style={styles.chevron}>
+                {isExpanded ? (
+                  <ChevronDownIcon size={16} color={theme.colors.gray[400]} />
+                ) : (
+                  <ChevronRightIcon size={16} color={theme.colors.gray[400]} />
+                )}
+              </View>
+              <View style={[styles.typeIcon, {backgroundColor: tone[50]}]}>
+                <ClipboardIcon size={18} color={tone[600]} />
+              </View>
+              <View style={styles.cardTitleWrap}>
+                <Typography variant="body" weight="bold" numberOfLines={1}>
+                  {d.itemName || 'Item'}
+                </Typography>
+                <Typography variant="caption" color={theme.colors.gray[500]}>
+                  Order #{d.orderNumber || '—'}
+                  {d.sku ? ` · ${d.sku}` : ''}
+                </Typography>
+              </View>
             </View>
-            <View style={styles.cardTitleWrap}>
-              <Typography variant="body" weight="bold" numberOfLines={1}>
-                {d.itemName || 'Item'}
-              </Typography>
-              <Typography variant="caption" color={theme.colors.gray[500]}>
-                Order #{d.orderNumber || '—'}
-                {d.sku ? ` · ${d.sku}` : ''}
+            <View style={[styles.statusBadge, {backgroundColor: sTone[50]}]}>
+              <Typography variant="caption" weight="semibold" color={sTone[700]}>
+                {d.status || 'pending'}
               </Typography>
             </View>
           </View>
-          <View style={[styles.statusBadge, {backgroundColor: sTone[50]}]}>
-            <Typography variant="caption" weight="semibold" color={sTone[700]}>
-              {d.status || 'pending'}
-            </Typography>
-          </View>
-        </View>
 
-        {/* Expected → Received → Diff */}
-        <View style={styles.qtyRow}>
-          <View style={styles.qtyCell}>
-            <Typography variant="caption" color={theme.colors.gray[400]}>
-              Expected
-            </Typography>
-            <Typography variant="body" weight="semibold">
-              {d.expectedQuantity ?? 0}
-            </Typography>
+          {/* Expected → Received → Diff */}
+          <View style={styles.qtyRow}>
+            <View style={styles.qtyCell}>
+              <Typography variant="caption" color={theme.colors.gray[400]}>
+                Expected
+              </Typography>
+              <Typography variant="body" weight="semibold">
+                {d.expectedQuantity ?? 0}
+              </Typography>
+            </View>
+            <View style={styles.qtyCell}>
+              <Typography variant="caption" color={theme.colors.gray[400]}>
+                Received
+              </Typography>
+              <Typography variant="body" weight="semibold">
+                {d.receivedQuantity ?? 0}
+              </Typography>
+            </View>
+            <View style={styles.qtyCell}>
+              <Typography variant="caption" color={theme.colors.gray[400]}>
+                Diff
+              </Typography>
+              <Typography variant="body" weight="bold" color={tone[600]}>
+                {diff > 0 ? '+' : ''}
+                {diff}
+              </Typography>
+            </View>
           </View>
-          <View style={styles.qtyCell}>
-            <Typography variant="caption" color={theme.colors.gray[400]}>
-              Received
-            </Typography>
-            <Typography variant="body" weight="semibold">
-              {d.receivedQuantity ?? 0}
-            </Typography>
-          </View>
-          <View style={styles.qtyCell}>
-            <Typography variant="caption" color={theme.colors.gray[400]}>
-              Diff
-            </Typography>
-            <Typography variant="body" weight="bold" color={tone[600]}>
-              {diff > 0 ? '+' : ''}
-              {diff}
-            </Typography>
-          </View>
-        </View>
 
-        <View style={styles.cardMeta}>
-          <View style={[styles.typePill, {backgroundColor: tone[50]}]}>
-            <Typography variant="caption" weight="semibold" color={tone[700]}>
-              {d.discrepancyType || 'Discrepancy'}
+          <View style={styles.cardMeta}>
+            <View style={[styles.typePill, {backgroundColor: tone[50]}]}>
+              <Typography variant="caption" weight="semibold" color={tone[700]}>
+                {d.discrepancyType || 'Discrepancy'}
+              </Typography>
+            </View>
+            <View style={styles.metaSpacer} />
+            <Typography variant="caption" color={theme.colors.gray[400]}>
+              {d.reportedAt ? formatDate(d.reportedAt) : ''}
             </Typography>
           </View>
-          <View style={styles.metaSpacer} />
-          <Typography variant="caption" color={theme.colors.gray[400]}>
-            {d.reportedAt ? formatDate(d.reportedAt) : ''}
-          </Typography>
-        </View>
+        </TouchableOpacity>
+
+        {isExpanded && (
+          <View style={styles.detailPanel}>
+            {renderDetailRow('Order #', d.orderNumber)}
+            {renderDetailRow('SKU', d.sku)}
+            {renderDetailRow('Category', d.categoryName)}
+            {renderDetailRow('Type', d.discrepancyType)}
+            {renderDetailRow(
+              'Reported By',
+              d.reportedBy?.fullName || d.reportedBy?.username || (typeof d.reportedBy === 'string' ? d.reportedBy : null),
+            )}
+            {renderDetailRow('Reported At', d.reportedAt ? new Date(d.reportedAt).toLocaleString() : null)}
+            {renderNoteBox('Reason', d.reason)}
+            {renderNoteBox('Notes', d.notes)}
+            {(d.resolvedBy || d.resolvedAt || d.resolutionNotes) && (
+              <View style={styles.resolutionSection}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={{marginBottom: 6}}>
+                  Resolution
+                </Typography>
+                {renderDetailRow(
+                  'Resolved By',
+                  d.resolvedBy?.fullName || d.resolvedBy?.username || (typeof d.resolvedBy === 'string' ? d.resolvedBy : null),
+                )}
+                {renderDetailRow('Resolved At', d.resolvedAt ? new Date(d.resolvedAt).toLocaleString() : null)}
+                {d.resolutionNotes ? (
+                  <Typography variant="small" color={theme.colors.gray[800]} style={{marginTop: 4}}>
+                    {d.resolutionNotes}
+                  </Typography>
+                ) : null}
+              </View>
+            )}
+          </View>
+        )}
       </Card>
     );
   };
@@ -508,6 +661,39 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) =>
     filterTabActive: {backgroundColor: theme.colors.primary[600]},
     list: {gap: 12},
     card: {overflow: 'hidden'},
+    cardBody: {padding: theme.spacing.md},
+    chevron: {marginRight: 2},
+    detailPanel: {
+      paddingHorizontal: theme.spacing.md,
+      paddingBottom: theme.spacing.md,
+      paddingTop: theme.spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.gray[100],
+      gap: 4,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      paddingVertical: 5,
+    },
+    detailValue: {maxWidth: '60%', textAlign: 'right'},
+    noteBox: {
+      backgroundColor: theme.colors.gray[50],
+      borderRadius: 8,
+      padding: theme.spacing.sm,
+      marginTop: 6,
+      borderWidth: 1,
+      borderColor: theme.colors.gray[100],
+    },
+    resolutionSection: {
+      marginTop: 8,
+      backgroundColor: theme.colors.success[50],
+      borderRadius: 8,
+      padding: theme.spacing.sm,
+      borderWidth: 1,
+      borderColor: theme.colors.success[100],
+    },
     accent: {
       position: 'absolute',
       left: 0,

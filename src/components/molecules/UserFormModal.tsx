@@ -57,15 +57,18 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     hasNumber: false,
     hasSpecialChar: false,
   });
-  // Screen permissions for new employees — mirrors webapp UserForm behavior.
+  // Screen permissions — mirrors webapp UserForm behavior.
+  // Shown for employees in BOTH create and edit mode. In edit mode we also
+  // load the user's existing user-specific (non-default) permissions.
   const [allScreens, setAllScreens] = useState<Screen[]>([]);
   const [defaultScreens, setDefaultScreens] = useState<Screen[]>([]);
   const [selectedScreenIds, setSelectedScreenIds] = useState<string[]>([]);
   const [loadingScreens, setLoadingScreens] = useState(false);
 
-  // Load screens when a new employee is being created
+  // Load the screen catalog (all screens + defaults) whenever the picker is
+  // relevant: an employee is being created or edited.
   useEffect(() => {
-    if (!isEditMode && role === 'employee' && visible && allScreens.length === 0 && token) {
+    if (role === 'employee' && visible && allScreens.length === 0 && token) {
       const fetchScreens = async () => {
         try {
           setLoadingScreens(true);
@@ -83,7 +86,29 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       };
       fetchScreens();
     }
-  }, [isEditMode, role, visible, token, allScreens.length]);
+  }, [role, visible, token, allScreens.length]);
+
+  // In edit mode, load the user's existing user-specific permissions so the
+  // picker reflects (and can modify) what they currently have. Mirrors the
+  // webapp's fetchUserPermissions(getUserSpecificPermissions).
+  useEffect(() => {
+    if (isEditMode && visible && role === 'employee' && user && token) {
+      const userId = user._id || user.id;
+      if (!userId) return;
+      const fetchUserPermissions = async () => {
+        try {
+          const screens = await screenPermissionService.getUserSpecificPermissions(
+            token,
+            userId,
+          );
+          setSelectedScreenIds((screens || []).map(s => s._id));
+        } catch (err) {
+          console.error('Error fetching user permissions:', err);
+        }
+      };
+      fetchUserPermissions();
+    }
+  }, [isEditMode, visible, role, user, token]);
 
   const toggleScreen = (screenId: string) => {
     setSelectedScreenIds(prev =>
@@ -179,6 +204,26 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           updateData.password = password;
         }
         await userService.update(token, user._id, updateData);
+        // Persist screen permissions for employees (mirrors webapp UserForm
+        // which calls updateUserPermissions in edit mode too).
+        if (role === 'employee') {
+          try {
+            const userId = user._id || user.id;
+            if (userId) {
+              await screenPermissionService.updateUserPermissions(
+                token,
+                userId,
+                selectedScreenIds,
+              );
+            }
+          } catch (permErr: any) {
+            console.error('Error saving screen permissions:', permErr);
+            Alert.alert(
+              'Warning',
+              'User updated, but screen permissions update failed. You can update them later in Screen Permissions.',
+            );
+          }
+        }
         Alert.alert('Success', password ? 'User updated and password reset successfully' : 'User updated successfully');
       } else {
         const created = await userService.create(token, {
@@ -327,8 +372,8 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCapitalize="characters"
             />
           </View>
-          {/* Screen Permissions (new employee only) — mirrors webapp UserForm */}
-          {!isEditMode && role === 'employee' && (
+          {/* Screen Permissions (employees, create + edit) — mirrors webapp UserForm */}
+          {role === 'employee' && (
             <Card variant="outlined" padding="md" style={styles.permissionsCard}>
               <Typography variant="small" weight="semibold" style={styles.inputLabel}>
                 Screen Permissions

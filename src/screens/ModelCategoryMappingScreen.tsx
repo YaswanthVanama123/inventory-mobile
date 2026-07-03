@@ -192,6 +192,12 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
     );
   };
 
+  const handleNotesChange = (modelNumber: string, notes: string) => {
+    setModels(prevModels =>
+      prevModels.map(m => (m.modelNumber === modelNumber ? {...m, notes} : m)),
+    );
+  };
+
   const openPickerForModel = (modelNumber: string) => {
     setSelectedModelForPicker(modelNumber);
     setPickerVisible(true);
@@ -611,6 +617,25 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                         </TouchableOpacity>
                       </View>
 
+                      <View style={styles.pickerSection}>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          color={theme.colors.gray[600]}
+                          style={styles.sectionLabel}>
+                          NOTES
+                        </Typography>
+                        <RNTextInput
+                          style={styles.notesInput}
+                          placeholder="Add notes..."
+                          value={model.notes || ''}
+                          onChangeText={text => handleNotesChange(model.modelNumber, text)}
+                          placeholderTextColor={theme.colors.gray[400]}
+                          multiline
+                          textAlignVertical="top"
+                        />
+                      </View>
+
                       <View style={styles.actionsSection}>
                         <Button
                           title="Save mapping"
@@ -1003,5 +1028,16 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       justifyContent: 'center',
     },
     actionsSection: {marginTop: 4},
+    notesInput: {
+      backgroundColor: theme.colors.background.secondary,
+      borderWidth: 1,
+      borderColor: theme.colors.gray[200],
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      minHeight: 60,
+      fontSize: theme.typography.roles.body.fontSize,
+      color: theme.colors.gray[900],
+    },
   });
 };

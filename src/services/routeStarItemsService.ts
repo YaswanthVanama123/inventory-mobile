@@ -124,6 +124,28 @@ class RouteStarItemsService {
       throw error;
     }
   }
+  async deleteAllItems(token: string) {
+    try {
+      const url = `${API_BASE_URL}/routestar-items/all`;
+      console.log('[RouteStarItems] Deleting all items');
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Error ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      return result.data || result;
+    } catch (error: any) {
+      console.error('[RouteStarItems] Delete all error:', error.message);
+      throw error;
+    }
+  }
   async syncItems(token: string) {
     try {
       const url = `${API_BASE_URL}/routestar-items/sync`;

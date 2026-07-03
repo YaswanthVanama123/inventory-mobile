@@ -6,12 +6,22 @@ export interface ManualPOItem {
   description?: string;
   mappedCategoryItemId?: string;
   mappedCategoryItemName?: string;
+  itemType?: string;
   // Vendor is informational (tracking only) — matches the webapp form.
   vendorId?: any;
   vendorName?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RouteStarPickerItem {
+  _id: string;
+  itemName: string;
+  type?: string;
+  itemParent?: string;
+  description?: string;
+  mergedCount?: number;
 }
 
 class ManualPOItemService {
@@ -114,6 +124,26 @@ class ManualPOItemService {
     if (!response.ok) {
       throw new Error(await extractErrorMessage(response, 'Failed to delete manual PO item'));
     }
+  }
+
+  // Source list for the "Map to Inventory Item" picker. The backend
+  // /manual-po-items/routestar-items endpoint returns the same canonical +
+  // RouteStar item list the webapp ManualPOItems page uses.
+  async getRouteStarItems(token: string): Promise<RouteStarPickerItem[]> {
+    const url = `${API_BASE_URL}/manual-po-items/routestar-items`;
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(await extractErrorMessage(response, 'Failed to fetch RouteStar items'));
+    }
+    const result = await response.json();
+    const data = result.data || result;
+    const items = data.items || data.routeStarItems || (Array.isArray(data) ? data : []);
+    return Array.isArray(items) ? items : [];
   }
 }
 

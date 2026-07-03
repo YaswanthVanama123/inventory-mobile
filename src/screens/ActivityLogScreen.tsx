@@ -18,6 +18,7 @@ import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import activityLogService from '../services/activityLogService';
+import {PickerModal} from '../components/molecules/PickerModal';
 import {
   TimelineIcon,
   CheckCircleIcon,
@@ -61,7 +62,16 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
     device: '',
     success: '',
     search: '',
+    employeeId: '',
+    startDate: '',
+    endDate: '',
   });
+
+  // Tabs (admin): All / Sales / Stock Changes / Deletions -> /activities endpoints.
+  type ActivityTab = 'all' | 'sales' | 'stock' | 'deletions';
+  const [activeTab, setActiveTab] = useState<ActivityTab>('all');
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [showEmployeePicker, setShowEmployeePicker] = useState(false);
 
   const isAdmin = user?.role === 'admin';
 
@@ -69,30 +79,65 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
     if (visible && token) {
       loadData();
     }
-  }, [visible, token, filters]);
+  }, [visible, token, filters, activeTab]);
+
+  // Load the employee list for the filter dropdown (admin only).
+  useEffect(() => {
+    if (visible && token && isAdmin && employees.length === 0) {
+      activityLogService
+        .getActivityEmployees(token)
+        .then(setEmployees)
+        .catch(err => console.error('Load activity employees error:', err));
+    }
+  }, [visible, token, isAdmin]);
+
+  // Build the query params for the employee-activities endpoints.
+  const buildActivityParams = (pageNum: number) => {
+    const base: any = {
+      page: pageNum,
+      limit: 50,
+      employeeId: filters.employeeId,
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+    };
+    // The /activities (all) endpoint additionally supports action/resource/search.
+    if (activeTab === 'all') {
+      base.action = filters.action;
+      base.resource = filters.resource;
+      base.search = filters.search;
+    }
+    return base;
+  };
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [logsData, statsData] = await Promise.all([
         isAdmin
-          ? activityLogService.getActivityLogs(token!, {
-              page: 1,
-              limit: 50,
-              ...filters,
-            })
+          ? activityLogService.getEmployeeActivities(
+              token!,
+              activeTab,
+              buildActivityParams(1),
+            )
           : activityLogService.getMyActivities(token!, {
               page: 1,
               limit: 50,
-              ...filters,
+              resource: filters.resource,
+              action: filters.action,
+              device: filters.device,
+              success: filters.success,
+              search: filters.search,
             }),
         isAdmin ? activityLogService.getActivityStats(token!, {}) : Promise.resolve(null),
       ]);
 
-      setLogs(logsData.logs || []);
+      const nextLogs = isAdmin
+        ? (logsData as any).activities || []
+        : (logsData as any).logs || [];
+      setLogs(nextLogs);
       setStats(statsData);
       setPage(1);
-      setHasMore((logsData.pagination?.pages || 1) > 1);
+      setHasMore(((logsData as any).pagination?.pages || 1) > 1);
     } catch (error: any) {
       console.error('Load activity logs error:', error);
       await handleApiError(error);
@@ -108,20 +153,27 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
     try {
       const nextPage = page + 1;
       const logsData = isAdmin
-        ? await activityLogService.getActivityLogs(token!, {
-            page: nextPage,
-            limit: 50,
-            ...filters,
-          })
+        ? await activityLogService.getEmployeeActivities(
+            token!,
+            activeTab,
+            buildActivityParams(nextPage),
+          )
         : await activityLogService.getMyActivities(token!, {
             page: nextPage,
             limit: 50,
-            ...filters,
+            resource: filters.resource,
+            action: filters.action,
+            device: filters.device,
+            success: filters.success,
+            search: filters.search,
           });
 
-      setLogs(prev => [...prev, ...(logsData.logs || [])]);
+      const moreLogs = isAdmin
+        ? (logsData as any).activities || []
+        : (logsData as any).logs || [];
+      setLogs(prev => [...prev, ...moreLogs]);
       setPage(nextPage);
-      setHasMore(nextPage < (logsData.pagination?.pages || 1));
+      setHasMore(nextPage < ((logsData as any).pagination?.pages || 1));
     } catch (error) {
       console.error('Load more error:', error);
     }
@@ -143,7 +195,17 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
       device: '',
       success: '',
       search: '',
+      employeeId: '',
+      startDate: '',
+      endDate: '',
     });
+  };
+
+  const getEmployeeLabel = (empId: string) => {
+    if (!empId) return 'All Employees';
+    const emp = employees.find(e => (e._id || e.id) === empId);
+    if (!emp) return 'All Employees';
+    return `${emp.fullName || emp.username}${emp.username ? ` (${emp.username})` : ''}`;
   };
 
   const getActionColor = (action: string) => {
@@ -262,6 +324,86 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
           </View>
 
           <ScrollView style={styles.filterContent}>
+            {/* Employee (admin only) */}
+            {isAdmin && (
+              <View style={styles.filterGroup}>
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  style={styles.filterLabel}>
+                  Employee
+                </Typography>
+                <TouchableOpacity
+                  style={styles.pickerButton}
+                  onPress={() => setShowEmployeePicker(true)}>
+                  <Typography
+                    variant="body"
+                    color={
+                      filters.employeeId
+                        ? theme.colors.gray[900]
+                        : theme.colors.gray[400]
+                    }
+                    numberOfLines={1}
+                    style={{flex: 1}}>
+                    {getEmployeeLabel(filters.employeeId)}
+                  </Typography>
+                  <ChevronDownIcon size={20} color={theme.colors.gray[400]} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Date range (admin only) */}
+            {isAdmin && (
+              <View style={styles.filterGroup}>
+                <Typography
+                  variant="small"
+                  weight="semibold"
+                  style={styles.filterLabel}>
+                  Date Range
+                </Typography>
+                <View style={styles.dateRow}>
+                  <View style={styles.dateField}>
+                    <Typography
+                      variant="caption"
+                      color={theme.colors.gray[500]}
+                      style={{marginBottom: 4}}>
+                      Start (YYYY-MM-DD)
+                    </Typography>
+                    <RNTextInput
+                      style={styles.filterInput}
+                      value={filters.startDate}
+                      onChangeText={value =>
+                        handleFilterChange('startDate', value)
+                      }
+                      placeholder="2026-01-01"
+                      placeholderTextColor={theme.colors.gray[400]}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                  <View style={styles.dateField}>
+                    <Typography
+                      variant="caption"
+                      color={theme.colors.gray[500]}
+                      style={{marginBottom: 4}}>
+                      End (YYYY-MM-DD)
+                    </Typography>
+                    <RNTextInput
+                      style={styles.filterInput}
+                      value={filters.endDate}
+                      onChangeText={value =>
+                        handleFilterChange('endDate', value)
+                      }
+                      placeholder="2026-12-31"
+                      placeholderTextColor={theme.colors.gray[400]}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
+
             {/* Search */}
             <View style={styles.filterGroup}>
               <Typography
@@ -280,6 +422,7 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
             </View>
 
             {/* Resource */}
+            {(!isAdmin || activeTab === 'all') && (
             <View style={styles.filterGroup}>
               <Typography
                 variant="small"
@@ -313,8 +456,10 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
                 )}
               </View>
             </View>
+            )}
 
             {/* Action */}
+            {(!isAdmin || activeTab === 'all') && (
             <View style={styles.filterGroup}>
               <Typography
                 variant="small"
@@ -353,8 +498,10 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
                 ))}
               </View>
             </View>
+            )}
 
             {/* Device */}
+            {!isAdmin && (
             <View style={styles.filterGroup}>
               <Typography
                 variant="small"
@@ -385,8 +532,10 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
                 ))}
               </View>
             </View>
+            )}
 
             {/* Status */}
+            {!isAdmin && (
             <View style={styles.filterGroup}>
               <Typography
                 variant="small"
@@ -422,6 +571,7 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
                 ))}
               </View>
             </View>
+            )}
           </ScrollView>
 
           <View style={styles.filterFooter}>
@@ -496,7 +646,10 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
 
         <View style={styles.logInfo}>
           <Typography variant="caption" color={theme.colors.gray[600]}>
-            {log.performedByName || 'Unknown User'}
+            {log.performedByName ||
+              log.performedBy?.fullName ||
+              log.performedBy?.username ||
+              'Unknown User'}
           </Typography>
           <Typography variant="caption" color={theme.colors.gray[500]}>
             {' • '}
@@ -610,7 +763,7 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
                     .trim();
 
                   // Format the value
-                  let formattedValue = value;
+                  let formattedValue: string;
                   if (typeof value === 'object') {
                     formattedValue = JSON.stringify(value);
                   } else if (typeof value === 'boolean') {
@@ -664,6 +817,44 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
 
         {/* Stats */}
         {renderStatsCard()}
+
+        {/* Tabs (admin only) */}
+        {isAdmin && (
+          <View style={styles.tabBarWrap}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabBar}>
+              {(
+                [
+                  {id: 'all', label: 'All'},
+                  {id: 'sales', label: 'Sales'},
+                  {id: 'stock', label: 'Stock Changes'},
+                  {id: 'deletions', label: 'Deletions'},
+                ] as {id: ActivityTab; label: string}[]
+              ).map(tab => (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[
+                    styles.tab,
+                    activeTab === tab.id && styles.tabActive,
+                  ]}
+                  onPress={() => setActiveTab(tab.id)}>
+                  <Typography
+                    variant="small"
+                    weight="semibold"
+                    color={
+                      activeTab === tab.id
+                        ? theme.colors.primary[600]
+                        : theme.colors.gray[600]
+                    }>
+                    {tab.label}
+                  </Typography>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Action Bar */}
         <View style={styles.actionBar}>
@@ -754,6 +945,26 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
         </ScrollView>
 
         {renderFilters()}
+
+        {/* Employee filter picker (admin) */}
+        <PickerModal
+          visible={showEmployeePicker}
+          onClose={() => setShowEmployeePicker(false)}
+          items={[
+            {label: 'All Employees', value: ''},
+            ...employees.map(emp => ({
+              label: `${emp.fullName || emp.username}${
+                emp.username ? ` (${emp.username})` : ''
+              }`,
+              value: emp._id || emp.id,
+            })),
+          ]}
+          selectedValue={filters.employeeId}
+          onValueChange={value => handleFilterChange('employeeId', value)}
+          placeholder="Select Employee"
+          getLabel={item => item.label}
+          getValue={item => item.value}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -823,6 +1034,46 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     alignItems: 'center',
     padding: theme.spacing.lg,
     backgroundColor: theme.colors.white,
+  },
+  tabBarWrap: {
+    backgroundColor: theme.colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.gray[200],
+  },
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: theme.spacing.lg,
+    gap: theme.spacing.sm,
+    maxWidth: bp.contentMaxWidth,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  tab: {
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: theme.colors.primary[600],
+  },
+  pickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: theme.colors.gray[300],
+    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.white,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+  },
+  dateField: {
+    flex: 1,
   },
   filterButton: {
     flexDirection: 'row',

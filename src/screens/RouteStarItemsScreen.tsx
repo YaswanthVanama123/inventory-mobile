@@ -12,6 +12,8 @@ import {
   Easing,
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
+import {PickerModal} from '../components/molecules/PickerModal';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -22,6 +24,8 @@ import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import routeStarItemsService from '../services/routeStarItemsService';
+import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
 import {
   AlertCircleIcon,
   ChevronDownIcon,
@@ -33,6 +37,7 @@ import {
   CloseIcon,
   RefreshIcon,
   SearchIcon,
+  TrashIcon,
 } from '../components/icons';
 
 interface RouteStarItemsScreenProps {
@@ -47,34 +52,83 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  const {token} = useAuth();
+  const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const isAdmin = user?.role === 'admin';
   const [syncing, setSyncing] = useState(false);
-  const [items, setItems] = useState<any[]>([]);
+  const [deleting, setDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 500);
   const [filterForUse, setFilterForUse] = useState(false);
   const [filterForSell, setFilterForSell] = useState(false);
   const [filterMapped, setFilterMapped] = useState('all');
+  const [selectedParent, setSelectedParent] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({total: 0, forUse: 0, forSell: 0, both: 0, unmarked: 0});
+  const [filterOptions, setFilterOptions] = useState<{itemParents: string[]; types: string[]}>({
+    itemParents: [],
+    types: [],
+  });
+  const [parentPickerVisible, setParentPickerVisible] = useState(false);
+  const [typePickerVisible, setTypePickerVisible] = useState(false);
 
   const heroFade = useRef(new Animated.Value(1)).current;
   const heroSlide = useRef(new Animated.Value(0)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (visible && token) loadData();
-  }, [visible, token, filterForUse, filterForSell, filterMapped]);
+  const filterKey = `${debouncedSearch}|${filterForUse}|${filterForSell}|${filterMapped}|${selectedParent}|${selectedType}|${selectedCategory}`;
 
+  // Server-side numbered pagination — replaces the old hardcoded limit:100/page:1.
+  const {
+    items,
+    setItems,
+    loading,
+    refreshing,
+    error,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    extra,
+    refresh,
+    refetch,
+  } = useServerPagination<any>(
+    async (pg, limit) => {
+      const params: any = {page: pg, limit};
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (filterForUse) params.forUse = true;
+      if (filterForSell) params.forSell = true;
+      if (filterMapped !== 'all') params.mapped = filterMapped;
+      if (selectedParent !== 'all') params.itemParent = selectedParent;
+      if (selectedType !== 'all') params.type = selectedType;
+      if (selectedCategory !== 'all') params.itemCategory = selectedCategory;
+      try {
+        const data = await routeStarItemsService.getItemsWithStats(token!, params);
+        return {
+          items: data.items || [],
+          total: data.pagination?.total ?? (data.items ? data.items.length : 0),
+          pages: data.pagination?.pages ?? 1,
+          extra: {stats: data.stats, filters: data.filters},
+        };
+      } catch (e) {
+        await handleApiError(e);
+        throw e;
+      }
+    },
+    {pageSize: 50, resetKey: filterKey, enabled: !!(visible && token)},
+  );
+  const loadData = refetch;
+  const onRefresh = refresh;
+
+  // Keep stats + filter dropdown options in sync with the latest page fetch.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (visible && token) loadData();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    if (extra?.stats) setStats(extra.stats);
+    if (extra?.filters) setFilterOptions(extra.filters);
+  }, [extra]);
 
   useEffect(() => {
     if (visible) {
@@ -95,35 +149,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
       ]),
     ).start();
   }, [blobPulse]);
-
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const params: any = {page: 1, limit: 100};
-      if (searchQuery) params.search = searchQuery;
-      if (filterForUse) params.forUse = true;
-      if (filterForSell) params.forSell = true;
-      if (filterMapped !== 'all') params.mapped = filterMapped;
-      const data = await routeStarItemsService.getItemsWithStats(token, params);
-      setItems(data.items || []);
-      setStats(data.stats || {total: 0, forUse: 0, forSell: 0, both: 0, unmarked: 0});
-    } catch (err: any) {
-      console.error('Failed to fetch RouteStar items:', err);
-      const wasHandled = await handleApiError(err);
-      if (wasHandled) return;
-      setError(err.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
 
   const handleItemPress = (itemId: string) => {
     const newExpanded = new Set(expandedItems);
@@ -147,6 +172,47 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to update item');
     }
+  };
+
+  const handleCategoryChange = async (itemId: string, newCategory: string) => {
+    try {
+      const updatedItem = await routeStarItemsService.updateItemFlags(token!, itemId, {
+        itemCategory: newCategory,
+      });
+      setItems(prevItems =>
+        prevItems.map(item =>
+          item._id === itemId ? {...item, itemCategory: updatedItem.itemCategory} : item,
+        ),
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to update item category');
+    }
+  };
+
+  const handleDeleteAll = () => {
+    Alert.alert(
+      'Delete All Items',
+      'Are you sure you want to delete ALL items? This action cannot be undone!',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              const result = await routeStarItemsService.deleteAllItems(token!);
+              Alert.alert('Success', result?.message || 'All items deleted');
+              loadData();
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to delete items');
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleSync = async () => {
@@ -198,7 +264,23 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
             contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            resetKey={`${searchQuery}|${filterForUse}|${filterForSell}|${filterMapped}`}
+            resetKey={filterKey}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              total > 0 ? (
+                <View style={{paddingHorizontal: bp.gutter, marginTop: theme.spacing.md}}>
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    totalItems={total}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={setPageSize}
+                  />
+                </View>
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>
@@ -291,10 +373,86 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                     title={syncing ? 'Syncing items...' : 'Sync items from RouteStar'}
                     variant="primary"
                     onPress={handleSync}
-                    disabled={syncing}
+                    disabled={syncing || deleting}
                     fullWidth
                     leftIcon={<RefreshIcon size={16} color={theme.colors.brand.text} />}
                   />
+                  {isAdmin && (
+                    <Button
+                      title={deleting ? 'Deleting...' : 'Delete All'}
+                      variant="danger"
+                      onPress={handleDeleteAll}
+                      disabled={syncing || deleting}
+                      fullWidth
+                      leftIcon={<TrashIcon size={16} color={theme.colors.white} />}
+                      style={{marginTop: theme.spacing.sm}}
+                    />
+                  )}
+                </View>
+
+                <View style={styles.filtersWrap}>
+                  <View style={styles.filterCard}>
+                    <TouchableOpacity
+                      style={styles.dropdownRow}
+                      onPress={() => setParentPickerVisible(true)}
+                      activeOpacity={0.7}>
+                      <Typography variant="small" weight="semibold" color={theme.colors.gray[600]}>
+                        Parent
+                      </Typography>
+                      <View style={styles.dropdownValue}>
+                        <Typography
+                          variant="small"
+                          color={selectedParent !== 'all' ? theme.colors.gray[900] : theme.colors.gray[500]}
+                          numberOfLines={1}>
+                          {selectedParent === 'all' ? 'All Parents' : selectedParent}
+                        </Typography>
+                        <ChevronDownIcon size={16} color={theme.colors.gray[500]} />
+                      </View>
+                    </TouchableOpacity>
+                    <View style={styles.filterDivider} />
+                    <TouchableOpacity
+                      style={styles.dropdownRow}
+                      onPress={() => setTypePickerVisible(true)}
+                      activeOpacity={0.7}>
+                      <Typography variant="small" weight="semibold" color={theme.colors.gray[600]}>
+                        Type
+                      </Typography>
+                      <View style={styles.dropdownValue}>
+                        <Typography
+                          variant="small"
+                          color={selectedType !== 'all' ? theme.colors.gray[900] : theme.colors.gray[500]}
+                          numberOfLines={1}>
+                          {selectedType === 'all' ? 'All Types' : selectedType}
+                        </Typography>
+                        <ChevronDownIcon size={16} color={theme.colors.gray[500]} />
+                      </View>
+                    </TouchableOpacity>
+                    <View style={styles.filterDivider} />
+                    <View style={styles.filterRowVertical}>
+                      <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.filterLabel}>
+                        CATEGORY
+                      </Typography>
+                      <View style={styles.statusFiltersRow}>
+                        {(['all', 'Item', 'Service'] as const).map(opt => {
+                          const active = selectedCategory === opt;
+                          return (
+                            <TouchableOpacity
+                              key={opt}
+                              onPress={() => setSelectedCategory(opt)}
+                              style={[styles.statusFilterPill, active && styles.statusFilterPillActive]}
+                              activeOpacity={0.85}>
+                              <Typography
+                                variant="caption"
+                                weight="semibold"
+                                color={active ? theme.colors.white : theme.colors.gray[700]}>
+                                {opt === 'all' ? 'All' : opt}
+                              </Typography>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
                 </View>
 
                 <View style={styles.filtersWrap}>
@@ -541,6 +699,33 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                           />
                         </View>
                       </View>
+
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={theme.colors.gray[600]}
+                        style={[styles.expandedLabel, {marginTop: theme.spacing.md}]}>
+                        ITEM CATEGORY
+                      </Typography>
+                      <View style={styles.categoryPillsRow}>
+                        {(['Item', 'Service'] as const).map(cat => {
+                          const active = (item.itemCategory || 'Item') === cat;
+                          return (
+                            <TouchableOpacity
+                              key={cat}
+                              onPress={() => handleCategoryChange(item._id, cat)}
+                              style={[styles.categoryPill, active && styles.categoryPillActive]}
+                              activeOpacity={0.85}>
+                              <Typography
+                                variant="small"
+                                weight="semibold"
+                                color={active ? theme.colors.white : theme.colors.gray[700]}>
+                                {cat}
+                              </Typography>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
                     </View>
                   )}
                 </Card>
@@ -549,6 +734,27 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
             }}
           />
         )}
+
+        <PickerModal
+          visible={parentPickerVisible}
+          onClose={() => setParentPickerVisible(false)}
+          items={[{label: 'All Parents', value: 'all'}, ...filterOptions.itemParents.map(p => ({label: p, value: p}))]}
+          selectedValue={selectedParent}
+          onValueChange={setSelectedParent}
+          placeholder="Select Parent"
+          getLabel={(o: any) => o.label}
+          getValue={(o: any) => o.value}
+        />
+        <PickerModal
+          visible={typePickerVisible}
+          onClose={() => setTypePickerVisible(false)}
+          items={[{label: 'All Types', value: 'all'}, ...filterOptions.types.map(t => ({label: t, value: t}))]}
+          selectedValue={selectedType}
+          onValueChange={setSelectedType}
+          placeholder="Select Type"
+          getLabel={(o: any) => o.label}
+          getValue={(o: any) => o.value}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -653,6 +859,19 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       alignItems: 'center', justifyContent: 'center',
     },
     filterDivider: {height: 1, backgroundColor: theme.colors.gray[100], marginHorizontal: theme.spacing.md},
+    dropdownRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 4,
+    },
+    dropdownValue: {flexDirection: 'row', alignItems: 'center', gap: 6, maxWidth: '60%'},
+    categoryPillsRow: {flexDirection: 'row', gap: 6, marginTop: 4},
+    categoryPill: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      alignItems: 'center',
+      backgroundColor: theme.colors.white,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+    },
+    categoryPillActive: {backgroundColor: theme.colors.primary[600], borderColor: theme.colors.primary[600]},
     filterRowVertical: {paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 4},
     filterLabel: {letterSpacing: 1, marginBottom: 8},
     statusFiltersRow: {flexDirection: 'row', gap: 6},

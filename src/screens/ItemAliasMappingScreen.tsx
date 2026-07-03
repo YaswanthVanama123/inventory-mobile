@@ -11,6 +11,7 @@ import {
   Alert,
   Animated,
   Easing,
+  Switch,
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -35,6 +36,7 @@ import {
   RefreshIcon,
   SearchIcon,
   PlusIcon,
+  TrashIcon,
 } from '../components/icons';
 
 interface ItemAliasMappingScreenProps {
@@ -69,7 +71,17 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   const [editCanonicalName, setEditCanonicalName] = useState('');
   const [editSelectedAliases, setEditSelectedAliases] = useState<Set<string>>(new Set());
   const [editSearchQuery, setEditSearchQuery] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editAutoMerge, setEditAutoMerge] = useState(true);
   const [showMappingsSection, setShowMappingsSection] = useState(false);
+
+  // From-scratch "Create Mapping" flow (canonical name + free-text aliases +
+  // description + autoMerge), mirroring the webapp modal.
+  const [createVisible, setCreateVisible] = useState(false);
+  const [createCanonicalName, setCreateCanonicalName] = useState('');
+  const [createAliases, setCreateAliases] = useState<string[]>(['']);
+  const [createDescription, setCreateDescription] = useState('');
+  const [createAutoMerge, setCreateAutoMerge] = useState(true);
 
   const heroFade = useRef(new Animated.Value(1)).current;
   const heroSlide = useRef(new Animated.Value(0)).current;
@@ -204,15 +216,18 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
     try {
       setSaving(true);
       const currentMapping = mappings.find(m => m.aliases.some((a: any) => a.name === quickMapItem?.itemName));
-      if (currentMapping) {
-        await itemAliasService.deleteMapping(token!, currentMapping._id);
-      }
-      await itemAliasService.saveMapping(token!, {
+      const payload = {
         canonicalName: quickCanonicalName.trim(),
         aliases: Array.from(quickMapSelectedItems),
-        description: currentMapping ? 'Updated mapping' : 'Quick mapped',
-        autoMerge: true,
-      });
+        description: currentMapping ? currentMapping.description || 'Updated mapping' : 'Quick mapped',
+        autoMerge: currentMapping ? currentMapping.autoMerge !== false : true,
+      };
+      if (currentMapping) {
+        // Atomic update — no delete-then-recreate window.
+        await itemAliasService.updateMapping(token!, currentMapping._id, payload);
+      } else {
+        await itemAliasService.saveMapping(token!, payload);
+      }
       Alert.alert('Success', `Mapped ${quickMapSelectedItems.size} items to "${quickCanonicalName}"`);
       setQuickMapVisible(false);
       setQuickMapItem(null);
@@ -227,12 +242,88 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
     }
   };
 
+  const openCreateMapping = () => {
+    setCreateCanonicalName('');
+    setCreateAliases(['']);
+    setCreateDescription('');
+    setCreateAutoMerge(true);
+    setCreateVisible(true);
+  };
+
+  const handleCreateAliasChange = (index: number, value: string) => {
+    setCreateAliases(prev => prev.map((a, i) => (i === index ? value : a)));
+  };
+
+  const addCreateAliasField = () => {
+    setCreateAliases(prev => [...prev, '']);
+  };
+
+  const removeCreateAliasField = (index: number) => {
+    setCreateAliases(prev => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  };
+
+  const createMappingSubmit = async () => {
+    if (!createCanonicalName.trim()) {
+      Alert.alert('Error', 'Canonical name is required');
+      return;
+    }
+    const cleanAliases = createAliases.map(a => a.trim()).filter(a => a !== '');
+    if (cleanAliases.length === 0) {
+      Alert.alert('Error', 'At least one alias is required');
+      return;
+    }
+    try {
+      setSaving(true);
+      await itemAliasService.saveMapping(token!, {
+        canonicalName: createCanonicalName.trim(),
+        aliases: cleanAliases,
+        description: createDescription.trim(),
+        autoMerge: createAutoMerge,
+      });
+      Alert.alert('Success', 'Mapping created successfully');
+      setCreateVisible(false);
+      loadData();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to create mapping');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteMapping = (mapping: any) => {
+    Alert.alert(
+      'Delete Mapping',
+      `Are you sure you want to delete the mapping for "${mapping.canonicalName}"?`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setSaving(true);
+              await itemAliasService.deleteMapping(token!, mapping._id);
+              Alert.alert('Success', `Mapping deleted for ${mapping.canonicalName}`);
+              loadData();
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to delete mapping');
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const openEditMapping = (mapping: any) => {
     setEditingMapping(mapping);
     setEditCanonicalName(mapping.canonicalName);
     const aliasNames = new Set<string>(mapping.aliases.map((a: any) => a.name));
     setEditSelectedAliases(aliasNames);
     setEditSearchQuery('');
+    setEditDescription(mapping.description || '');
+    setEditAutoMerge(mapping.autoMerge !== false);
     setEditMappingVisible(true);
   };
 
@@ -276,12 +367,13 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
     }
     try {
       setSaving(true);
-      await itemAliasService.deleteMapping(token!, editingMapping._id);
-      await itemAliasService.saveMapping(token!, {
+      // Atomic update via PUT instead of delete-then-recreate (avoids the
+      // non-atomic data-loss window if the recreate fails).
+      await itemAliasService.updateMapping(token!, editingMapping._id, {
         canonicalName: editCanonicalName.trim(),
         aliases: Array.from(editSelectedAliases),
-        description: 'Updated mapping',
-        autoMerge: true,
+        description: editDescription.trim(),
+        autoMerge: editAutoMerge,
       });
       Alert.alert('Success', `Updated mapping for "${editCanonicalName}"`);
       setEditMappingVisible(false);
@@ -441,6 +533,16 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                   </View>
                 </View>
 
+                <View style={styles.createButtonWrap}>
+                  <Button
+                    title="Create Mapping"
+                    variant="primary"
+                    onPress={openCreateMapping}
+                    fullWidth
+                    leftIcon={<PlusIcon size={16} color={theme.colors.brand.text} />}
+                  />
+                </View>
+
                 {mappings.length > 0 && (
                   <View style={styles.mappingsSectionWrap}>
                     <Card variant="elevated" padding="none" style={styles.mappingsCard}>
@@ -497,6 +599,12 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                               <View style={styles.editBadge}>
                                 <EditIcon size={14} color={theme.colors.primary[600]} />
                               </View>
+                              <TouchableOpacity
+                                style={styles.deleteBadge}
+                                onPress={() => deleteMapping(mapping)}
+                                activeOpacity={0.7}>
+                                <TrashIcon size={14} color={theme.colors.error[600]} />
+                              </TouchableOpacity>
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -803,6 +911,36 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                 />
               </View>
 
+              <View style={styles.inputSection}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
+                  DESCRIPTION
+                </Typography>
+                <RNTextInput
+                  style={styles.textInput}
+                  placeholder="Add notes about this mapping..."
+                  value={editDescription}
+                  onChangeText={setEditDescription}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+
+              <View style={styles.autoMergeRow}>
+                <View style={{flex: 1, paddingRight: 12}}>
+                  <Typography variant="small" weight="semibold">
+                    Auto-merge in reports
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    Automatically merge in reports and analytics
+                  </Typography>
+                </View>
+                <Switch
+                  value={editAutoMerge}
+                  onValueChange={setEditAutoMerge}
+                  trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
+                  thumbColor={theme.colors.white}
+                />
+              </View>
+
               <View style={styles.selectedItemsCard}>
                 <View style={styles.selectedItemsHeader}>
                   <CheckCircleIcon size={14} color={theme.colors.success[600]} />
@@ -880,6 +1018,117 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                   variant="primary"
                   onPress={editMappingSubmit}
                   disabled={saving || !editCanonicalName.trim() || editSelectedAliases.size === 0}
+                  fullWidth
+                />
+              </View>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
+        <Modal
+          visible={createVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setCreateVisible(false)}>
+          <SafeAreaView style={styles.subModalContainer} edges={['top', 'left', 'right']}>
+            <View style={styles.subModalHeader}>
+              <TouchableOpacity onPress={() => setCreateVisible(false)} style={styles.subModalCloseBtn} activeOpacity={0.7}>
+                <CloseIcon size={16} color={theme.colors.gray[600]} />
+              </TouchableOpacity>
+              <View style={{flex: 1}}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]} style={{letterSpacing: 1.2}}>
+                  NEW MAPPING
+                </Typography>
+                <Typography variant="h3" weight="bold">
+                  Create mapping
+                </Typography>
+              </View>
+            </View>
+            <ScrollView style={{flex: 1}} contentContainerStyle={styles.subModalContent}>
+              <View style={styles.inputSection}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
+                  CANONICAL NAME *
+                </Typography>
+                <RNTextInput
+                  style={styles.textInput}
+                  placeholder="e.g., JRT-2PLY"
+                  value={createCanonicalName}
+                  onChangeText={setCreateCanonicalName}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+                <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
+                  The master name shown in reports.
+                </Typography>
+              </View>
+
+              <View style={styles.inputSection}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
+                  ALIASES *
+                </Typography>
+                {createAliases.map((alias, index) => (
+                  <View key={index} style={styles.aliasInputRow}>
+                    <RNTextInput
+                      style={[styles.textInput, {flex: 1}]}
+                      placeholder="e.g., jrt-2ply, jrt 2pLy"
+                      value={alias}
+                      onChangeText={text => handleCreateAliasChange(index, text)}
+                      placeholderTextColor={theme.colors.gray[400]}
+                    />
+                    {createAliases.length > 1 && (
+                      <TouchableOpacity
+                        style={styles.aliasRemoveBtn}
+                        onPress={() => removeCreateAliasField(index)}
+                        activeOpacity={0.7}>
+                        <CloseIcon size={14} color={theme.colors.error[600]} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                <Button
+                  title="Add another alias"
+                  variant="outline"
+                  onPress={addCreateAliasField}
+                  leftIcon={<PlusIcon size={14} color={theme.colors.primary[600]} />}
+                  style={{marginTop: 6}}
+                />
+              </View>
+
+              <View style={styles.inputSection}>
+                <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
+                  DESCRIPTION
+                </Typography>
+                <RNTextInput
+                  style={styles.textInput}
+                  placeholder="Add notes about this mapping..."
+                  value={createDescription}
+                  onChangeText={setCreateDescription}
+                  placeholderTextColor={theme.colors.gray[400]}
+                />
+              </View>
+
+              <View style={styles.autoMergeRow}>
+                <View style={{flex: 1, paddingRight: 12}}>
+                  <Typography variant="small" weight="semibold">
+                    Auto-merge in reports
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    Automatically merge in reports and analytics
+                  </Typography>
+                </View>
+                <Switch
+                  value={createAutoMerge}
+                  onValueChange={setCreateAutoMerge}
+                  trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
+                  thumbColor={theme.colors.white}
+                />
+              </View>
+
+              <View style={styles.actionButtons}>
+                <Button
+                  title={saving ? 'Saving...' : 'Create mapping'}
+                  variant="primary"
+                  onPress={createMappingSubmit}
+                  disabled={saving || !createCanonicalName.trim()}
                   fullWidth
                 />
               </View>
@@ -1010,6 +1259,27 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     editBadge: {
       width: 28, height: 28, borderRadius: 9,
       backgroundColor: theme.colors.primary[50],
+      alignItems: 'center', justifyContent: 'center',
+    },
+    deleteBadge: {
+      width: 28, height: 28, borderRadius: 9,
+      backgroundColor: theme.colors.error[50],
+      alignItems: 'center', justifyContent: 'center',
+      marginLeft: 6,
+    },
+    createButtonWrap: {paddingHorizontal: bp.gutter, marginTop: theme.spacing.md},
+    autoMergeRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      backgroundColor: theme.colors.white,
+      borderRadius: 12,
+      padding: theme.spacing.md,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      marginBottom: theme.spacing.md,
+    },
+    aliasInputRow: {flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8},
+    aliasRemoveBtn: {
+      width: 36, height: 36, borderRadius: 9,
+      backgroundColor: theme.colors.error[50],
       alignItems: 'center', justifyContent: 'center',
     },
 

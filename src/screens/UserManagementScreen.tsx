@@ -15,6 +15,7 @@ import {Button} from '../components/atoms/Button';
 import {PaginatedList} from '../components/molecules/PaginatedList';
 import {UserFormModal} from '../components/molecules/UserFormModal';
 import {ResetPasswordModal} from '../components/molecules/ResetPasswordModal';
+import {UserScreenPermissionsModal} from '../components/molecules/UserScreenPermissionsModal';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -32,6 +33,7 @@ import {
   EditIcon,
   TrashIcon,
   KeyIcon,
+  ShieldIcon,
 } from '../components/icons';
 
 interface UserManagementScreenProps {
@@ -64,6 +66,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   });
   const [userFormVisible, setUserFormVisible] = useState(false);
   const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
+  const [permissionsVisible, setPermissionsVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   useEffect(() => {
     if (visible && token) {
@@ -132,6 +135,10 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   const handleResetPassword = (user: any) => {
     setSelectedUser(user);
     setResetPasswordVisible(true);
+  };
+  const handleManagePermissions = (user: any) => {
+    setSelectedUser(user);
+    setPermissionsVisible(true);
   };
   const handleToggleStatus = async (user: any) => {
     Alert.alert(
@@ -538,6 +545,14 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.actionButton}
+                          onPress={() => handleManagePermissions(user)}>
+                          <ShieldIcon size={16} color={theme.colors.primary[600]} />
+                          <Typography variant="small" color={theme.colors.primary[600]} weight="medium">
+                            Permissions
+                          </Typography>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.actionButton}
                           onPress={() => handleToggleStatus(user)}>
                           <CheckCircleIcon size={16} color={user.isActive ? theme.colors.error[600] : theme.colors.success[600]} />
                           <Typography variant="small" color={user.isActive ? theme.colors.error[600] : theme.colors.success[600]} weight="medium">
@@ -574,6 +589,14 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
         <ResetPasswordModal
           visible={resetPasswordVisible}
           onClose={() => setResetPasswordVisible(false)}
+          onSuccess={loadData}
+          token={token!}
+          user={selectedUser}
+        />
+        {/* Screen Permissions Modal */}
+        <UserScreenPermissionsModal
+          visible={permissionsVisible}
+          onClose={() => setPermissionsVisible(false)}
           onSuccess={loadData}
           token={token!}
           user={selectedUser}

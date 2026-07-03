@@ -28,9 +28,11 @@ import {
   ClockIcon,
   FileTextIcon,
   PlusIcon,
+  FilterIcon,
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
+import {OrderDetailScreen} from './OrderDetailScreen';
 
 interface OrdersScreenWrapperProps {
   navigation: any;
@@ -56,6 +58,12 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   // Source filter (mirrors the webapp dropdown) shown as a tab switcher:
   // all = both sources, customerconnect = synced, manual = manual orders.
   const [sourceFilter, setSourceFilter] = useState<'all' | 'customerconnect' | 'manual'>('all');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [stockProcessedFilter, setStockProcessedFilter] = useState('');
+  const [verifiedFilter, setVerifiedFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [orderDetails, setOrderDetails] = useState<Record<string, any>>({});
   const [loadingDetails, setLoadingDetails] = useState<Set<string>>(new Set());
@@ -68,6 +76,8 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     processed: 0,
     pending: 0,
   });
+  const [orderRange, setOrderRange] = useState<{lowest: any; highest: any; totalOrders: number} | null>(null);
+  const [detailOrderNumber, setDetailOrderNumber] = useState<string | null>(null);
   useEffect(() => {
     if (token) {
       setCurrentPage(1);
@@ -92,7 +102,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       loadData(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, sourceFilter]);
+  }, [debouncedSearch, sourceFilter, statusFilter, stockProcessedFilter, verifiedFilter, dateFrom, dateTo]);
   const loadData = async (page: number = 1) => {
     if (!token) return;
     try {
@@ -103,6 +113,11 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
         limit: 20,
         search: debouncedSearch,
         source: sourceFilter === 'all' ? undefined : sourceFilter,
+        status: statusFilter || undefined,
+        stockProcessed: stockProcessedFilter === '' ? undefined : stockProcessedFilter,
+        verified: verifiedFilter === '' ? undefined : verifiedFilter,
+        startDate: dateFrom || undefined,
+        endDate: dateTo || undefined,
       });
       const ordersData = response.orders || [];
       setOrders(ordersData);
@@ -113,6 +128,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
         setTotalPages(response.pagination.pages);
         setTotalOrders(response.pagination.total);
       }
+      setOrderRange(response.range || null);
 
       const processed = ordersData.filter((o: any) => o.stockProcessed).length;
       setStats({
@@ -170,8 +186,20 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
 
     return pages;
   };
-  const handleOrderPress = (orderNumber: string) => {
-    const newExpanded = new Set(expandedOrders);
+  const clearFilters = () => {
+    setStatusFilter('');
+    setStockProcessedFilter('');
+    setVerifiedFilter('');
+    setDateFrom('');
+    setDateTo('');
+  };
+  const activeFilterCount =
+    (statusFilter ? 1 : 0) +
+    (stockProcessedFilter !== '' ? 1 : 0) +
+    (verifiedFilter !== '' ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
+  const handleOrderPress = (orderNumber: string) => {    const newExpanded = new Set(expandedOrders);
     if (newExpanded.has(orderNumber)) {
       newExpanded.delete(orderNumber);
     } else {
@@ -202,8 +230,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
     }
     setExpandedOrders(newExpanded);
   };
-  const handleVerifyOrder = (order: any) => {
-    if (!order.orderNumber) {
+  const handleVerifyOrder = (order: any) => {    if (!order.orderNumber) {
       Alert.alert('Error', 'Order number not found');
       return;
     }
@@ -283,6 +310,14 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
             </Card>
           </View>
 
+          {orderRange && orderRange.highest != null && (
+            <View style={styles.rangeBanner}>
+              <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                #{orderRange.lowest} – #{orderRange.highest} ({orderRange.totalOrders} total)
+              </Typography>
+            </View>
+          )}
+
           {/* Search - Fixed */}
           <View style={styles.searchContainer}>
             <RNTextInput
@@ -318,6 +353,142 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               );
             })}
           </View>
+
+          {/* Filters toggle */}
+          <TouchableOpacity
+            style={styles.filterToggle}
+            onPress={() => setShowFilters(v => !v)}
+            activeOpacity={0.85}>
+            <FilterIcon size={16} color={theme.colors.primary[600]} />
+            <Typography variant="small" weight="semibold" color={theme.colors.primary[700]}>
+              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </Typography>
+            {(showFilters ? (
+              <ChevronDownIcon size={16} color={theme.colors.primary[600]} />
+            ) : (
+              <ChevronRightIcon size={16} color={theme.colors.primary[600]} />
+            ))}
+          </TouchableOpacity>
+
+          {showFilters && (
+            <View style={styles.filterPanel}>
+              {/* Status */}
+              <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
+                STATUS
+              </Typography>
+              <View style={styles.chipRow}>
+                {([
+                  {key: '', label: 'All'},
+                  {key: 'Complete', label: 'Complete'},
+                  {key: 'Processing', label: 'Processing'},
+                  {key: 'Shipped', label: 'Shipped'},
+                  {key: 'Pending', label: 'Pending'},
+                  {key: 'Cancelled', label: 'Cancelled'},
+                ] as const).map(o => {
+                  const active = statusFilter === o.key;
+                  return (
+                    <TouchableOpacity
+                      key={o.key || 'all'}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setStatusFilter(o.key)}
+                      activeOpacity={0.85}>
+                      <Typography variant="caption" weight="semibold" color={active ? theme.colors.white : theme.colors.gray[700]}>
+                        {o.label}
+                      </Typography>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Stock processed */}
+              <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
+                STOCK
+              </Typography>
+              <View style={styles.chipRow}>
+                {([
+                  {key: '', label: 'All'},
+                  {key: 'true', label: 'Processed'},
+                  {key: 'false', label: 'Not Processed'},
+                ] as const).map(o => {
+                  const active = stockProcessedFilter === o.key;
+                  return (
+                    <TouchableOpacity
+                      key={o.key || 'all'}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setStockProcessedFilter(o.key)}
+                      activeOpacity={0.85}>
+                      <Typography variant="caption" weight="semibold" color={active ? theme.colors.white : theme.colors.gray[700]}>
+                        {o.label}
+                      </Typography>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Verified */}
+              <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
+                VERIFICATION
+              </Typography>
+              <View style={styles.chipRow}>
+                {([
+                  {key: '', label: 'All'},
+                  {key: 'true', label: 'Verified'},
+                  {key: 'false', label: 'Not Verified'},
+                ] as const).map(o => {
+                  const active = verifiedFilter === o.key;
+                  return (
+                    <TouchableOpacity
+                      key={o.key || 'all'}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setVerifiedFilter(o.key)}
+                      activeOpacity={0.85}>
+                      <Typography variant="caption" weight="semibold" color={active ? theme.colors.white : theme.colors.gray[700]}>
+                        {o.label}
+                      </Typography>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Date range */}
+              <View style={styles.dateRow}>
+                <View style={styles.dateField}>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
+                    FROM
+                  </Typography>
+                  <RNTextInput
+                    style={styles.dateInput}
+                    placeholder="YYYY-MM-DD"
+                    value={dateFrom}
+                    onChangeText={setDateFrom}
+                    placeholderTextColor={theme.colors.gray[400]}
+                    autoCapitalize="none"
+                  />
+                </View>
+                <View style={styles.dateField}>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
+                    TO
+                  </Typography>
+                  <RNTextInput
+                    style={styles.dateInput}
+                    placeholder="YYYY-MM-DD"
+                    value={dateTo}
+                    onChangeText={setDateTo}
+                    placeholderTextColor={theme.colors.gray[400]}
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              {activeFilterCount > 0 && (
+                <TouchableOpacity style={styles.clearFiltersBtn} onPress={clearFilters} activeOpacity={0.85}>
+                  <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
+                    Clear All Filters
+                  </Typography>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
           </View>{/* end contentWrap */}
 
           {/* Scrollable Content */}
@@ -441,6 +612,15 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                                   <Typography variant="small" style={[styles.itemColPrice, styles.tdRight]}>{formatCurrency(item.unitPrice ?? item.price)}</Typography>
                                 </View>
                               ))}
+                              <TouchableOpacity
+                                style={styles.detailBtn}
+                                onPress={() => setDetailOrderNumber(order.orderNumber)}
+                                activeOpacity={0.85}>
+                                <FileTextIcon size={14} color={theme.colors.primary[700]} />
+                                <Typography variant="small" weight="semibold" color={theme.colors.primary[700]}>
+                                  View Details
+                                </Typography>
+                              </TouchableOpacity>
                             </>
                           )}
                         </View>
@@ -587,7 +767,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                         </Typography>
                       ) : (
                         <>
-                          {detailItems.slice(0, 5).map((item: any, idx: number) => (
+                          {detailItems.map((item: any, idx: number) => (
                             <View key={idx} style={styles.itemRow}>
                               <View style={{flex: 1}}>
                                 <Typography variant="body" weight="medium">
@@ -611,14 +791,15 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                               </View>
                             </View>
                           ))}
-                          {detailItems.length > 5 && (
-                            <Typography
-                              variant="small"
-                              color={theme.colors.gray[500]}
-                              style={{marginTop: 8}}>
-                              +{detailItems.length - 5} more items
+                          <TouchableOpacity
+                            style={styles.detailBtn}
+                            onPress={() => setDetailOrderNumber(order.orderNumber)}
+                            activeOpacity={0.85}>
+                            <FileTextIcon size={14} color={theme.colors.primary[700]} />
+                            <Typography variant="small" weight="semibold" color={theme.colors.primary[700]}>
+                              View Details
                             </Typography>
-                          )}
+                          </TouchableOpacity>
                         </>
                       )}
                     </View>
@@ -729,6 +910,11 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
           </TouchableOpacity>
         </View>
       )}
+      <OrderDetailScreen
+        visible={detailOrderNumber !== null}
+        orderNumber={detailOrderNumber}
+        onClose={() => setDetailOrderNumber(null)}
+      />
     </SafeAreaView>
   );
 };
@@ -777,8 +963,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   },
   searchContainer: {
     marginBottom: 12,
-  },
-  searchInput: {
+  },  searchInput: {
     backgroundColor: theme.colors.white,
     borderRadius: 8,
     padding: 12,
@@ -805,6 +990,73 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   sourceTabActive: {
     backgroundColor: theme.colors.primary[600],
   },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+  },
+  filterPanel: {
+    marginTop: 10,
+    backgroundColor: theme.colors.white,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+    padding: 12,
+    gap: 6,
+  },
+  filterLabel: {
+    letterSpacing: 0.5,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+    backgroundColor: theme.colors.gray[50],
+  },
+  chipActive: {
+    backgroundColor: theme.colors.primary[600],
+    borderColor: theme.colors.primary[600],
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  dateField: {
+    flex: 1,
+  },
+  dateInput: {
+    backgroundColor: theme.colors.gray[50],
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: theme.typography.roles.body.fontSize,
+    color: theme.colors.gray[900],
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
+  clearFiltersBtn: {
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: theme.colors.gray[100],
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
+  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -820,6 +1072,28 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   orderCard: {
     marginBottom: 12,
     padding: 16,
+  },
+  rangeBanner: {
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: theme.colors.primary[50],
+    borderWidth: 1,
+    borderColor: theme.colors.primary[200],
+  },
+  detailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary[50],
+    borderWidth: 1,
+    borderColor: theme.colors.primary[200],
   },
 
   // ── Mac / desktop table layout ────────────────────────────────────────

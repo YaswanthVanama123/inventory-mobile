@@ -16,7 +16,7 @@ import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import invoiceService from '../services/invoiceService';
-import {AlertCircleIcon, FileTextIcon} from '../components/icons';
+import {AlertCircleIcon, FileTextIcon, RefreshIcon} from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
@@ -34,9 +34,11 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  const {token} = useAuth();
+  const {token, user} = useAuth();
+  const isAdmin = user?.role === 'admin';
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [invoice, setInvoice] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -121,13 +123,25 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
     };
     return colors[paymentStatus?.toLowerCase()] || theme.colors.gray[100];
   };
-  const handleDownloadPDF = async () => {
-    if (!invoice || !token) return;
-    Alert.alert(
-      'Download PDF',
-      'PDF download functionality will be available in the next update.',
-      [{text: 'OK'}]
-    );
+  const handleSyncDetails = async () => {
+    if (!token || !invoice) return;
+    const invoiceNumber = invoice.invoiceNumber;
+    if (!invoiceNumber) return;
+    setSyncing(true);
+    try {
+      const response = await invoiceService.syncInvoiceDetails(token, String(invoiceNumber));
+      if (response.success) {
+        Alert.alert('Success', 'Invoice details synced successfully');
+        fetchInvoiceDetails();
+      }
+    } catch (err: any) {
+      const wasHandled = await handleApiError(err);
+      if (!wasHandled) {
+        Alert.alert('Error', err.message || 'Failed to sync invoice details');
+      }
+    } finally {
+      setSyncing(false);
+    }
   };
   return (
     <Modal
@@ -149,11 +163,21 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
             Invoice Details
           </Typography>
           <View style={styles.modalHeaderRight}>
-            {invoice && (
-              <TouchableOpacity onPress={handleDownloadPDF} style={styles.actionButton}>
-                <Typography variant="small" color={theme.colors.primary[600]} weight="semibold">
-                  PDF
-                </Typography>
+            {invoice && isAdmin && (
+              <TouchableOpacity
+                onPress={handleSyncDetails}
+                disabled={syncing}
+                style={styles.actionButton}>
+                {syncing ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary[600]} />
+                ) : (
+                  <View style={styles.syncDetailsBtn}>
+                    <RefreshIcon size={14} color={theme.colors.primary[600]} />
+                    <Typography variant="small" color={theme.colors.primary[600]} weight="semibold" style={{marginLeft: 4}}>
+                      Sync
+                    </Typography>
+                  </View>
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -260,6 +284,19 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                   </Typography>
                 </View>
               )}
+              {invoice.customer?.address && (
+                <View style={styles.infoRow}>
+                  <Typography variant="small" color={theme.colors.gray[500]}>
+                    Address
+                  </Typography>
+                  <Typography
+                    variant="small"
+                    color={theme.colors.gray[700]}
+                    style={styles.infoValue}>
+                    {invoice.customer.address}
+                  </Typography>
+                </View>
+              )}
             </Card>
             {/* Invoice Details */}
             <Card variant="elevated" padding="lg" style={styles.section}>
@@ -294,13 +331,176 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                   </Typography>
                 </View>
               )}
+              {invoice.stop !== undefined && invoice.stop !== null && (
+                <View style={styles.infoRow}>
+                  <Typography variant="small" color={theme.colors.gray[500]}>
+                    Stop Number
+                  </Typography>
+                  <Typography variant="small" weight="medium">
+                    {invoice.stop}
+                  </Typography>
+                </View>
+              )}
+              {invoice.dateCompleted && (
+                <View style={styles.infoRow}>
+                  <Typography variant="small" color={theme.colors.gray[500]}>
+                    Date Completed
+                  </Typography>
+                  <Typography variant="small" weight="medium">
+                    {formatDate(invoice.dateCompleted)}
+                  </Typography>
+                </View>
+              )}
+              {invoice.salesTaxRate && (
+                <View style={styles.infoRow}>
+                  <Typography variant="small" color={theme.colors.gray[500]}>
+                    Sales Tax Rate
+                  </Typography>
+                  <Typography variant="small" weight="medium">
+                    {invoice.salesTaxRate}%
+                  </Typography>
+                </View>
+              )}
             </Card>
+            {/* Time & Duration */}
+            {(invoice.arrivalTime || invoice.departureTime || invoice.elapsedTime) && (
+              <Card variant="elevated" padding="lg" style={styles.section}>
+                <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
+                  Time & Duration
+                </Typography>
+                {invoice.arrivalTime && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Arrival Time
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.arrivalTime}
+                    </Typography>
+                  </View>
+                )}
+                {invoice.departureTime && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Departure Time
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.departureTime}
+                    </Typography>
+                  </View>
+                )}
+                {invoice.elapsedTime && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Elapsed Time
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.elapsedTime}
+                    </Typography>
+                  </View>
+                )}
+              </Card>
+            )}
+            {/* Payment Information */}
+            {(invoice.payment || invoice.paymentMethod) && (
+              <Card variant="elevated" padding="lg" style={styles.section}>
+                <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
+                  Payment Information
+                </Typography>
+                {invoice.paymentMethod && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Payment Method
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.paymentMethod}
+                    </Typography>
+                  </View>
+                )}
+                {invoice.payment && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Payment
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.payment}
+                    </Typography>
+                  </View>
+                )}
+              </Card>
+            )}
+            {/* Posting Information */}
+            {(invoice.postedBy || invoice.postedTimestamp || invoice.isPosted !== undefined) && (
+              <Card variant="elevated" padding="lg" style={styles.section}>
+                <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
+                  Posting Information
+                </Typography>
+                {invoice.isPosted !== undefined && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Posted Status
+                    </Typography>
+                    <View
+                      style={[
+                        styles.stockStatusBadge,
+                        {
+                          backgroundColor: invoice.isPosted
+                            ? theme.colors.success[100]
+                            : theme.colors.gray[100],
+                        },
+                      ]}>
+                      <Typography
+                        variant="caption"
+                        weight="semibold"
+                        color={invoice.isPosted ? theme.colors.success[700] : theme.colors.gray[700]}>
+                        {invoice.isPosted ? 'Posted' : 'Not Posted'}
+                      </Typography>
+                    </View>
+                  </View>
+                )}
+                {invoice.postedBy && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Posted By
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.postedBy}
+                    </Typography>
+                  </View>
+                )}
+                {invoice.postedTimestamp && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Posted Timestamp
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {formatDate(invoice.postedTimestamp)}
+                    </Typography>
+                  </View>
+                )}
+              </Card>
+            )}
             {/* Additional Information */}
-            {(invoice.assignedTo || invoice.serviceNotes || invoice.notes) && (
+            {(invoice.assignedTo ||
+              invoice.serviceNotes ||
+              invoice.notes ||
+              invoice.enteredBy ||
+              invoice.signedBy ||
+              invoice.customerGrouping ||
+              invoice.invoiceMemo) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
                 <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
                   Additional Information
                 </Typography>
+                {invoice.enteredBy && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Entered By
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.enteredBy}
+                    </Typography>
+                  </View>
+                )}
                 {invoice.assignedTo && (
                   <View style={styles.infoRow}>
                     <Typography variant="small" color={theme.colors.gray[500]}>
@@ -311,13 +511,43 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                     </Typography>
                   </View>
                 )}
+                {invoice.signedBy && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Signed By
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.signedBy}
+                    </Typography>
+                  </View>
+                )}
+                {invoice.customerGrouping && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Customer Grouping
+                    </Typography>
+                    <Typography variant="small" weight="medium">
+                      {invoice.customerGrouping}
+                    </Typography>
+                  </View>
+                )}
                 {invoice.serviceNotes && (
                   <View style={styles.infoRow}>
                     <Typography variant="small" color={theme.colors.gray[500]}>
                       Service Notes
                     </Typography>
-                    <Typography variant="small" color={theme.colors.gray[700]}>
+                    <Typography variant="small" color={theme.colors.gray[700]} style={styles.infoValue}>
                       {invoice.serviceNotes}
+                    </Typography>
+                  </View>
+                )}
+                {invoice.invoiceMemo && (
+                  <View style={styles.infoRow}>
+                    <Typography variant="small" color={theme.colors.gray[500]}>
+                      Invoice Memo
+                    </Typography>
+                    <Typography variant="small" color={theme.colors.gray[700]} style={styles.infoValue}>
+                      {invoice.invoiceMemo}
                     </Typography>
                   </View>
                 )}
@@ -326,7 +556,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                     <Typography variant="small" color={theme.colors.gray[500]}>
                       Notes
                     </Typography>
-                    <Typography variant="small" color={theme.colors.gray[700]}>
+                    <Typography variant="small" color={theme.colors.gray[700]} style={styles.infoValue}>
                       {invoice.notes}
                     </Typography>
                   </View>
@@ -377,6 +607,16 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                               </Typography>
                               <Typography variant="caption" color={theme.colors.gray[500]}>
                                 {item.class || item.category}
+                              </Typography>
+                            </>
+                          )}
+                          {item.taxCode && (
+                            <>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                •
+                              </Typography>
+                              <Typography variant="caption" color={theme.colors.gray[500]}>
+                                Tax: {item.taxCode}
                               </Typography>
                             </>
                           )}
@@ -431,59 +671,56 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
               </View>
             </Card>
             {/* Sync Information */}
-            {(invoice.syncedAt || invoice.lastUpdated || invoice.stockStatus) && (
+            {(invoice.syncedAt || invoice.createdAt || invoice.lastUpdated || invoice.updatedAt || invoice.stockProcessed !== undefined) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
                 <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
                   Sync Information
                 </Typography>
-                {invoice.syncedAt && (
+                {(invoice.syncedAt || invoice.createdAt) && (
                   <View style={styles.infoRow}>
                     <Typography variant="small" color={theme.colors.gray[500]}>
                       Synced At
                     </Typography>
                     <Typography variant="small" weight="medium">
-                      {formatDate(invoice.syncedAt)}
+                      {formatDate(invoice.syncedAt || invoice.createdAt)}
                     </Typography>
                   </View>
                 )}
-                {invoice.lastUpdated && (
+                {(invoice.lastUpdated || invoice.updatedAt) && (
                   <View style={styles.infoRow}>
                     <Typography variant="small" color={theme.colors.gray[500]}>
                       Last Updated
                     </Typography>
                     <Typography variant="small" weight="medium">
-                      {formatDate(invoice.lastUpdated)}
+                      {formatDate(invoice.lastUpdated || invoice.updatedAt)}
                     </Typography>
                   </View>
                 )}
-                {invoice.stockStatus && (
-                  <View style={styles.infoRow}>
-                    <Typography variant="small" color={theme.colors.gray[500]}>
-                      Stock Status
+                <View style={styles.infoRow}>
+                  <Typography variant="small" color={theme.colors.gray[500]}>
+                    Stock Status
+                  </Typography>
+                  <View
+                    style={[
+                      styles.stockStatusBadge,
+                      {
+                        backgroundColor: invoice.stockProcessed
+                          ? theme.colors.success[100]
+                          : theme.colors.primary[100],
+                      },
+                    ]}>
+                    <Typography
+                      variant="caption"
+                      weight="semibold"
+                      color={
+                        invoice.stockProcessed
+                          ? theme.colors.success[700]
+                          : theme.colors.primary[700]
+                      }>
+                      {invoice.stockProcessed ? 'Processed' : 'Not Processed'}
                     </Typography>
-                    <View
-                      style={[
-                        styles.stockStatusBadge,
-                        {
-                          backgroundColor:
-                            invoice.stockStatus === 'Processed'
-                              ? theme.colors.success[100]
-                              : theme.colors.primary[100],
-                        },
-                      ]}>
-                      <Typography
-                        variant="caption"
-                        weight="semibold"
-                        color={
-                          invoice.stockStatus === 'Processed'
-                            ? theme.colors.success[700]
-                            : theme.colors.primary[700]
-                        }>
-                        {invoice.stockStatus}
-                      </Typography>
-                    </View>
                   </View>
-                )}
+                </View>
               </Card>
             )}
           </ScrollView>
@@ -512,7 +749,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     width: 60,
   },
   modalHeaderRight: {
-    width: 60,
+    width: 80,
     alignItems: 'flex-end',
   },
   modalTitle: {
@@ -524,6 +761,10 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   actionButton: {
     paddingVertical: 4,
+  },
+  syncDetailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
@@ -596,6 +837,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing.md,
+  },
+  infoValue: {
+    flex: 1,
+    textAlign: 'right',
+    marginLeft: theme.spacing.md,
   },
   lineItem: {
     paddingVertical: theme.spacing.lg,

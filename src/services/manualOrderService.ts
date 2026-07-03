@@ -3,9 +3,10 @@ import {API_BASE_URL} from '../config/api';
 export interface ManualOrderItem {
   sku: string;
   name: string;
-  quantity: number;
+  // Backend manual-order route reads `qty` and computes `lineTotal` itself.
+  qty: number;
   unitPrice: number;
-  lineTotal: number;
+  lineTotal?: number;
 }
 
 export interface ManualOrder {

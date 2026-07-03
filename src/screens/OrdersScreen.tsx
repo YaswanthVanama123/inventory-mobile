@@ -11,6 +11,7 @@ import {
   Switch,
   Animated,
   Easing,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -32,10 +33,13 @@ import {
   SearchIcon,
   ClipboardIcon,
   ArrowRightIcon,
+  TrashIcon,
+  CheckIcon,
 } from '../components/icons';
 import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import useDebounce from '../hooks/useDebounce';
+import {OrderDetailScreen} from './OrderDetailScreen';
 
 interface OrdersScreenProps {
   visible: boolean;
@@ -49,7 +53,8 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   // Mac / desktop-class width gets a dedicated table layout instead of the
   // stacked phone cards (which look sparse on a wide window).
   const isWideLayout = bp.isDesktop || bp.isWide;
-  const {token} = useAuth();
+  const {token, user} = useAuth();
+  const isAdmin = user?.role === 'admin';
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,8 +72,17 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   const [totalPages, setTotalPages] = useState(1);
   const [totalOrders, setTotalOrders] = useState(0);
   const [stats, setStats] = useState({totalOrders: 0, processed: 0, pending: 0});
+  const [range, setRange] = useState<{lowest: any; highest: any; totalOrders: number} | null>(null);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
-  const [autoSyncInterval] = useState(30);
+  const [autoSyncInterval, setAutoSyncInterval] = useState(30);
+  // Sync limit: 0 = AUTO (only new since last sync) / All available.
+  const [syncLimit, setSyncLimit] = useState(0);
+  // Distinguishes the "All" chip (also 0 on the wire) from the "AUTO" chip.
+  const [syncLimitAll, setSyncLimitAll] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
+  const [deletingBulk, setDeletingBulk] = useState(false);
+  const [detailOrderNumber, setDetailOrderNumber] = useState<string | null>(null);
 
   const heroFade = useRef(new Animated.Value(1)).current;
   const heroSlide = useRef(new Animated.Value(0)).current;
@@ -97,12 +111,12 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   }, [debouncedSearch]);
 
   useEffect(() => {
-    if (!autoSyncEnabled || !visible || !token) return;
+    if (!isAdmin || !autoSyncEnabled || !visible || !token) return;
     const intervalMs = autoSyncInterval * 60 * 1000;
     const autoSyncTimer = setInterval(async () => {
       if (!syncing) {
         try {
-          const response = await ordersService.syncOrders(token, 0, 'new');
+          const response = await ordersService.syncOrders(token, syncLimit, 'new');
           if (response.success && (response.data.created > 0 || response.data.updated > 0)) {
             loadData(currentPage);
           }
@@ -112,7 +126,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
       }
     }, intervalMs);
     return () => clearInterval(autoSyncTimer);
-  }, [autoSyncEnabled, autoSyncInterval, syncing, visible, token, currentPage]);
+  }, [isAdmin, autoSyncEnabled, autoSyncInterval, syncing, visible, token, currentPage, syncLimit]);
 
   useEffect(() => {
     if (visible) {
@@ -152,6 +166,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
         setTotalPages(response.pagination.pages);
         setTotalOrders(response.pagination.total);
       }
+      setRange(response.range || null);
       const processed = ordersData.filter((o: any) => o.stockProcessed).length;
       setStats({
         totalOrders: response.pagination?.total || ordersData.length,
@@ -176,32 +191,52 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
     loadData(1);
   };
 
+  // Build a "Synced: X new, Y updated, Z skipped" summary, omitting any
+  // count the backend didn't return (mirrors web OrdersList feedback).
+  const buildSyncSummary = (data: any, detailsSynced?: number) => {
+    if (!data) return 'Sync complete';
+    const parts: string[] = [];
+    if (data.created != null) parts.push(`${data.created} new`);
+    if (data.updated != null) parts.push(`${data.updated} updated`);
+    if (data.skipped != null) parts.push(`${data.skipped} skipped`);
+    if (detailsSynced != null) parts.push(`${detailsSynced} details synced`);
+    return parts.length ? `Synced: ${parts.join(', ')}` : 'Sync complete';
+  };
+
   const runSync = async (
     direction: 'new' | 'old' | 'all',
     setFlag: (value: boolean) => void,
   ) => {
     if (!token) return;
+    if (!isAdmin) {
+      Alert.alert('Not allowed', 'Only administrators can sync orders');
+      return;
+    }
     setFlag(true);
     setSyncing(true);
     try {
       if (direction === 'all') {
         const ordersResponse = await ordersService.syncOrders(token, 0, 'new');
         if (ordersResponse.success) {
+          let detailsSynced: number | undefined;
           try {
-            await ordersService.syncAllOrderDetails(token, 0);
+            const detailsResponse = await ordersService.syncAllOrderDetails(token, 0);
+            detailsSynced = detailsResponse?.data?.synced;
           } catch (detailsError) {
             console.error('Error syncing details:', detailsError);
           }
           setCurrentPage(1);
           setOrders([]);
           loadData(1);
+          Alert.alert('Sync complete', buildSyncSummary(ordersResponse.data, detailsSynced));
         }
       } else {
-        const response = await ordersService.syncOrders(token, 0, direction);
+        const response = await ordersService.syncOrders(token, syncLimit, direction);
         if (response.success) {
           setCurrentPage(1);
           setOrders([]);
           loadData(1);
+          Alert.alert('Sync complete', buildSyncSummary(response.data));
         }
       }
     } catch (err: any) {
@@ -217,6 +252,105 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   const handleSyncNew = () => runSync('new', setSyncingNew);
   const handleSyncOld = () => runSync('old', setSyncingOld);
   const handleSyncAll = () => runSync('all', setSyncingAll);
+
+  const toggleSelectOrder = (orderNumber: string) => {
+    setSelectedOrders(prev =>
+      prev.includes(orderNumber)
+        ? prev.filter(n => n !== orderNumber)
+        : [...prev, orderNumber],
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOrders.length === filteredOrders.length) {
+      setSelectedOrders([]);
+    } else {
+      setSelectedOrders(filteredOrders.map((o: any) => o.orderNumber));
+    }
+  };
+
+  const performBulkDelete = async () => {
+    if (!token || !isAdmin || selectedOrders.length === 0) return;
+    setDeletingBulk(true);
+    try {
+      const response = await ordersService.deleteBulkOrdersByNumbers(token, selectedOrders);
+      if (response.success) {
+        setSelectedOrders([]);
+        setCurrentPage(1);
+        setOrders([]);
+        loadData(1);
+      }
+    } catch (err: any) {
+      console.error('Failed to delete selected orders:', err);
+      const wasHandled = await handleApiError(err);
+      if (!wasHandled) {
+        Alert.alert('Error', err.message || 'Failed to delete selected orders');
+      }
+    } finally {
+      setDeletingBulk(false);
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (!isAdmin) {
+      Alert.alert('Not allowed', 'Only administrators can delete orders');
+      return;
+    }
+    if (selectedOrders.length === 0) {
+      Alert.alert('No selection', 'Please select orders to delete');
+      return;
+    }
+    Alert.alert(
+      'Delete Selected Orders',
+      `Permanently delete ${selectedOrders.length} selected order${
+        selectedOrders.length !== 1 ? 's' : ''
+      }? This cannot be undone.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Delete', style: 'destructive', onPress: performBulkDelete},
+      ],
+    );
+  };
+
+  const performDeleteAll = async () => {
+    if (!token || !isAdmin) return;
+    setDeleting(true);
+    try {
+      const response = await ordersService.deleteAllOrders(token);
+      if (response.success) {
+        setSelectedOrders([]);
+        setCurrentPage(1);
+        setOrders([]);
+        loadData(1);
+      }
+    } catch (err: any) {
+      console.error('Failed to delete all orders:', err);
+      const wasHandled = await handleApiError(err);
+      if (!wasHandled) {
+        Alert.alert('Error', err.message || 'Failed to delete orders');
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteAll = () => {
+    if (!isAdmin) {
+      Alert.alert('Not allowed', 'Only administrators can delete orders');
+      return;
+    }
+    if (totalOrders === 0) return;
+    Alert.alert(
+      'Clear All Orders',
+      `Permanently delete all ${totalOrders} order${
+        totalOrders !== 1 ? 's' : ''
+      } from the database? This cannot be undone. Inventory stock levels are not affected.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Delete All', style: 'destructive', onPress: performDeleteAll},
+      ],
+    );
+  };
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages && page !== currentPage && !loading) {
@@ -256,6 +390,8 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
     setExpandedOrders(newExpanded);
   };
 
+  const openDetail = (orderNumber: string) => setDetailOrderNumber(orderNumber);
+
   const formatCurrency = (amount: number) => `$${(amount || 0).toFixed(2)}`;
 
   type StatusTone = 'success' | 'primary' | 'error' | 'gray';
@@ -274,6 +410,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   const blobOpacity = blobPulse.interpolate({inputRange: [0, 1], outputRange: [0.18, 0.28]});
 
   return (
+    <>
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
         {loading && !refreshing ? (
@@ -379,6 +516,17 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
               </View>
             </View>
 
+            {range && range.highest != null && (
+              <View style={styles.rangeBanner}>
+                <FileTextIcon size={13} color={theme.colors.primary[600]} />
+                <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                  #{range.lowest} – #{range.highest} ({range.totalOrders} total)
+                </Typography>
+              </View>
+            )}
+
+            {isAdmin && (
+            <>
             <View style={styles.syncRow}>
               <TouchableOpacity
                 onPress={handleSyncNew}
@@ -427,6 +575,41 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
               </TouchableOpacity>
             </View>
 
+            <View style={styles.selectorWrap}>
+              <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.selectorLabel}>
+                SYNC LIMIT
+              </Typography>
+              <View style={styles.chipRow}>
+                {([
+                  {key: 0, label: 'AUTO'},
+                  {key: 50, label: '50'},
+                  {key: 100, label: '100'},
+                  {key: 500, label: '500'},
+                  {key: -1, label: 'All'},
+                ] as const).map(o => {
+                  // AUTO and All both map to unlimited (0) on the backend; keep
+                  // them visually distinct so users can pick either.
+                  const value = o.key === -1 ? 0 : o.key;
+                  const active =
+                    o.key === -1 ? syncLimit === 0 && syncLimitAll : syncLimit === value && !(o.key === 0 && syncLimitAll);
+                  return (
+                    <TouchableOpacity
+                      key={o.label}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => {
+                        setSyncLimit(value);
+                        setSyncLimitAll(o.key === -1);
+                      }}
+                      activeOpacity={0.85}>
+                      <Typography variant="caption" weight="semibold" color={active ? theme.colors.white : theme.colors.gray[700]}>
+                        {o.label}
+                      </Typography>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
             <View style={styles.automationWrap}>
               <View style={styles.automationCard}>
                 <View style={styles.automationLeft}>
@@ -449,7 +632,105 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
                   thumbColor={theme.colors.white}
                 />
               </View>
+              {autoSyncEnabled && (
+                <View style={styles.selectorWrap}>
+                  <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.selectorLabel}>
+                    INTERVAL
+                  </Typography>
+                  <View style={styles.chipRow}>
+                    {([5, 15, 30, 60, 120, 240] as const).map(mins => {
+                      const active = autoSyncInterval === mins;
+                      const label = mins >= 60 ? `${mins / 60}h` : `${mins}m`;
+                      return (
+                        <TouchableOpacity
+                          key={mins}
+                          style={[styles.chip, active && styles.chipActive]}
+                          onPress={() => setAutoSyncInterval(mins)}
+                          activeOpacity={0.85}>
+                          <Typography variant="caption" weight="semibold" color={active ? theme.colors.white : theme.colors.gray[700]}>
+                            {label}
+                          </Typography>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
             </View>
+            </>
+            )}
+
+            {isAdmin && (
+              <View style={styles.dangerZone}>
+                <View style={{flex: 1}}>
+                  <Typography variant="small" weight="semibold" color={theme.colors.error[700]}>
+                    Danger zone
+                  </Typography>
+                  <Typography variant="caption" color={theme.colors.gray[500]}>
+                    Delete all orders from the database (cannot be undone)
+                  </Typography>
+                </View>
+                <TouchableOpacity
+                  onPress={handleDeleteAll}
+                  disabled={deleting || totalOrders === 0}
+                  style={[styles.dangerBtn, (deleting || totalOrders === 0) && styles.syncBtnDisabled]}
+                  activeOpacity={0.85}>
+                  {deleting ? (
+                    <ActivityIndicator size="small" color={theme.colors.white} />
+                  ) : (
+                    <>
+                      <TrashIcon size={14} color={theme.colors.white} />
+                      <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                        Clear all
+                      </Typography>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {isAdmin && !error && filteredOrders.length > 0 && (
+              <View style={styles.selectBar}>
+                <TouchableOpacity
+                  onPress={toggleSelectAll}
+                  style={styles.selectAllLeft}
+                  activeOpacity={0.7}>
+                  <View
+                    style={[
+                      styles.checkbox,
+                      selectedOrders.length === filteredOrders.length &&
+                        filteredOrders.length > 0 &&
+                        styles.checkboxChecked,
+                    ]}>
+                    {selectedOrders.length === filteredOrders.length &&
+                      filteredOrders.length > 0 && (
+                        <CheckIcon size={12} color={theme.colors.white} />
+                      )}
+                  </View>
+                  <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
+                    Select all ({selectedOrders.length}/{filteredOrders.length})
+                  </Typography>
+                </TouchableOpacity>
+                {selectedOrders.length > 0 && (
+                  <TouchableOpacity
+                    onPress={handleBulkDelete}
+                    disabled={deletingBulk}
+                    style={[styles.dangerBtn, deletingBulk && styles.syncBtnDisabled]}
+                    activeOpacity={0.85}>
+                    {deletingBulk ? (
+                      <ActivityIndicator size="small" color={theme.colors.white} />
+                    ) : (
+                      <>
+                        <TrashIcon size={14} color={theme.colors.white} />
+                        <Typography variant="caption" weight="semibold" color={theme.colors.white}>
+                          Delete Selected ({selectedOrders.length})
+                        </Typography>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
 
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -490,6 +771,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
             {isWideLayout && !error && filteredOrders.length > 0 ? (
               <View style={styles.table}>
                 <View style={styles.tableHeadRow}>
+                  {isAdmin && <View style={styles.colCheck} />}
                   <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colOrder]}>ORDER</Typography>
                   <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colVendor]}>VENDOR</Typography>
                   <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={[styles.th, styles.colDate]}>DATE</Typography>
@@ -506,9 +788,26 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
                   return (
                     <View key={order._id || index} style={[styles.tableRowWrap, isExpanded && styles.tableRowWrapActive]}>
                       <TouchableOpacity onPress={() => handleOrderPress(order.orderNumber)} style={styles.tableRow} activeOpacity={0.7}>
+                        {isAdmin && (
+                          <TouchableOpacity
+                            onPress={() => toggleSelectOrder(order.orderNumber)}
+                            style={styles.colCheck}
+                            activeOpacity={0.7}>
+                            <View style={[styles.checkbox, selectedOrders.includes(order.orderNumber) && styles.checkboxChecked]}>
+                              {selectedOrders.includes(order.orderNumber) && (
+                                <CheckIcon size={12} color={theme.colors.white} />
+                              )}
+                            </View>
+                          </TouchableOpacity>
+                        )}
                         <View style={[styles.colOrder, styles.orderCell]}>
                           <View style={[styles.rowStripe, {backgroundColor: palette.strong}]} />
                           <Typography variant="body" weight="bold" numberOfLines={1}>#{order.orderNumber}</Typography>
+                          {order.source === 'manual' && (
+                            <View style={styles.manualBadge}>
+                              <Typography variant="caption" weight="bold" color={theme.colors.accent[700]}>MANUAL</Typography>
+                            </View>
+                          )}
                         </View>
                         <Typography variant="small" numberOfLines={1} style={styles.colVendor}>
                           {order.vendor?.name || 'N/A'}
@@ -592,6 +891,17 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
                           ))}
                         </View>
                       )}
+
+                      {isExpanded && (
+                        <View style={styles.tableDetailBtnWrap}>
+                          <TouchableOpacity onPress={() => openDetail(order.orderNumber)} style={styles.detailBtn} activeOpacity={0.85}>
+                            <ArrowRightIcon size={13} color={theme.colors.primary[700]} />
+                            <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                              View full details
+                            </Typography>
+                          </TouchableOpacity>
+                        </View>
+                      )}
                     </View>
                   );
                 })}
@@ -606,13 +916,31 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
                   <Card key={order._id || index} variant="elevated" padding="none" style={styles.orderCard}>
                     <View style={[styles.orderStripe, {backgroundColor: palette.strong}]} />
                     <TouchableOpacity onPress={() => handleOrderPress(order.orderNumber)} style={styles.orderHeader} activeOpacity={0.85}>
+                      {isAdmin && (
+                        <TouchableOpacity
+                          onPress={() => toggleSelectOrder(order.orderNumber)}
+                          activeOpacity={0.7}>
+                          <View style={[styles.checkbox, selectedOrders.includes(order.orderNumber) && styles.checkboxChecked]}>
+                            {selectedOrders.includes(order.orderNumber) && (
+                              <CheckIcon size={12} color={theme.colors.white} />
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      )}
                       <View style={[styles.orderIconWrap, {backgroundColor: palette.bg}]}>
                         <FileTextIcon size={18} color={palette.fg} />
                       </View>
                       <View style={styles.orderInfo}>
-                        <Typography variant="body" weight="bold" numberOfLines={1}>
-                          #{order.orderNumber}
-                        </Typography>
+                        <View style={styles.orderTitleRow}>
+                          <Typography variant="body" weight="bold" numberOfLines={1}>
+                            #{order.orderNumber}
+                          </Typography>
+                          {order.source === 'manual' && (
+                            <View style={styles.manualBadge}>
+                              <Typography variant="caption" weight="bold" color={theme.colors.accent[700]}>MANUAL</Typography>
+                            </View>
+                          )}
+                        </View>
                         <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
                           {order.vendor?.name || 'N/A'} · {formatDate(order.orderDate)}
                         </Typography>
@@ -724,6 +1052,12 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
                             </View>
                           </View>
                         ))}
+                        <TouchableOpacity onPress={() => openDetail(order.orderNumber)} style={styles.detailBtn} activeOpacity={0.85}>
+                          <ArrowRightIcon size={13} color={theme.colors.primary[700]} />
+                          <Typography variant="caption" weight="semibold" color={theme.colors.primary[700]}>
+                            View full details
+                          </Typography>
+                        </TouchableOpacity>
                       </View>
                     )}
                   </Card>
@@ -800,6 +1134,12 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
         )}
       </SafeAreaView>
     </Modal>
+    <OrderDetailScreen
+      visible={detailOrderNumber !== null}
+      orderNumber={detailOrderNumber}
+      onClose={() => setDetailOrderNumber(null)}
+    />
+    </>
   );
 };
 
@@ -922,6 +1262,47 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     syncBtnSuccess: {backgroundColor: theme.colors.success[600]},
     syncBtnDisabled: {opacity: 0.5},
 
+    dangerZone: {
+      flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md,
+      marginTop: theme.spacing.md,
+      backgroundColor: theme.colors.error[50],
+      borderWidth: 1, borderColor: theme.colors.error[200],
+      borderRadius: 12,
+      paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 4,
+    },
+    dangerBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      backgroundColor: theme.colors.error[600],
+      paddingVertical: 10, paddingHorizontal: 14,
+      borderRadius: 10,
+    },
+    selectBar: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      marginTop: theme.spacing.md,
+      backgroundColor: theme.colors.white,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      borderRadius: 12,
+      paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 2,
+    },
+    selectAllLeft: {flexDirection: 'row', alignItems: 'center', gap: 8},
+    checkbox: {
+      width: 20, height: 20, borderRadius: 6,
+      borderWidth: 2, borderColor: theme.colors.gray[300],
+      backgroundColor: theme.colors.white,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    checkboxChecked: {
+      backgroundColor: theme.colors.primary[600],
+      borderColor: theme.colors.primary[600],
+    },
+    colCheck: {width: 36, alignItems: 'flex-start', justifyContent: 'center'},
+    manualBadge: {
+      backgroundColor: theme.colors.accent[100],
+      paddingHorizontal: 6, paddingVertical: 2,
+      borderRadius: 4,
+    },
+    orderTitleRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
+
     automationWrap: {marginTop: theme.spacing.md},
     automationCard: {
       flexDirection: 'row', alignItems: 'center',
@@ -942,6 +1323,38 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       marginTop: theme.spacing.lg, marginBottom: theme.spacing.md,
     },
     eyebrowLine: {width: 24, height: 2, borderRadius: 1, backgroundColor: theme.colors.primary[600]},
+
+    rangeBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      alignSelf: 'flex-start',
+      marginTop: theme.spacing.md,
+      paddingHorizontal: theme.spacing.sm + 2, paddingVertical: 6,
+      borderRadius: 999,
+      backgroundColor: theme.colors.primary[50],
+      borderWidth: 1, borderColor: theme.colors.primary[200],
+    },
+    selectorWrap: {marginTop: theme.spacing.md},
+    selectorLabel: {letterSpacing: 0.5, marginBottom: 6},
+    chipRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 6},
+    chip: {
+      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      backgroundColor: theme.colors.gray[50],
+    },
+    chipActive: {backgroundColor: theme.colors.primary[600], borderColor: theme.colors.primary[600]},
+    detailBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      marginTop: theme.spacing.sm,
+      paddingVertical: 10,
+      borderRadius: 10,
+      backgroundColor: theme.colors.primary[50],
+      borderWidth: 1, borderColor: theme.colors.primary[200],
+    },
+    tableDetailBtnWrap: {
+      paddingHorizontal: theme.spacing.lg,
+      paddingBottom: theme.spacing.md,
+      backgroundColor: theme.colors.gray[50],
+    },
 
     errorCard: {
       marginTop: theme.spacing.md,

@@ -188,6 +188,72 @@ class ActivityLogService {
   }
 
   /**
+   * Get employee activities (tabbed view).
+   * tab: 'all' | 'sales' | 'stock' | 'deletions'
+   * Endpoints: /activities, /activities/sales, /activities/stock, /activities/deletions
+   * Response data keys differ by tab: activities | sales | activities | deletions.
+   * Returns a normalized {activities, pagination}.
+   */
+  async getEmployeeActivities(
+    token: string,
+    tab: 'all' | 'sales' | 'stock' | 'deletions',
+    params: any = {},
+  ): Promise<{activities: any[]; pagination: any}> {
+    const endpointMap: Record<string, string> = {
+      all: '/activities',
+      sales: '/activities/sales',
+      stock: '/activities/stock',
+      deletions: '/activities/deletions',
+    };
+    const endpoint = endpointMap[tab] || '/activities';
+    // Only forward non-empty params.
+    const cleaned: Record<string, string> = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        cleaned[key] = String(value);
+      }
+    });
+    const queryParams = new URLSearchParams(cleaned);
+    const response = await fetch(
+      `${API_BASE_URL}${endpoint}?${queryParams.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+    if (!response.ok) {
+      throw new Error('Failed to fetch activities');
+    }
+    const json = await response.json();
+    const data = json.data || {};
+    const activities = data.activities || data.sales || data.deletions || [];
+    return {activities, pagination: data.pagination || {}};
+  }
+
+  /**
+   * Get the employee list used to populate the activity filter dropdown.
+   * Uses the /activities/page-data endpoint which returns a `users` array.
+   */
+  async getActivityEmployees(token: string): Promise<any[]> {
+    const response = await fetch(
+      `${API_BASE_URL}/activities/page-data?page=1&limit=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+    if (!response.ok) {
+      throw new Error('Failed to fetch activity employees');
+    }
+    const json = await response.json();
+    return json.data?.users || [];
+  }
+
+  /**
    * Export activity logs
    */
   async exportActivityLogs(token: string, params: any = {}, format: string = 'json') {
