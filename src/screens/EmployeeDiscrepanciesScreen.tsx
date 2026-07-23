@@ -540,7 +540,7 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
               })}
             </View>
 
-            {loading && !refreshing ? (
+            {loading && !refreshing && activeList.length === 0 ? (
               <View style={styles.center}>
                 <ActivityIndicator size="large" color={theme.colors.primary[600]} />
               </View>

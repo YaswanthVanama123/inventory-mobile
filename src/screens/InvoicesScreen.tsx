@@ -78,6 +78,7 @@ export const InvoicesScreen = () => {
     total,
     totalPages,
     loading,
+    initialLoading,
     refreshing,
     error,
     refresh,
@@ -386,7 +387,7 @@ export const InvoicesScreen = () => {
     };
     return colors[status?.toLowerCase()] || theme.colors.gray[100];
   };
-  if (loading && !refreshing && invoices.length === 0) {
+  if (initialLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary[600]} />

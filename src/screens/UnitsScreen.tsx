@@ -69,6 +69,7 @@ export const UnitsScreen: React.FC<UnitsScreenProps> = ({visible, onClose}) => {
     total,
     totalPages,
     loading,
+    initialLoading,
     refreshing,
     error,
     refresh,
@@ -216,7 +217,7 @@ export const UnitsScreen: React.FC<UnitsScreenProps> = ({visible, onClose}) => {
           </TouchableOpacity>
         </View>
 
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography

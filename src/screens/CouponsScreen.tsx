@@ -782,7 +782,7 @@ export const CouponsScreen: React.FC<CouponsScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {pg.loading && !pg.refreshing ? (
+        {pg.initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography

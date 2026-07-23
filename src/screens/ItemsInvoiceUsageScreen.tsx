@@ -83,6 +83,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   const {
     items,
     loading,
+    initialLoading,
     refreshing,
     error,
     page,
@@ -465,7 +466,7 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
         </View>
 
         {/* Content */}
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography

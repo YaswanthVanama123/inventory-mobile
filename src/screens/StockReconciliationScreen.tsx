@@ -196,7 +196,7 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
               Only administrators can view stock reconciliation.
             </Typography>
           </View>
-        ) : loading && !refreshing ? (
+        ) : loading && !refreshing && items.length === 0 ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography variant="body" color={theme.colors.gray[600]} style={{marginTop: 16}}>

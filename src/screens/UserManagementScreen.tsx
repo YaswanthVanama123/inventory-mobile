@@ -223,7 +223,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             <PlusIcon size={20} color={theme.colors.primary[600]} />
           </TouchableOpacity>
         </View>
-        {loading && !refreshing ? (
+        {loading && !refreshing && filteredUsers.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography

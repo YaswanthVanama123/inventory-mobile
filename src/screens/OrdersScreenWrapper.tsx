@@ -263,7 +263,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   };
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {loading && !refreshing ? (
+      {loading && !refreshing && filteredOrders.length === 0 ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary[600]} />
           <Typography

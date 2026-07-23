@@ -61,6 +61,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
   const {
     items,
     loading,
+    initialLoading,
     refreshing,
     error,
     page,
@@ -125,7 +126,7 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingMark}>
               <BarChartIcon size={22} color={theme.colors.primary[600]} />

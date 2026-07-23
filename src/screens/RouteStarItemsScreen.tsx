@@ -85,6 +85,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
     items,
     setItems,
     loading,
+    initialLoading,
     refreshing,
     error,
     page,
@@ -246,7 +247,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingMark}>
               <BoxIcon size={22} color={theme.colors.primary[600]} />

@@ -75,6 +75,7 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
     total,
     totalPages,
     loading,
+    initialLoading,
     refreshing,
     error,
     refresh,
@@ -215,7 +216,7 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography

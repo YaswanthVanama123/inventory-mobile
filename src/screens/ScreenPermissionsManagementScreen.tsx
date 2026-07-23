@@ -568,7 +568,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
         </View>
 
         {/* Content */}
-        {loading && !refreshing ? (
+        {loading && !refreshing && allScreens.length === 0 && users.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography

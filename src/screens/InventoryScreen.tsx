@@ -79,6 +79,7 @@ export const InventoryScreen = () => {
     total,
     totalPages,
     loading,
+    initialLoading,
     refreshing,
     error,
     refresh,
@@ -275,7 +276,7 @@ export const InventoryScreen = () => {
   const totalQty = statsTotals.totalQuantity;
   const totalValue = statsTotals.totalValue;
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <View style={styles.loadingMark}>

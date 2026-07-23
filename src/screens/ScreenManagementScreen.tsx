@@ -88,6 +88,7 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
   const {
     items: filteredScreens,
     loading,
+    initialLoading,
     refreshing,
     error,
     page,
@@ -411,7 +412,7 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
         </ScrollView>
 
         {/* Content */}
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography

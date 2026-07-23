@@ -88,6 +88,7 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
     totalPages,
     extra,
     loading,
+    initialLoading,
     refreshing,
     error,
     refresh,
@@ -224,7 +225,7 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography variant="body" color={theme.colors.gray[600]} style={{marginTop: 16}}>

@@ -80,6 +80,7 @@ export const QuickBooksSyncScreen: React.FC<QuickBooksSyncScreenProps> = ({
     total,
     totalPages,
     loading,
+    initialLoading,
     refreshing,
     error,
     refresh,
@@ -211,7 +212,7 @@ export const QuickBooksSyncScreen: React.FC<QuickBooksSyncScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {loading && !refreshing && queue.length === 0 ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography variant="body" color={theme.colors.gray[600]} style={{marginTop: 16}}>

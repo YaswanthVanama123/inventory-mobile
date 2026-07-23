@@ -36,6 +36,11 @@ export function useServerPagination<T>(
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadFlag, setReloadFlag] = useState(0);
+  // True only until the FIRST fetch (for the current enable) completes. Screens
+  // should gate their full-screen spinner on this — NOT on `loading` — so that
+  // debounced search / filter refetches don't unmount the list (and the search
+  // box, dropping keyboard focus mid-typing).
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const fetchRef = useRef(fetchPage);
   fetchRef.current = fetchPage;
@@ -65,6 +70,7 @@ export function useServerPagination<T>(
         if (active) {
           setLoading(false);
           setRefreshing(false);
+          setHasLoaded(true);
         }
       });
     return () => {
@@ -89,6 +95,9 @@ export function useServerPagination<T>(
     totalPages,
     extra,
     loading,
+    // Full-screen-spinner gate: only true for the very first load, so search /
+    // filter refetches never blank out the screen (keeps the search box focused).
+    initialLoading: loading && !hasLoaded,
     refreshing,
     error,
     refresh,

@@ -240,7 +240,7 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {loading && !refreshing ? (
+        {loading && !refreshing && history.length === 0 ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingMark}>
               <TimelineIcon size={22} color={theme.colors.primary[600]} />
