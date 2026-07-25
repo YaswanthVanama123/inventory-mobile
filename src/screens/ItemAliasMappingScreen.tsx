@@ -14,6 +14,7 @@ import {
   Switch,
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -56,8 +57,26 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   const [mappings, setMappings] = useState<any[]>([]);
   const [uniqueItems, setUniqueItems] = useState<any[]>([]);
   const [filteredItems, setFilteredItems] = useState<any[]>([]);
+
+  // Client-side numbered pagination over the filtered list.
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredItems.slice(start, start + pageSize);
+  }, [filteredItems, page, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'mapped' | 'unmapped'>('all');
+
+  // Filter/search changes send the list back to page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [`${searchQuery}|${filterStatus}`, pageSize]);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0});
@@ -411,13 +430,27 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
           </View>
         ) : (
           <PaginatedList
-            data={filteredItems}
+            data={pagedRows}
             keyExtractor={(item, index) => item.itemName || String(index)}
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             refreshing={refreshing}
             onRefresh={onRefresh}
             resetKey={`${searchQuery}|${filterStatus}`}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              filteredItems.length > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={filteredItems.length}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View style={styles.contentWrap}>

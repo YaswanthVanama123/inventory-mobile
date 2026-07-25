@@ -80,8 +80,6 @@ const GROUPS: SideGroup[] = [
     items: [
       {kind: 'extra', label: 'Vendors', Icon: TruckIcon, screen: 'vendors', path: '/vendors'},
       {kind: 'extra', label: 'Manual PO Items', Icon: ClipboardIcon, screen: 'manualPOItems', path: '/manual-po-items'},
-      {kind: 'extra', label: 'Units', Icon: GridIcon, screen: 'units', path: '/units', adminOnly: true},
-      {kind: 'extra', label: 'Coupons & Payments', Icon: TagIcon, screen: 'coupons', path: '/coupons', adminOnly: true},
     ],
   },
   {

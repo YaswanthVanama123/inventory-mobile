@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect, useMemo, useRef} from 'react';
 import {
   View,
   ScrollView,
@@ -19,6 +19,7 @@ import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import activityLogService from '../services/activityLogService';
 import {PickerModal} from '../components/molecules/PickerModal';
+import {Pagination} from '../components/molecules/Pagination';
 import {
   TimelineIcon,
   CheckCircleIcon,
@@ -52,7 +53,9 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   const [stats, setStats] = useState<any>(null);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Filters
   const [showFilters, setShowFilters] = useState(false);
@@ -74,12 +77,23 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   const [showEmployeePicker, setShowEmployeePicker] = useState(false);
 
   const isAdmin = user?.role === 'admin';
+  const listScrollRef = useRef<ScrollView>(null);
+
+  // Jump back to the top of the list whenever the page changes.
+  useEffect(() => {
+    listScrollRef.current?.scrollTo({y: 0, animated: true});
+  }, [page]);
+
+  // Filters / tab changes reset to page 1; page changes refetch that page.
+  useEffect(() => {
+    setPage(1);
+  }, [filters, activeTab, pageSize]);
 
   useEffect(() => {
     if (visible && token) {
       loadData();
     }
-  }, [visible, token, filters, activeTab]);
+  }, [visible, token, filters, activeTab, page, pageSize]);
 
   // Load the employee list for the filter dropdown (admin only).
   useEffect(() => {
@@ -95,7 +109,7 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   const buildActivityParams = (pageNum: number) => {
     const base: any = {
       page: pageNum,
-      limit: 50,
+      limit: pageSize,
       employeeId: filters.employeeId,
       startDate: filters.startDate,
       endDate: filters.endDate,
@@ -117,11 +131,11 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
           ? activityLogService.getEmployeeActivities(
               token!,
               activeTab,
-              buildActivityParams(1),
+              buildActivityParams(page),
             )
           : activityLogService.getMyActivities(token!, {
-              page: 1,
-              limit: 50,
+              page,
+              limit: pageSize,
               resource: filters.resource,
               action: filters.action,
               device: filters.device,
@@ -134,48 +148,23 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
       const nextLogs = isAdmin
         ? (logsData as any).activities || []
         : (logsData as any).logs || [];
+      const pagination = (logsData as any).pagination;
+      const resolvedPages = pagination?.pages || pagination?.totalPages || 1;
+      // Deleting/filtering can leave `page` past the end — clamp to the last page.
+      if (page > resolvedPages && (pagination?.total || 0) > 0) {
+        setPage(resolvedPages);
+        return;
+      }
       setLogs(nextLogs);
       setStats(statsData);
-      setPage(1);
-      setHasMore(((logsData as any).pagination?.pages || 1) > 1);
+      setTotal(pagination?.total ?? nextLogs.length);
+      setTotalPages(resolvedPages);
     } catch (error: any) {
       console.error('Load activity logs error:', error);
       await handleApiError(error);
     } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-
-  const loadMore = async () => {
-    if (!hasMore || loading) return;
-
-    try {
-      const nextPage = page + 1;
-      const logsData = isAdmin
-        ? await activityLogService.getEmployeeActivities(
-            token!,
-            activeTab,
-            buildActivityParams(nextPage),
-          )
-        : await activityLogService.getMyActivities(token!, {
-            page: nextPage,
-            limit: 50,
-            resource: filters.resource,
-            action: filters.action,
-            device: filters.device,
-            success: filters.success,
-            search: filters.search,
-          });
-
-      const moreLogs = isAdmin
-        ? (logsData as any).activities || []
-        : (logsData as any).logs || [];
-      setLogs(prev => [...prev, ...moreLogs]);
-      setPage(nextPage);
-      setHasMore(nextPage < ((logsData as any).pagination?.pages || 1));
-    } catch (error) {
-      console.error('Load more error:', error);
     }
   };
 
@@ -878,21 +867,11 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
 
         {/* Logs List */}
         <ScrollView
+          ref={listScrollRef}
           style={styles.scrollView}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          onScroll={({nativeEvent}) => {
-            const {layoutMeasurement, contentOffset, contentSize} =
-              nativeEvent;
-            const isCloseToBottom =
-              layoutMeasurement.height + contentOffset.y >=
-              contentSize.height - 20;
-            if (isCloseToBottom) {
-              loadMore();
-            }
-          }}
-          scrollEventThrottle={400}>
+          }>
           {loading && logs.length === 0 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator
@@ -928,18 +907,14 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
           ) : (
             <View style={styles.logsContainer}>
               {logs.map(log => renderLogItem(log))}
-              {hasMore && !loading && (
-                <TouchableOpacity
-                  style={styles.loadMoreButton}
-                  onPress={loadMore}>
-                  <Typography
-                    variant="body"
-                    weight="semibold"
-                    color={theme.colors.primary[600]}>
-                    Load More
-                  </Typography>
-                </TouchableOpacity>
-              )}
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalItems={total}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
             </View>
           )}
         </ScrollView>

@@ -14,6 +14,7 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {PickerModal} from '../components/molecules/PickerModal';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -48,12 +49,30 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
+
+  // Client-side numbered pagination over the filtered list.
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const totalPages = Math.max(1, Math.ceil(history.length / pageSize));
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return history.slice(start, start + pageSize);
+  }, [history, page, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
   const [activeFetches, setActiveFetches] = useState<any[]>([]);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [filterSource, setFilterSource] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDays, setFilterDays] = useState(10);
+
+  // Filter/search changes send the list back to page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [`${filterSource}|${filterStatus}|${filterDays}`, pageSize]);
   const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
   const [statusPickerVisible, setStatusPickerVisible] = useState(false);
   const [daysPickerVisible, setDaysPickerVisible] = useState(false);
@@ -252,13 +271,27 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
           </View>
         ) : (
           <PaginatedList
-            data={history}
+            data={pagedRows}
             keyExtractor={(item, index) => item._id || String(index)}
             style={styles.scrollView}
             contentContainerStyle={[styles.scrollContent, {paddingBottom: 0}]}
             refreshing={refreshing}
             onRefresh={onRefresh}
             resetKey={`${filterSource}|${filterStatus}|${filterDays}`}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              history.length > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={history.length}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>

@@ -14,6 +14,7 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {Checkbox} from '../components/atoms/Checkbox';
+import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -66,6 +67,20 @@ export const ScreenPermissionsManagementScreen: React.FC<
 
   // Category expansion
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Numbered pagination over the employees list.
+  const [userPage, setUserPage] = useState(1);
+  const [userPageSize, setUserPageSize] = useState(20);
+  const userTotalPages = Math.max(1, Math.ceil(users.length / userPageSize));
+  const pagedUsers = useMemo(() => {
+    const start = (userPage - 1) * userPageSize;
+    return users.slice(start, start + userPageSize);
+  }, [users, userPage, userPageSize]);
+
+  // Reloading can shrink the list past the current page — clamp back.
+  useEffect(() => {
+    if (userPage > userTotalPages) setUserPage(userTotalPages);
+  }, [userPage, userTotalPages]);
 
   useEffect(() => {
     if (visible && token) {
@@ -464,7 +479,7 @@ export const ScreenPermissionsManagementScreen: React.FC<
         <Typography variant="caption" color={theme.colors.gray[500]} style={{marginBottom: 12}}>
           Tap an employee to manage their permissions
         </Typography>
-        {users.map(user => (
+        {pagedUsers.map(user => (
           <TouchableOpacity
             key={user._id}
             style={styles.userCard}
@@ -495,6 +510,16 @@ export const ScreenPermissionsManagementScreen: React.FC<
             <ChevronDownIcon size={18} color={theme.colors.gray[400]} />
           </TouchableOpacity>
         ))}
+        {users.length > 0 && (
+          <Pagination
+            currentPage={userPage}
+            totalPages={userTotalPages}
+            totalItems={users.length}
+            pageSize={userPageSize}
+            onPageChange={setUserPage}
+            onPageSizeChange={setUserPageSize}
+          />
+        )}
         </View>
       </ScrollView>
     );

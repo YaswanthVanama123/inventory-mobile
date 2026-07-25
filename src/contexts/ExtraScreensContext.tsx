@@ -25,8 +25,6 @@ import {ReportsHubScreen} from '../screens/ReportsHubScreen';
 import {CustomerExportScreen} from '../screens/CustomerExportScreen';
 import {SettingsScreen} from '../screens/SettingsScreen';
 import {ApprovalsScreen} from '../screens/ApprovalsScreen';
-import {UnitsScreen} from '../screens/UnitsScreen';
-import {CouponsScreen} from '../screens/CouponsScreen';
 import {StockReconciliationScreen} from '../screens/StockReconciliationScreen';
 
 // Screens that historically lived as modals opened from the Account screen.
@@ -57,8 +55,6 @@ export type ExtraScreenKey =
   | 'customerExport'
   | 'settings'
   | 'approvals'
-  | 'units'
-  | 'coupons'
   | 'stockReconciliation';
 
 interface ExtraScreensContextValue {
@@ -112,8 +108,6 @@ export const ExtraScreensProvider: React.FC<{children: ReactNode}> = ({children}
       <ReportsHubScreen visible={is('reportsHub')} onClose={close} />
       <CustomerExportScreen visible={is('customerExport')} onClose={close} />
       <ApprovalsScreen visible={is('approvals')} onClose={close} />
-      <UnitsScreen visible={is('units')} onClose={close} />
-      <CouponsScreen visible={is('coupons')} onClose={close} />
       {isAdmin && <QuickBooksSyncScreen visible={is('quickBooksSync')} onClose={close} />}
       {isAdmin && <SettingsScreen visible={is('settings')} onClose={close} />}
       {isAdmin && <StockReconciliationScreen visible={is('stockReconciliation')} onClose={close} />}

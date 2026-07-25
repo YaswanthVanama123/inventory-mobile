@@ -13,6 +13,7 @@ import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {UserFormModal} from '../components/molecules/UserFormModal';
 import {ResetPasswordModal} from '../components/molecules/ResetPasswordModal';
 import {UserScreenPermissionsModal} from '../components/molecules/UserScreenPermissionsModal';
@@ -21,6 +22,8 @@ import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
+import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
 import userService from '../services/userService';
 import {
   AlertCircleIcon,
@@ -50,13 +53,10 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive' | 'admin' | 'employee'>('all');
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -68,53 +68,62 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
   const [permissionsVisible, setPermissionsVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
-  }, [visible, token]);
-  const filteredUsers = users.filter((u: any) => {
-    if (filterStatus === 'active') return u.isActive;
-    if (filterStatus === 'inactive') return !u.isActive;
-    if (filterStatus === 'admin') return u.role === 'admin';
-    if (filterStatus === 'employee') return u.role === 'employee';
-    return true;
-  });
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (visible && token) {
-        loadData();
+
+  // Server-side numbered pagination: the active tab becomes a role / isActive
+  // query param so filtering spans ALL users, not just the current page.
+  const {
+    items: users,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    extra,
+    initialLoading,
+    refreshing,
+    error,
+    refresh,
+    refetch,
+  } = useServerPagination<any>(
+    async (pg, limit) => {
+      try {
+        const params: any = {page: pg, limit};
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (filterStatus === 'active') params.isActive = true;
+        if (filterStatus === 'inactive') params.isActive = false;
+        if (filterStatus === 'admin') params.role = 'admin';
+        if (filterStatus === 'employee') params.role = 'employee';
+        const data = await userService.getAll(token!, params);
+        return {
+          items: data.users || [],
+          total: data.pagination?.total ?? 0,
+          pages: data.pagination?.pages ?? 1,
+          extra: data.stats,
+        };
+      } catch (e) {
+        const wasHandled = await handleApiError(e);
+        if (wasHandled) return {items: [], total: 0, pages: 1};
+        throw e;
       }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const params: any = {
-        page: 1,
-        limit: 100,
-      };
-      if (searchQuery) params.search = searchQuery;
-      const data = await userService.getAll(token, params);
-      setUsers(data.users || []);
-      setStats(data.stats || {total: 0, active: 0, inactive: 0, admins: 0, employees: 0});
-    } catch (error: any) {
-      console.error('Failed to fetch users:', error);
-      const wasHandled = await handleApiError(error);
-      if (wasHandled) return;
-      setError(error.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+    },
+    {
+      pageSize: 20,
+      resetKey: `${debouncedSearch}|${filterStatus}`,
+      enabled: !!(visible && token),
+    },
+  );
+  const loadData = refetch;
+  const onRefresh = refresh;
+
+  // Stat cards track the search but ignore the active tab (server-computed).
+  useEffect(() => {
+    if (extra) setStats(extra);
+  }, [extra]);
+
+  // Backend responses mix `_id` and `id` for the signed-in user.
+  const currentUserId = currentUser?._id || currentUser?.id;
+
   const handleUserPress = (userId: string) => {
     const newExpanded = new Set(expandedUsers);
     if (newExpanded.has(userId)) {
@@ -165,7 +174,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
     );
   };
   const handleDeleteUser = (user: any) => {
-    if (user._id === currentUser?._id) {
+    if (user._id === currentUserId) {
       Alert.alert('Error', 'You cannot delete your own account');
       return;
     }
@@ -223,7 +232,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             <PlusIcon size={20} color={theme.colors.primary[600]} />
           </TouchableOpacity>
         </View>
-        {loading && !refreshing && filteredUsers.length === 0 ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
             <Typography
@@ -235,13 +244,27 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
           </View>
         ) : (
           <PaginatedList
-            data={filteredUsers}
+            data={users}
             keyExtractor={(item, index) => item._id || String(index)}
             style={styles.scrollView}
             contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            resetKey={`${searchQuery}|${filterStatus}`}
+            resetKey={`${debouncedSearch}|${filterStatus}`}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              total > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={total}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>
@@ -443,7 +466,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             }
             renderItem={({item: user}) => {
               const isExpanded = expandedUsers.has(user._id);
-              const isCurrentUser = user._id === currentUser?._id;
+              const isCurrentUser = user._id === currentUserId;
               return (
                 <Card
                   variant="elevated"

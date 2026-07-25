@@ -37,7 +37,9 @@ class UserService {
       console.log('[UserService] Users count:', result.data?.users?.length || 0);
       if (result.success && result.data) {
         const users = result.data.users || [];
-        const stats = {
+        // Stats come from the server so they cover ALL users, not just this page.
+        // Older servers didn't send them — fall back to counting the page.
+        const stats = result.data.stats || {
           total: users.length,
           active: users.filter((u: any) => u.isActive).length,
           inactive: users.filter((u: any) => !u.isActive).length,
@@ -47,17 +49,17 @@ class UserService {
         return {
           users,
           pagination: result.data.pagination || {
-            total: 0,
+            total: users.length,
             page: 1,
-            limit: 50,
-            pages: 0,
+            limit: params.limit || 20,
+            pages: 1,
           },
           stats,
         };
       }
       return {
         users: [],
-        pagination: {total: 0, page: 1, limit: 50, pages: 0},
+        pagination: {total: 0, page: 1, limit: params.limit || 20, pages: 0},
         stats: {total: 0, active: 0, inactive: 0, admins: 0, employees: 0},
       };
     } catch (error: any) {

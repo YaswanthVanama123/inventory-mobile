@@ -58,9 +58,17 @@ export function useServerPagination<T>(
     Promise.resolve(fetchRef.current(page, size))
       .then(res => {
         if (!active) return;
+        const resolvedTotal = res.total ?? (res.items ? res.items.length : 0);
+        const resolvedPages = res.pages || 1;
+        // Deleting the last row on the last page can leave `page` past the end.
+        // Clamp back onto the final page instead of showing an empty list.
+        if (page > resolvedPages && resolvedTotal > 0) {
+          setPage(resolvedPages);
+          return;
+        }
         setItems(res.items || []);
-        setTotal(res.total ?? (res.items ? res.items.length : 0));
-        setTotalPages(res.pages || 1);
+        setTotal(resolvedTotal);
+        setTotalPages(resolvedPages);
         setExtra(res.extra ?? null);
       })
       .catch(e => {

@@ -11,6 +11,7 @@ import {
   Easing,
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
+import {Pagination} from '../components/molecules/Pagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -56,8 +57,26 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
   const [models, setModels] = useState<any[]>([]);
   const [routeStarItems, setRouteStarItems] = useState<any[]>([]);
   const [filteredModels, setFilteredModels] = useState<any[]>([]);
+
+  // Client-side numbered pagination over the filtered list.
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const totalPages = Math.max(1, Math.ceil(filteredModels.length / pageSize));
+  const pagedRows = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredModels.slice(start, start + pageSize);
+  }, [filteredModels, page, pageSize]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'mapped' | 'unmapped'>('all');
+
+  // Filter/search changes send the list back to page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [`${searchQuery}|${filterStatus}`, pageSize]);
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
   const [pickerVisible, setPickerVisible] = useState(false);
   const [selectedModelForPicker, setSelectedModelForPicker] = useState<string | null>(null);
@@ -285,13 +304,27 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
           </View>
         ) : (
           <PaginatedList
-            data={filteredModels}
+            data={pagedRows}
             keyExtractor={(item, index) => item.modelNumber || String(index)}
             style={styles.scrollView}
             contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
             refreshing={refreshing}
             onRefresh={onRefresh}
             resetKey={`${searchQuery}|${filterStatus}`}
+            pagedMode
+            scrollTopKey={page}
+            ListFooterComponent={
+              filteredModels.length > 0 ? (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={filteredModels.length}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : null
+            }
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>

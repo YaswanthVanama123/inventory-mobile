@@ -205,7 +205,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
             total: p.total || 0,
             page: p.page || page,
             limit: p.limit || PAGE_SIZE,
-            pages: p.pages || 1,
+            pages: p.pages || p.totalPages || 1,
           });
         }
       }

@@ -14,6 +14,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
 import {Button} from '../components/atoms/Button';
+import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -56,6 +57,10 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  // Numbered pagination over the active tab's list.
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   // Reject-reason prompt state.
   const [promptVisible, setPromptVisible] = useState(false);
@@ -110,6 +115,11 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
       loadData();
     }
   }, [visible, token, loadData]);
+
+  // Switching tab or page size starts over at page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, pageSize]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -230,6 +240,20 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
 
   const pendingCount =
     activeTab === 'invoices' ? pendingInvoices.length : pendingDeletions.length;
+
+  // Client-side numbered pagination over the active tab's pending list.
+  const activeList = activeTab === 'invoices' ? pendingInvoices : pendingDeletions;
+  const totalPages = Math.max(1, Math.ceil(activeList.length / pageSize));
+  const pagedList = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return activeList.slice(start, start + pageSize);
+  }, [activeList, page, pageSize]);
+
+  // Approving/rejecting can shrink the list past the current page — clamp back.
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
 
   const renderInvoiceCard = (invoice: any) => (
     <Card key={invoice._id} variant="elevated" padding="lg" style={styles.itemCard}>
@@ -486,10 +510,21 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
               {activeTab === 'invoices'
                 ? pendingInvoices.length === 0
                   ? renderEmpty('pending invoices')
-                  : pendingInvoices.map(renderInvoiceCard)
+                  : pagedList.map(renderInvoiceCard)
                 : pendingDeletions.length === 0
                 ? renderEmpty('pending purchase deletions')
-                : pendingDeletions.map(renderDeletionCard)}
+                : pagedList.map(renderDeletionCard)}
+
+              {activeList.length > 0 && (
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={activeList.length}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              )}
             </View>
           </ScrollView>
         )}

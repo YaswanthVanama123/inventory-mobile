@@ -384,22 +384,6 @@ export const AccountScreen = () => {
       visible: canSee('/manual-po-items'),
     },
     {
-      Icon: GridIcon,
-      title: 'Units',
-      subtitle: 'Units of measurement',
-      tone: 'info',
-      onPress: () => openScreen('units'),
-      visible: !!isAdmin && canSee('/units'),
-    },
-    {
-      Icon: TagIcon,
-      title: 'Coupons & Payments',
-      subtitle: 'Coupons and payment types',
-      tone: 'info',
-      onPress: () => openScreen('coupons'),
-      visible: !!isAdmin && canSee('/coupons'),
-    },
-    {
       Icon: BoxIcon,
       title: 'Stock Reconciliation',
       subtitle: 'In-stock / out-of-stock / oversold',
