@@ -574,41 +574,46 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                       <BoxIcon size={20} color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]} />
                     </View>
                     <View style={styles.itemInfo}>
-                      <View style={styles.itemNameRow}>
-                        <Typography variant="body" weight="bold" numberOfLines={1} style={{flexShrink: 1}}>
-                          {item.itemName}
-                        </Typography>
-                        {/* Alias-mapped rows are MERGED under their canonical
-                            name by the backend, so the alias spellings are not
-                            separate rows. Surface that here (as the webapp
-                            does) or the aliases look like they vanished. */}
-                        {item.mergedCount > 1 ? (
-                          <View style={styles.mergedPill}>
-                            <Typography
-                              variant="caption"
-                              weight="semibold"
-                              color={theme.colors.primary[700]}>
-                              {item.mergedCount} merged
-                            </Typography>
-                          </View>
-                        ) : null}
-                        {/* Canonical group built only from CustomerConnect /
-                            Manual PO names — no RouteStarItem behind it, so
-                            usage flags can't be set. */}
-                        {item.hasMasterRecord === false ? (
-                          <View style={styles.noMasterPill}>
-                            <Typography
-                              variant="caption"
-                              weight="semibold"
-                              color={theme.colors.warning[700]}>
-                              no master record
-                            </Typography>
-                          </View>
-                        ) : null}
-                      </View>
+                      {/* The name gets its own full-width line — badges on the
+                          same row would compete for space and shrink long
+                          canonical names away to nothing. */}
+                      <Typography variant="body" weight="bold" numberOfLines={2}>
+                        {item.itemName}
+                      </Typography>
                       <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
                         {item.itemParent || 'No parent'}
                       </Typography>
+                      {item.mergedCount > 1 || item.hasMasterRecord === false ? (
+                        <View style={styles.itemBadgeRow}>
+                          {/* Alias-mapped rows are MERGED under their canonical
+                              name by the backend, so the alias spellings are
+                              not separate rows. Surface that here (as the
+                              webapp does) or they look like they vanished. */}
+                          {item.mergedCount > 1 ? (
+                            <View style={styles.mergedPill}>
+                              <Typography
+                                variant="caption"
+                                weight="semibold"
+                                color={theme.colors.primary[700]}>
+                                {item.mergedCount} merged
+                              </Typography>
+                            </View>
+                          ) : null}
+                          {/* Canonical group built only from CustomerConnect /
+                              Manual PO names — no RouteStarItem behind it, so
+                              usage flags can't be set. */}
+                          {item.hasMasterRecord === false ? (
+                            <View style={styles.noMasterPill}>
+                              <Typography
+                                variant="caption"
+                                weight="semibold"
+                                color={theme.colors.warning[700]}>
+                                no master record
+                              </Typography>
+                            </View>
+                          ) : null}
+                        </View>
+                      ) : null}
                     </View>
                     <View
                       style={[
@@ -679,17 +684,22 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                       </Typography>
                     </View>
                     {item.mergedCount > 1 && Array.isArray(item.variations) ? (
-                      <View style={styles.metaRow}>
+                      /* Alias names are long invoice-style descriptions, so
+                         stack them one per line instead of cramming them into
+                         a right-aligned value that truncates mid-word. */
+                      <View style={styles.mergedFromBlock}>
                         <Typography variant="caption" color={theme.colors.gray[500]}>
                           Merged from
                         </Typography>
-                        <Typography
-                          variant="caption"
-                          weight="semibold"
-                          numberOfLines={2}
-                          style={{flex: 1, textAlign: 'right'}}>
-                          {item.variations.join(', ')}
-                        </Typography>
+                        {item.variations.map((v: string, i: number) => (
+                          <Typography
+                            key={`${v}-${i}`}
+                            variant="caption"
+                            weight="semibold"
+                            style={styles.mergedFromItem}>
+                            • {v}
+                          </Typography>
+                        ))}
                       </View>
                     ) : null}
                     {item.description ? (
@@ -701,6 +711,24 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
 
                   {isExpanded && (
                     <View style={styles.expandedContent}>
+                      {/* Purchased-only rows have no RouteStarItem behind them,
+                          so flags and category can never be written. Show the
+                          reason instead of controls that do nothing. */}
+                      {item.hasMasterRecord === false ? (
+                        <View style={styles.noMasterNotice}>
+                          <WarningIcon size={14} color={theme.colors.warning[700]} />
+                          <Typography
+                            variant="caption"
+                            color={theme.colors.warning[800]}
+                            style={{flex: 1}}>
+                            This name only appears on CustomerConnect orders /
+                            manual POs, not in the RouteStar master list. Usage
+                            flags and category can't be set until it's synced
+                            from RouteStar.
+                          </Typography>
+                        </View>
+                      ) : (
+                      <>
                       <Typography
                         variant="caption"
                         weight="semibold"
@@ -708,15 +736,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                         style={styles.expandedLabel}>
                         FLAGS
                       </Typography>
-                      {item.hasMasterRecord === false ? (
-                        <Typography
-                          variant="caption"
-                          color={theme.colors.warning[700]}
-                          style={{marginBottom: 8}}>
-                          Not in the RouteStar master list — sync from RouteStar
-                          to set usage flags.
-                        </Typography>
-                      ) : null}
                       <View style={styles.flagCard}>
                         <View style={styles.flagRow}>
                           <View style={styles.flagRowLeft}>
@@ -729,7 +748,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                           </View>
                           <Switch
                             value={item.forUse || false}
-                            disabled={item.hasMasterRecord === false}
                             onValueChange={() => handleFlagChange(item._id, 'forUse', item.forUse)}
                             trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
                             thumbColor={theme.colors.white}
@@ -747,7 +765,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                           </View>
                           <Switch
                             value={item.forSell || false}
-                            disabled={item.hasMasterRecord === false}
                             onValueChange={() => handleFlagChange(item._id, 'forSell', item.forSell)}
                             trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
                             thumbColor={theme.colors.white}
@@ -769,12 +786,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                             <TouchableOpacity
                               key={cat}
                               onPress={() => handleCategoryChange(item._id, cat)}
-                              disabled={item.hasMasterRecord === false}
-                              style={[
-                                styles.categoryPill,
-                                active && styles.categoryPillActive,
-                                item.hasMasterRecord === false && {opacity: 0.4},
-                              ]}
+                              style={[styles.categoryPill, active && styles.categoryPillActive]}
                               activeOpacity={0.85}>
                               <Typography
                                 variant="small"
@@ -786,6 +798,8 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                           );
                         })}
                       </View>
+                      </>
+                      )}
                     </View>
                   )}
                 </Card>
@@ -981,18 +995,36 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     },
     emptyTitle: {marginBottom: theme.spacing.xs},
 
-    itemNameRow: {
+    itemBadgeRow: {
       flexDirection: 'row',
       alignItems: 'center',
+      flexWrap: 'wrap',
       gap: 6,
+      marginTop: 6,
     },
     mergedPill: {
+      flexShrink: 0,
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 8,
       backgroundColor: theme.colors.primary[50],
     },
+    noMasterNotice: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 8,
+      padding: theme.spacing.md,
+      borderRadius: 12,
+      backgroundColor: theme.colors.warning[50],
+    },
+    mergedFromBlock: {
+      gap: 2,
+    },
+    mergedFromItem: {
+      paddingLeft: 4,
+    },
     noMasterPill: {
+      flexShrink: 0,
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 8,
@@ -1003,15 +1035,15 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     itemCard: {overflow: 'hidden', position: 'relative'},
     itemStripe: {position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: theme.colors.primary[500]},
     itemHeader: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
+      flexDirection: 'row', alignItems: 'flex-start', gap: 12,
       padding: theme.spacing.md,
       paddingTop: theme.spacing.md + 4,
     },
-    itemIconWrap: {width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center'},
-    itemInfo: {flex: 1, gap: 2},
-    statusPill: {paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999},
+    itemIconWrap: {width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0},
+    itemInfo: {flex: 1, minWidth: 0, gap: 2},
+    statusPill: {paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, flexShrink: 0},
     chevronCircle: {
-      width: 28, height: 28, borderRadius: 14,
+      width: 28, height: 28, borderRadius: 14, flexShrink: 0,
       backgroundColor: theme.colors.gray[50],
       alignItems: 'center', justifyContent: 'center',
     },
