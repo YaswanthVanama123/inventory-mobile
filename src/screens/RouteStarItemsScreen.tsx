@@ -574,9 +574,38 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                       <BoxIcon size={20} color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]} />
                     </View>
                     <View style={styles.itemInfo}>
-                      <Typography variant="body" weight="bold" numberOfLines={1}>
-                        {item.itemName}
-                      </Typography>
+                      <View style={styles.itemNameRow}>
+                        <Typography variant="body" weight="bold" numberOfLines={1} style={{flexShrink: 1}}>
+                          {item.itemName}
+                        </Typography>
+                        {/* Alias-mapped rows are MERGED under their canonical
+                            name by the backend, so the alias spellings are not
+                            separate rows. Surface that here (as the webapp
+                            does) or the aliases look like they vanished. */}
+                        {item.mergedCount > 1 ? (
+                          <View style={styles.mergedPill}>
+                            <Typography
+                              variant="caption"
+                              weight="semibold"
+                              color={theme.colors.primary[700]}>
+                              {item.mergedCount} merged
+                            </Typography>
+                          </View>
+                        ) : null}
+                        {/* Canonical group built only from CustomerConnect /
+                            Manual PO names — no RouteStarItem behind it, so
+                            usage flags can't be set. */}
+                        {item.hasMasterRecord === false ? (
+                          <View style={styles.noMasterPill}>
+                            <Typography
+                              variant="caption"
+                              weight="semibold"
+                              color={theme.colors.warning[700]}>
+                              no master record
+                            </Typography>
+                          </View>
+                        ) : null}
+                      </View>
                       <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
                         {item.itemParent || 'No parent'}
                       </Typography>
@@ -649,6 +678,20 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                         {item.qtyOnHand !== undefined ? item.qtyOnHand.toFixed(2) : '0'}
                       </Typography>
                     </View>
+                    {item.mergedCount > 1 && Array.isArray(item.variations) ? (
+                      <View style={styles.metaRow}>
+                        <Typography variant="caption" color={theme.colors.gray[500]}>
+                          Merged from
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          weight="semibold"
+                          numberOfLines={2}
+                          style={{flex: 1, textAlign: 'right'}}>
+                          {item.variations.join(', ')}
+                        </Typography>
+                      </View>
+                    ) : null}
                     {item.description ? (
                       <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={2}>
                         {item.description}
@@ -665,6 +708,15 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                         style={styles.expandedLabel}>
                         FLAGS
                       </Typography>
+                      {item.hasMasterRecord === false ? (
+                        <Typography
+                          variant="caption"
+                          color={theme.colors.warning[700]}
+                          style={{marginBottom: 8}}>
+                          Not in the RouteStar master list — sync from RouteStar
+                          to set usage flags.
+                        </Typography>
+                      ) : null}
                       <View style={styles.flagCard}>
                         <View style={styles.flagRow}>
                           <View style={styles.flagRowLeft}>
@@ -677,6 +729,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                           </View>
                           <Switch
                             value={item.forUse || false}
+                            disabled={item.hasMasterRecord === false}
                             onValueChange={() => handleFlagChange(item._id, 'forUse', item.forUse)}
                             trackColor={{false: theme.colors.gray[300], true: theme.colors.primary[600]}}
                             thumbColor={theme.colors.white}
@@ -694,6 +747,7 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                           </View>
                           <Switch
                             value={item.forSell || false}
+                            disabled={item.hasMasterRecord === false}
                             onValueChange={() => handleFlagChange(item._id, 'forSell', item.forSell)}
                             trackColor={{false: theme.colors.gray[300], true: theme.colors.success[600]}}
                             thumbColor={theme.colors.white}
@@ -715,7 +769,12 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                             <TouchableOpacity
                               key={cat}
                               onPress={() => handleCategoryChange(item._id, cat)}
-                              style={[styles.categoryPill, active && styles.categoryPillActive]}
+                              disabled={item.hasMasterRecord === false}
+                              style={[
+                                styles.categoryPill,
+                                active && styles.categoryPillActive,
+                                item.hasMasterRecord === false && {opacity: 0.4},
+                              ]}
                               activeOpacity={0.85}>
                               <Typography
                                 variant="small"
@@ -922,6 +981,23 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     },
     emptyTitle: {marginBottom: theme.spacing.xs},
 
+    itemNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    mergedPill: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 8,
+      backgroundColor: theme.colors.primary[50],
+    },
+    noMasterPill: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 8,
+      backgroundColor: theme.colors.warning[50],
+    },
     itemRow: {paddingHorizontal: bp.gutter},
     itemsList: {paddingHorizontal: bp.gutter, gap: theme.spacing.md},
     itemCard: {overflow: 'hidden', position: 'relative'},
