@@ -1,9 +1,30 @@
 import {API_BASE_URL} from '../config/api';
 
 class ModelCategoryService {
-  async getUniqueModels(token: string) {
+  /**
+   * Fetch one page of unique models. The backend paginates (default limit 20)
+   * and applies `search`/`status` server-side over the FULL set, so these
+   * params must be forwarded — otherwise only the first 20 of ~336 models are
+   * ever visible and searching can't reach the rest (notably manual PO items,
+   * which sort after the CustomerConnect SKUs).
+   */
+  async getUniqueModels(
+    token: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: 'all' | 'mapped' | 'unmapped';
+    } = {},
+  ) {
     try {
-      const url = `${API_BASE_URL}/model-category/unique-models`;
+      const qs = new URLSearchParams();
+      if (params.page) qs.append('page', String(params.page));
+      if (params.limit) qs.append('limit', String(params.limit));
+      if (params.search) qs.append('search', params.search);
+      if (params.status && params.status !== 'all') qs.append('status', params.status);
+      const query = qs.toString();
+      const url = `${API_BASE_URL}/model-category/unique-models${query ? `?${query}` : ''}`;
       console.log('[ModelCategory] Fetching models from:', url);
 
       const response = await fetch(url, {
@@ -21,7 +42,16 @@ class ModelCategoryService {
       const result = await response.json();
       console.log('[ModelCategory] Models count:', result.data?.models?.length || 0);
       if (result.success && result.data) {
-        return result.data.models || [];
+        return {
+          models: result.data.models || [],
+          stats: result.data.stats || null,
+          pagination: result.data.pagination || {
+            total: result.data.models?.length || 0,
+            page: 1,
+            limit: params.limit || 20,
+            totalPages: 1,
+          },
+        };
       }
       throw new Error('Invalid response format');
     } catch (error: any) {

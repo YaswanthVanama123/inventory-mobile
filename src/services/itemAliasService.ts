@@ -153,9 +153,29 @@ class ItemAliasService {
    * OPTIMIZED: Get all page data in one API call
    * Combines mappings, unique items, and stats into single request
    */
-  async getPageData(token: string) {
+  /**
+   * Fetch one page of unique items. The backend paginates (default limit 20)
+   * and applies `search`/`status` server-side over the FULL set, so these
+   * params must be forwarded — otherwise only the first 20 items are ever
+   * reachable and search can't see the rest.
+   */
+  async getPageData(
+    token: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: 'all' | 'mapped' | 'unmapped';
+    } = {},
+  ) {
     try {
-      const url = `${API_BASE_URL}/routestar-item-alias/page-data`;
+      const qs = new URLSearchParams();
+      if (params.page) qs.append('page', String(params.page));
+      if (params.limit) qs.append('limit', String(params.limit));
+      if (params.search) qs.append('search', params.search);
+      if (params.status && params.status !== 'all') qs.append('status', params.status);
+      const query = qs.toString();
+      const url = `${API_BASE_URL}/routestar-item-alias/page-data${query ? `?${query}` : ''}`;
       console.log('[ItemAlias] Fetching combined page data from:', url);
       const response = await fetch(url, {
         headers: {
@@ -179,6 +199,14 @@ class ItemAliasService {
         return {
           mappings: result.data.mappings?.mappings || [],
           items: result.data.uniqueItems?.items || [],
+          // Full unpaginated set — quick-map / suggestions need every item.
+          allItems: result.data.uniqueItems?.allItems || [],
+          pagination: result.data.uniqueItems?.pagination || {
+            total: result.data.uniqueItems?.items?.length || 0,
+            page: 1,
+            limit: params.limit || 20,
+            totalPages: 1,
+          },
           stats: result.data.uniqueItems?.stats || result.data.stats || {
             totalUniqueItems: 0,
             mappedItems: 0,
@@ -189,6 +217,8 @@ class ItemAliasService {
       return {
         mappings: [],
         items: [],
+        allItems: [],
+        pagination: {total: 0, page: 1, limit: params.limit || 20, totalPages: 1},
         stats: {totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0},
       };
     } catch (error: any) {

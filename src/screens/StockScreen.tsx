@@ -20,6 +20,7 @@ import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
 import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
+import useDebounce from '../hooks/useDebounce';
 import {useTheme} from '../contexts/ThemeContext';
 import {Theme} from '../theme';
 import stockService from '../services/stockService';
@@ -92,11 +93,16 @@ export const StockScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'use' | 'sell'>('sell');
   const [searchQuery, setSearchQuery] = useState('');
-  // Canonical category names returned by the backend fuzzy search
-  // (null = no active backend search). Merged with the instant local filter.
-  const [fuzzyMatches, setFuzzyMatches] = useState<Set<string> | null>(null);
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [useStockData, setUseStockData] = useState<any>({items: [], totals: {}});
   const [sellStockData, setSellStockData] = useState<any>({items: [], totals: {}});
+  // Current server page of categories + the server's full-set counts.
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoryTotal, setCategoryTotal] = useState(0);
+  const [categoryPages, setCategoryPages] = useState(1);
+  const stockScrollRef = useRef<ScrollView>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [expandedSKUs, setExpandedSKUs] = useState<Set<string>>(new Set());
   const [expandedCategorySales, setExpandedCategorySales] = useState<Set<string>>(new Set());
@@ -138,7 +144,20 @@ export const StockScreen = () => {
     } else if (isMounted) {
       setLoading(false);
     }
-  }, [token]);
+    // Refetch whenever the requested page / page size / tab / search changes —
+    // all four are server-side query params now.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, page, pageSize, activeTab, debouncedSearch]);
+
+  // A new search or tab starts over at page 1.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, activeTab, pageSize]);
+
+  // Jump to the top of the list when the page changes.
+  useEffect(() => {
+    stockScrollRef.current?.scrollTo({y: 0, animated: true});
+  }, [page]);
 
   // Refresh when returning to this tab (after creates/deletes/sync elsewhere).
   useRefetchOnFocus(() => {
@@ -146,25 +165,6 @@ export const StockScreen = () => {
     refreshExpandedCategories();
   });
 
-  // Debounced backend fuzzy/partial search.
-  useEffect(() => {
-    const q = searchQuery.trim();
-    if (q.length < 2 || !token) {
-      setFuzzyMatches(null);
-      return;
-    }
-    const handle = setTimeout(async () => {
-      try {
-        const res = await stockService.searchStock(token, q);
-        setFuzzyMatches(
-          new Set((res.matches || []).map((m: any) => (m.categoryName || '').toLowerCase())),
-        );
-      } catch (err) {
-        setFuzzyMatches(null);
-      }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [searchQuery, token]);
 
   useEffect(() => {
     Animated.parallel([
@@ -203,12 +203,29 @@ export const StockScreen = () => {
   const loadData = async () => {
     try {
       if (token && isMounted) {
-        const response = await stockService.getStockSummary(token);
+        // The backend paginates categories server-side and returns them as a
+        // top-level `categories` array; useStock/sellStock carry TOTALS ONLY
+        // (no `items`). Search runs server-side over the full category set.
+        const response = await stockService.getStockSummary(token, {
+          page,
+          limit: pageSize,
+          search: debouncedSearch.trim() || undefined,
+          tab: activeTab,
+        });
         if (isMounted) {
-          const useStock = response.useStock || {items: [], totals: {}};
-          const sellStock = response.sellStock || {items: [], totals: {}};
-          setUseStockData(useStock);
-          setSellStockData(sellStock);
+          const rows = response.categories || [];
+          const pg = response.pagination || {};
+          const resolvedPages = pg.totalPages || 1;
+          // A shrinking result set can leave `page` past the end.
+          if (page > resolvedPages && (pg.total || 0) > 0) {
+            setPage(resolvedPages);
+            return;
+          }
+          setCategories(rows);
+          setCategoryTotal(pg.total ?? rows.length);
+          setCategoryPages(resolvedPages);
+          setUseStockData(response.useStock || {items: [], totals: {}});
+          setSellStockData(response.sellStock || {items: [], totals: {}});
           setError(null);
         }
       }
@@ -334,12 +351,15 @@ export const StockScreen = () => {
   };
 
   const currentData = activeTab === 'use' ? useStockData : sellStockData;
-  // Search across category name, its aliases (Enviromaster / order item names),
-  // and any already-loaded SKU codes / item names for that category.
+  // `categories` is the current SERVER page (already name/alias filtered by the
+  // backend). While the debounce is still settling we additionally refine
+  // locally so typing feels instant, and so a match on an already-expanded
+  // category's SKU codes still shows up.
   const stockQuery = searchQuery.trim().toLowerCase();
-  const filteredItems = !stockQuery
-    ? currentData.items || []
-    : (currentData.items || []).filter((item: any) => {
+  const searchSettled = stockQuery === debouncedSearch.trim().toLowerCase();
+  const filteredItems = !stockQuery || searchSettled
+    ? categories
+    : categories.filter((item: any) => {
         // Instant local match (substring) for snappy feedback.
         if (item.categoryName?.toLowerCase().includes(stockQuery)) return true;
         if (
@@ -349,17 +369,11 @@ export const StockScreen = () => {
           return true;
         }
         const skus = categorySkuData[item.categoryName] || [];
-        if (
-          skus.some(
-            (s: any) =>
-              s.sku?.toLowerCase().includes(stockQuery) ||
-              s.itemName?.toLowerCase().includes(stockQuery),
-          )
-        ) {
-          return true;
-        }
-        // Backend fuzzy / cross-collection match.
-        return !!fuzzyMatches && fuzzyMatches.has(item.categoryName?.toLowerCase());
+        return skus.some(
+          (s: any) =>
+            s.sku?.toLowerCase().includes(stockQuery) ||
+            s.itemName?.toLowerCase().includes(stockQuery),
+        );
       });
   const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
 
@@ -411,27 +425,17 @@ export const StockScreen = () => {
   // Percentage width (relative to the real parent) — robust on Android where
   // exact-pixel widths + flexbox `gap` round up and overflow, wrapping to 1/row.
   const tileWidth: DimensionValue = `${Math.floor(100 / statCols) - 2}%`;
-  const totalCategories = currentData.items?.length || 0;
+  const totalCategories = categoryTotal;
   const totalDiscr =
     currentData.totals?.totalDiscrepancyDifference !== undefined
       ? currentData.totals.totalDiscrepancyDifference
       : currentData.totals?.totalDiscrepancies || 0;
 
-  // Client-side numbered pagination over the (search-filtered) categories.
-  // Stock's summary is computed holistically server-side and search runs
-  // client-side, so we page the rendered categories rather than the API.
-  const stockScrollRef = useRef<ScrollView>(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  useEffect(() => {
-    setPage(1);
-  }, [stockQuery, activeTab, pageSize]);
-  useEffect(() => {
-    stockScrollRef.current?.scrollTo({y: 0, animated: true});
-  }, [page]);
-  const totalCategoriesFiltered = filteredItems.length;
-  const totalCategoryPages = Math.max(1, Math.ceil(totalCategoriesFiltered / pageSize));
-  const visibleCategories = filteredItems.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize);
+  // Server-side numbered pagination: the API returns one page of categories and
+  // the total across the full (search-filtered) set.
+  const totalCategoriesFiltered = categoryTotal;
+  const totalCategoryPages = categoryPages;
+  const visibleCategories = filteredItems;
 
   if (loading) {
     return (

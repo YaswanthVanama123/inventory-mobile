@@ -15,6 +15,8 @@ import {
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
 import {Pagination} from '../components/molecules/Pagination';
+import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -51,34 +53,15 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [mappings, setMappings] = useState<any[]>([]);
+  // Full unpaginated item set — the quick-map / edit-alias pickers must be able
+  // to search every item, not just the rows on the current table page.
   const [uniqueItems, setUniqueItems] = useState<any[]>([]);
-  const [filteredItems, setFilteredItems] = useState<any[]>([]);
-
-  // Client-side numbered pagination over the filtered list.
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  const pagedRows = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredItems.slice(start, start + pageSize);
-  }, [filteredItems, page, pageSize]);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [filterStatus, setFilterStatus] = useState<'all' | 'mapped' | 'unmapped'>('all');
-
-  // Filter/search changes send the list back to page 1.
-  useEffect(() => {
-    setPage(1);
-  }, [`${searchQuery}|${filterStatus}`, pageSize]);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0});
   const [quickMapVisible, setQuickMapVisible] = useState(false);
   const [quickMapItem, setQuickMapItem] = useState<any>(null);
@@ -106,13 +89,51 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   const heroSlide = useRef(new Animated.Value(0)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (visible && token) loadData();
-  }, [visible, token]);
+  // Server-side numbered pagination: search + status filter run on the backend
+  // across the FULL item set, so every item is reachable (previously only the
+  // first 20 were fetched and filtering happened locally over just those).
+  const {
+    items: pagedRows,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    extra,
+    initialLoading,
+    refreshing,
+    error,
+    refresh,
+    refetch,
+  } = useServerPagination<any>(
+    async (pg, limit) => {
+      const data = await itemAliasService.getPageData(token!, {
+        page: pg,
+        limit,
+        search: debouncedSearch || undefined,
+        status: filterStatus,
+      });
+      setMappings(data.mappings || []);
+      setUniqueItems(data.allItems?.length ? data.allItems : data.items || []);
+      return {
+        items: data.items || [],
+        total: data.pagination?.total ?? 0,
+        pages: data.pagination?.totalPages ?? 1,
+        extra: data.stats,
+      };
+    },
+    {
+      pageSize: 20,
+      resetKey: `${debouncedSearch}|${filterStatus}`,
+      enabled: !!(visible && token),
+    },
+  );
 
+  // Stats come from the backend, computed over the full set.
   useEffect(() => {
-    filterItems();
-  }, [uniqueItems, searchQuery, filterStatus]);
+    if (extra) setStats(extra);
+  }, [extra]);
 
   useEffect(() => {
     if (visible) {
@@ -134,46 +155,8 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
     ).start();
   }, [blobPulse]);
 
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const pageData = await itemAliasService.getPageData(token);
-      setMappings(pageData.mappings || []);
-      setUniqueItems(pageData.items || []);
-      setStats(pageData.stats || {totalUniqueItems: 0, mappedItems: 0, unmappedItems: 0});
-    } catch (err: any) {
-      console.error('Failed to fetch item alias data:', err);
-      const wasHandled = await handleApiError(err);
-      if (wasHandled) return;
-      setError(err.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const filterItems = () => {
-    let filtered = [...uniqueItems];
-    if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        item =>
-          item.itemName.toLowerCase().includes(searchLower) ||
-          (item.canonicalName && item.canonicalName.toLowerCase().includes(searchLower)) ||
-          (item.itemParent && item.itemParent.toLowerCase().includes(searchLower)),
-      );
-    }
-    if (filterStatus === 'mapped') filtered = filtered.filter(item => item.isMapped);
-    else if (filterStatus === 'unmapped') filtered = filtered.filter(item => !item.isMapped);
-    setFilteredItems(filtered);
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  const loadData = refetch;
+  const onRefresh = refresh;
 
   const handleItemPress = (itemName: string) => {
     const newExpanded = new Set(expandedItems);
@@ -418,7 +401,7 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingMark}>
               <TagIcon size={22} color={theme.colors.primary[600]} />
@@ -436,15 +419,15 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
             contentContainerStyle={styles.scrollContent}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            resetKey={`${searchQuery}|${filterStatus}`}
+            resetKey={`${debouncedSearch}|${filterStatus}`}
             pagedMode
             scrollTopKey={page}
             ListFooterComponent={
-              filteredItems.length > 0 ? (
+              total > 0 ? (
                 <Pagination
                   currentPage={page}
                   totalPages={totalPages}
-                  totalItems={filteredItems.length}
+                  totalItems={total}
                   pageSize={pageSize}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
@@ -659,11 +642,11 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                   </Card>
                 )}
 
-                {!error && filteredItems.length > 0 && (
+                {!error && total > 0 && (
                   <View style={styles.sectionEyebrow}>
                     <View style={styles.eyebrowLine} />
                     <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-                      ITEMS · {filteredItems.length}
+                      ITEMS · {total}
                     </Typography>
                   </View>
                 )}

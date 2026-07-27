@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import {PaginatedList} from '../components/molecules/PaginatedList';
 import {Pagination} from '../components/molecules/Pagination';
+import useDebounce from '../hooks/useDebounce';
+import {useServerPagination} from '../hooks/useServerPagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
@@ -51,55 +53,78 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
   const {token} = useAuth();
   const {handleApiError} = useApiErrorHandler();
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [models, setModels] = useState<any[]>([]);
   const [routeStarItems, setRouteStarItems] = useState<any[]>([]);
-  const [filteredModels, setFilteredModels] = useState<any[]>([]);
-
-  // Client-side numbered pagination over the filtered list.
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const totalPages = Math.max(1, Math.ceil(filteredModels.length / pageSize));
-  const pagedRows = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredModels.slice(start, start + pageSize);
-  }, [filteredModels, page, pageSize]);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 400);
   const [filterStatus, setFilterStatus] = useState<'all' | 'mapped' | 'unmapped'>('all');
-
-  // Filter/search changes send the list back to page 1.
-  useEffect(() => {
-    setPage(1);
-  }, [`${searchQuery}|${filterStatus}`, pageSize]);
   const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
   const [pickerVisible, setPickerVisible] = useState(false);
   const [selectedModelForPicker, setSelectedModelForPicker] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({total: 0, mapped: 0, unmapped: 0});
 
   const heroFade = useRef(new Animated.Value(1)).current;
   const heroSlide = useRef(new Animated.Value(0)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
+  // Server-side numbered pagination. Search + status filter run on the backend
+  // over the FULL model set (~336 rows across CustomerConnect + manual PO
+  // items), so results are never limited to a locally-held first page.
+  const {
+    items: pageModels,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    total,
+    totalPages,
+    extra,
+    initialLoading,
+    refreshing,
+    error,
+    refresh,
+    refetch,
+  } = useServerPagination<any>(
+    async (pg, limit) => {
+      const res = await modelCategoryService.getUniqueModels(token!, {
+        page: pg,
+        limit,
+        search: debouncedSearch || undefined,
+        status: filterStatus,
+      });
+      return {
+        items: res.models || [],
+        total: res.pagination?.total ?? 0,
+        pages: res.pagination?.totalPages ?? 1,
+        extra: res.stats,
+      };
+    },
+    {
+      pageSize: 20,
+      resetKey: `${debouncedSearch}|${filterStatus}`,
+      enabled: !!(visible && token),
+    },
+  );
+
+  // Keep the editable copy in sync with the freshly-fetched page.
   useEffect(() => {
-    if (visible && token) {
-      loadData();
-    }
+    setModels(pageModels);
+  }, [pageModels]);
+
+  // Stats come from the backend, computed over the full (unfiltered) set.
+  useEffect(() => {
+    if (extra) setStats(extra);
+  }, [extra]);
+
+  // RouteStar items are a separate, unpaginated lookup for the category picker.
+  useEffect(() => {
+    if (!visible || !token) return;
+    modelCategoryService
+      .getRouteStarItems(token)
+      .then(items => setRouteStarItems(items || []))
+      .catch(err => console.error('Failed to fetch RouteStar items:', err));
   }, [visible, token]);
-
-  useEffect(() => {
-    filterModels();
-  }, [models, searchQuery, filterStatus]);
-
-  useEffect(() => {
-    updateStats();
-  }, [models]);
 
   useEffect(() => {
     if (visible) {
@@ -141,57 +166,9 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
     ).start();
   }, [blobPulse]);
 
-  const loadData = async () => {
-    if (!token) return;
-    try {
-      setLoading(true);
-      setError(null);
-      const [modelsData, itemsData] = await Promise.all([
-        modelCategoryService.getUniqueModels(token),
-        modelCategoryService.getRouteStarItems(token),
-      ]);
-      setModels(modelsData || []);
-      setRouteStarItems(itemsData || []);
-    } catch (err: any) {
-      console.error('Failed to fetch model category data:', err);
-      const wasHandled = await handleApiError(err);
-      if (wasHandled) return;
-      setError(err.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const loadData = refetch;
 
-  const updateStats = () => {
-    const mapped = models.filter(m => m.categoryItemName).length;
-    const unmapped = models.length - mapped;
-    setStats({total: models.length, mapped, unmapped});
-  };
-
-  const filterModels = () => {
-    let filtered = [...models];
-    if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        m =>
-          m.modelNumber.toLowerCase().includes(searchLower) ||
-          (m.orderItemName && m.orderItemName.toLowerCase().includes(searchLower)) ||
-          (m.categoryItemName && m.categoryItemName.toLowerCase().includes(searchLower)),
-      );
-    }
-    if (filterStatus === 'mapped') {
-      filtered = filtered.filter(m => m.categoryItemName);
-    } else if (filterStatus === 'unmapped') {
-      filtered = filtered.filter(m => !m.categoryItemName);
-    }
-    setFilteredModels(filtered);
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
+  const onRefresh = refresh;
 
   const handleModelPress = (modelNumber: string) => {
     const newExpanded = new Set(expandedModels);
@@ -292,7 +269,7 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {loading && !refreshing ? (
+        {initialLoading ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingMark}>
               <LinkIcon size={22} color={theme.colors.primary[600]} />
@@ -304,21 +281,21 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
           </View>
         ) : (
           <PaginatedList
-            data={pagedRows}
+            data={models}
             keyExtractor={(item, index) => item.modelNumber || String(index)}
             style={styles.scrollView}
             contentContainerStyle={[styles.scrollContent, styles.contentWrap]}
             refreshing={refreshing}
             onRefresh={onRefresh}
-            resetKey={`${searchQuery}|${filterStatus}`}
+            resetKey={`${debouncedSearch}|${filterStatus}`}
             pagedMode
             scrollTopKey={page}
             ListFooterComponent={
-              filteredModels.length > 0 ? (
+              total > 0 ? (
                 <Pagination
                   currentPage={page}
                   totalPages={totalPages}
-                  totalItems={filteredModels.length}
+                  totalItems={total}
                   pageSize={pageSize}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
@@ -490,11 +467,11 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
                   </Card>
                 )}
 
-                {!error && filteredModels.length > 0 && (
+                {!error && total > 0 && (
                   <View style={styles.sectionEyebrow}>
                     <View style={styles.eyebrowLine} />
                     <Typography variant="caption" weight="semibold" color={theme.colors.primary[600]}>
-                      MODELS · {filteredModels.length}
+                      MODELS · {total}
                     </Typography>
                   </View>
                 )}

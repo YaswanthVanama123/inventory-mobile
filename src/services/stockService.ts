@@ -1,11 +1,33 @@
 import {API_BASE_URL} from '../config/api';
 
 class StockService {
-  async getStockSummary(token: string) {
+  /**
+   * Fetch the stock summary. The backend paginates the CATEGORY list server-side
+   * (default limit 20) and returns it as a top-level `categories` array — the
+   * per-tab `useStock`/`sellStock` objects carry totals only, no `items`. So
+   * `page`/`limit`/`search`/`tab` must be forwarded, and callers must read
+   * `categories` for the rows.
+   */
+  async getStockSummary(
+    token: string,
+    params: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      tab?: 'use' | 'sell';
+    } = {},
+  ) {
     try {
+      const qs = new URLSearchParams();
+      if (params.page) qs.append('page', String(params.page));
+      if (params.limit) qs.append('limit', String(params.limit));
+      if (params.search) qs.append('search', params.search);
+      if (params.tab) qs.append('tab', params.tab);
+      const query = qs.toString();
+      const url = `${API_BASE_URL}/stock/summary${query ? `?${query}` : ''}`;
       console.log('[StockService] getStockSummary called');
-      console.log('[StockService] API URL:', `${API_BASE_URL}/stock/summary`);
-      const response = await fetch(`${API_BASE_URL}/stock/summary`, {
+      console.log('[StockService] API URL:', url);
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
