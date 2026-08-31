@@ -10,6 +10,8 @@ import {FetchHistoryScreen} from '../screens/FetchHistoryScreen';
 import {DiscrepancyManagementScreen} from '../screens/DiscrepancyManagementScreen';
 import {EmployeeDiscrepanciesScreen} from '../screens/EmployeeDiscrepanciesScreen';
 import {ManualPOItemsScreen} from '../screens/ManualPOItemsScreen';
+import {CaseQuantityMappingScreen} from '../screens/CaseQuantityMappingScreen';
+import {DataCleanupScreen} from '../screens/DataCleanupScreen';
 import {VendorManagementScreen} from '../screens/VendorManagementScreen';
 import {ActivityLogScreen} from '../screens/ActivityLogScreen';
 import {ScreenPermissionsManagementScreen} from '../screens/ScreenPermissionsManagementScreen';
@@ -40,6 +42,8 @@ export type ExtraScreenKey =
   | 'fetchHistory'
   | 'discrepancyManagement'
   | 'manualPOItems'
+  | 'caseQuantity'
+  | 'dataCleanup'
   | 'vendors'
   | 'activityLog'
   | 'screenPermissions'
@@ -111,6 +115,8 @@ export const ExtraScreensProvider: React.FC<{children: ReactNode}> = ({children}
       {isAdmin && <QuickBooksSyncScreen visible={is('quickBooksSync')} onClose={close} />}
       {isAdmin && <SettingsScreen visible={is('settings')} onClose={close} />}
       {isAdmin && <StockReconciliationScreen visible={is('stockReconciliation')} onClose={close} />}
+      {isAdmin && <CaseQuantityMappingScreen visible={is('caseQuantity')} onClose={close} />}
+      {isAdmin && <DataCleanupScreen visible={is('dataCleanup')} onClose={close} />}
       {isAdmin && <UserManagementScreen visible={is('userManagement')} onClose={close} />}
       {isAdmin && <ActivityLogScreen visible={is('activityLog')} onClose={close} />}
       {isAdmin && <ScreenPermissionsManagementScreen visible={is('screenPermissions')} onClose={close} />}

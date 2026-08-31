@@ -28,6 +28,7 @@ import {
   WarningIcon,
   RefreshIcon,
   CheckCircleIcon,
+  TrashIcon,
 } from '../components/icons';
 
 export const SIDEBAR_WIDTH = 270;
@@ -80,6 +81,7 @@ const GROUPS: SideGroup[] = [
     items: [
       {kind: 'extra', label: 'Vendors', Icon: TruckIcon, screen: 'vendors', path: '/vendors'},
       {kind: 'extra', label: 'Manual PO Items', Icon: ClipboardIcon, screen: 'manualPOItems', path: '/manual-po-items'},
+      {kind: 'extra', label: 'Case Quantity Mapping', Icon: BoxIcon, screen: 'caseQuantity', path: '/case-quantity-mapping', adminOnly: true},
     ],
   },
   {
@@ -103,6 +105,7 @@ const GROUPS: SideGroup[] = [
       {kind: 'extra', label: 'Screen Management', Icon: GridIcon, screen: 'screenManagement', path: '/admin/screens', adminOnly: true},
       {kind: 'extra', label: 'QuickBooks Sync', Icon: RefreshIcon, screen: 'quickBooksSync', path: '/system/quickbooks-sync', adminOnly: true},
       {kind: 'extra', label: 'Settings', Icon: SettingsIcon, screen: 'settings', path: '/settings', adminOnly: true},
+      {kind: 'extra', label: 'Data Cleanup', Icon: TrashIcon, screen: 'dataCleanup', path: '/admin/data-cleanup', adminOnly: true},
     ],
   },
   {

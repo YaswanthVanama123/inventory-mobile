@@ -14,6 +14,8 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Checkbox} from '../components/atoms/Checkbox';
+import {BulkPurgeBar} from '../components/molecules/BulkPurgeBar';
 import {Pagination} from '../components/molecules/Pagination';
 import {useAuth} from '../contexts/AuthContext';
 import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
@@ -58,6 +60,17 @@ export const TruckCheckoutListScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
   const [checkouts, setCheckouts] = useState<any[]>([]);
+  // Ticked rows for the admin bulk-purge bar.
+  const [selectedCheckoutIds, setSelectedCheckoutIds] = useState<Set<string>>(new Set());
+
+  const toggleCheckoutSelected = (id: string) => {
+    setSelectedCheckoutIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const [expandedCheckout, setExpandedCheckout] = useState<string | null>(null);
   const [pagination, setPagination] = useState({total: 0, page: 1, limit: 50, pages: 0});
   const [employees, setEmployees] = useState<any[]>([]);
@@ -848,6 +861,18 @@ export const TruckCheckoutListScreen = () => {
                 CHECKOUTS · {pagination.total}
               </Typography>
             </View>
+            {/* Admin-only permanent delete controls */}
+            <View style={styles.purgeBarWrap}>
+              <BulkPurgeBar
+                type="truck-checkouts"
+                label="Truck Checkouts"
+                selectedIds={Array.from(selectedCheckoutIds)}
+                onDone={() => {
+                  setSelectedCheckoutIds(new Set());
+                  loadCheckouts();
+                }}
+              />
+            </View>
             {loading && checkouts.length === 0 ? (
               <View style={styles.emptyState}>
                 <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -891,6 +916,10 @@ export const TruckCheckoutListScreen = () => {
                         style={styles.checkoutHeader}
                         onPress={() => setExpandedCheckout(isExpanded ? null : checkout._id)}
                         activeOpacity={0.85}>
+                        <Checkbox
+                          checked={selectedCheckoutIds.has(checkout._id)}
+                          onChange={() => toggleCheckoutSelected(checkout._id)}
+                        />
                         <View style={styles.checkoutAvatar}>
                           <Typography variant="caption" weight="bold" color={theme.colors.primary[700]}>
                             {(checkout.employeeName || '?')
@@ -1838,6 +1867,10 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       alignSelf: 'flex-start',
     },
 
+    purgeBarWrap: {
+      paddingHorizontal: bp.gutter,
+      marginBottom: theme.spacing.md,
+    },
     sectionEyebrow: {
       flexDirection: 'row',
       alignItems: 'center',

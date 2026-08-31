@@ -33,7 +33,15 @@ interface StockReconciliationScreenProps {
 interface ReconItem {
   sku: string;
   name: string;
-  purchased: {quantity: number; avgPrice: number; totalValue: number; orderCount: number};
+  // How many selling units one purchased case holds (1 when not mapped).
+  unitsPerCase?: number;
+  purchased: {
+    quantity: number;
+    cases?: number;
+    avgPrice: number;
+    totalValue: number;
+    orderCount: number;
+  };
   sold: {quantity: number; avgPrice: number; totalValue: number; invoiceCount: number};
   stock: {current: number; status: string; profitMargin: number};
 }
@@ -352,7 +360,11 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
                           Purchased
                         </Typography>
                         <Typography variant="small" weight="semibold" color={theme.colors.primary[600]}>
-                          {item.purchased?.quantity ?? 0} ({item.purchased?.orderCount ?? 0} orders)
+                          {item.purchased?.quantity ?? 0}
+                          {(item.unitsPerCase ?? 1) > 1
+                            ? ` (${item.purchased?.cases ?? 0} × ${item.unitsPerCase})`
+                            : ''}{' '}
+                          ({item.purchased?.orderCount ?? 0} orders)
                         </Typography>
                       </View>
                       <View style={styles.metricRow}>

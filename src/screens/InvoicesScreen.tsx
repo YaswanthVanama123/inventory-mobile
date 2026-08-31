@@ -631,7 +631,7 @@ export const InvoicesScreen = () => {
             <View style={styles.dateRow}>
               <View style={styles.dateField}>
                 <Typography variant="small" weight="semibold" style={styles.filterLabel}>
-                  From Date
+                  {invoiceType === 'closed' ? 'From Date (Completed)' : 'From Date'}
                 </Typography>
                 <RNTextInput
                   style={styles.searchInput}
@@ -645,7 +645,7 @@ export const InvoicesScreen = () => {
               </View>
               <View style={styles.dateField}>
                 <Typography variant="small" weight="semibold" style={styles.filterLabel}>
-                  To Date
+                  {invoiceType === 'closed' ? 'To Date (Completed)' : 'To Date'}
                 </Typography>
                 <RNTextInput
                   style={styles.searchInput}

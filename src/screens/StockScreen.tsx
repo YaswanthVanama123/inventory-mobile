@@ -1116,6 +1116,15 @@ export const StockScreen = () => {
                                           numberOfLines={1}>
                                           {sku.itemName}
                                         </Typography>
+                                        {sku.unitsPerCase > 1 && (
+                                          <Typography
+                                            variant="caption"
+                                            color={theme.colors.primary[600]}
+                                            numberOfLines={1}>
+                                            {sku.totalQuantityCases ?? 0} cases × {sku.unitsPerCase} ={' '}
+                                            {sku.totalQuantity ?? 0} units
+                                          </Typography>
+                                        )}
                                       </View>
                                     </View>
                                     <View style={styles.skuStats}>
@@ -1195,7 +1204,11 @@ export const StockScreen = () => {
                                                   </View>
                                                   <View style={styles.historyRow}>
                                                     <Typography variant="caption" color={theme.colors.gray[500]}>Quantity</Typography>
-                                                    <Typography variant="small" weight="bold">{record.quantity}</Typography>
+                                                    <Typography variant="small" weight="bold">
+                                                      {record.unitsPerCase > 1
+                                                        ? `${record.quantity} (${record.caseQuantity} × ${record.unitsPerCase})`
+                                                        : record.quantity}
+                                                    </Typography>
                                                   </View>
                                                   <View style={styles.historyRow}>
                                                     <Typography variant="caption" color={theme.colors.gray[500]}>Unit Price</Typography>

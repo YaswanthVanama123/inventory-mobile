@@ -324,6 +324,14 @@ export const AccountScreen = () => {
       onPress: () => openScreen('settings'),
       visible: !!isAdmin && canSee('/settings'),
     },
+    {
+      Icon: TrashIcon,
+      title: 'Data Cleanup',
+      subtitle: 'Permanently delete production records',
+      tone: 'accent',
+      onPress: () => openScreen('dataCleanup'),
+      visible: !!isAdmin && canSee('/admin/data-cleanup'),
+    },
   ];
 
   const inventoryRows: MenuRow[] = [
@@ -382,6 +390,14 @@ export const AccountScreen = () => {
       tone: 'info',
       onPress: () => openScreen('manualPOItems'),
       visible: canSee('/manual-po-items'),
+    },
+    {
+      Icon: BoxIcon,
+      title: 'Case Quantity Mapping',
+      subtitle: 'Units contained in one purchased case',
+      tone: 'info',
+      onPress: () => openScreen('caseQuantity'),
+      visible: !!isAdmin && canSee('/case-quantity-mapping'),
     },
     {
       Icon: BoxIcon,

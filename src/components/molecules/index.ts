@@ -6,6 +6,8 @@ export type {ErrorAlertProps} from './ErrorAlert';
 
 export {ModalHeader} from './ModalHeader';
 export type {ModalHeaderProps} from './ModalHeader';
+export {BulkPurgeBar} from './BulkPurgeBar';
+export type {BulkPurgeBarProps} from './BulkPurgeBar';
 export {StatCard} from './StatCard';
 export type {StatCardProps} from './StatCard';
 export {GradientStatCard} from './GradientStatCard';

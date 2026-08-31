@@ -15,6 +15,8 @@ import {Pagination} from '../components/molecules/Pagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Checkbox} from '../components/atoms/Checkbox';
+import {BulkPurgeBar} from '../components/molecules/BulkPurgeBar';
 import {Button} from '../components/atoms/Button';
 import {useAuth} from '../contexts/AuthContext';
 import {useTheme} from '../contexts/ThemeContext';
@@ -131,6 +133,17 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
+  // Ticked rows for the admin bulk-purge bar.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [summary, setSummary] = useState<any>(null);
   const [showRecordModal, setShowRecordModal] = useState(false);
@@ -892,6 +905,19 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           </ScrollView>
         </View>
 
+        {/* Admin-only permanent delete controls */}
+        <View style={styles.purgeBarWrap}>
+          <BulkPurgeBar
+            type="stock-discrepancies"
+            label="Stock Discrepancies"
+            selectedIds={Array.from(selectedIds)}
+            onDone={() => {
+              setSelectedIds(new Set());
+              loadData();
+            }}
+          />
+        </View>
+
         {/* Discrepancies List */}
         <PaginatedList
           data={filteredDiscrepancies}
@@ -951,6 +977,10 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                   onPress={() => setExpandedRow(isExpanded ? null : discrepancy._id)}
                   activeOpacity={0.7}>
                   <View style={styles.discrepancyHeaderLeft}>
+                    <Checkbox
+                      checked={selectedIds.has(discrepancy._id)}
+                      onChange={() => toggleSelected(discrepancy._id)}
+                    />
                     {isExpanded ? (
                       <ChevronDownIcon size={18} color={theme.colors.primary[600]} />
                     ) : (
@@ -1954,6 +1984,10 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   filterButtonActive: {
     backgroundColor: theme.colors.primary[600],
+  },
+  purgeBarWrap: {
+    paddingHorizontal: bp.gutter,
+    paddingBottom: theme.spacing.sm,
   },
   listContainer: {
     flex: 1,

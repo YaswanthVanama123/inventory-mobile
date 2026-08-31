@@ -14,6 +14,8 @@ import {Pagination} from '../components/molecules/Pagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
 import {Card} from '../components/atoms/Card';
+import {Checkbox} from '../components/atoms/Checkbox';
+import {BulkPurgeBar} from '../components/molecules/BulkPurgeBar';
 import {useAuth} from '../contexts/AuthContext';
 import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
@@ -42,6 +44,17 @@ export const OrderDiscrepancyListScreen: React.FC<
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
+  // Ticked rows for the admin bulk-purge bar.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const [stats, setStats] = useState<any>(null);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState('');
@@ -274,6 +287,19 @@ export const OrderDiscrepancyListScreen: React.FC<
         </ScrollView>
       </View>
 
+      {/* Admin-only permanent delete controls */}
+      <View style={styles.purgeBarWrap}>
+        <BulkPurgeBar
+          type="order-discrepancies"
+          label="Order Discrepancies"
+          selectedIds={Array.from(selectedIds)}
+          onDone={() => {
+            setSelectedIds(new Set());
+            loadData();
+          }}
+        />
+      </View>
+
       {/* Discrepancy List */}
       <PaginatedList
         data={filteredDiscrepancies}
@@ -327,6 +353,11 @@ export const OrderDiscrepancyListScreen: React.FC<
                   setExpandedRow(isExpanded ? null : discrepancy._id)
                 }
                 activeOpacity={0.7}>
+                {/* Select for permanent delete */}
+                <Checkbox
+                  checked={selectedIds.has(discrepancy._id)}
+                  onChange={() => toggleSelected(discrepancy._id)}
+                />
                 {/* Chevron */}
                 <View style={styles.chevronContainer}>
                   {isExpanded ? (
@@ -653,6 +684,10 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   filterButtonTextActive: {
     color: '#ffffff',
+  },
+  purgeBarWrap: {
+    paddingHorizontal: bp.gutter,
+    paddingBottom: theme.spacing.sm,
   },
   listContainer: {
     flex: 1,
