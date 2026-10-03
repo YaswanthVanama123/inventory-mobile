@@ -25,9 +25,6 @@ import {
   GridIcon,
   UserIcon,
   AlertCircleIcon,
-  WarningIcon,
-  RefreshIcon,
-  CheckCircleIcon,
   TrashIcon,
 } from '../components/icons';
 
@@ -41,7 +38,9 @@ type SideItem =
 
 type SideGroup = {title: string; items: SideItem[]};
 
-// Mirrors the webapp sidebar structure and order.
+// Mirrors the webapp sidebar structure and order (inventory-webapp Sidebar.jsx),
+// listing only the screens it shows. adminOnly = in the webapp's admin menu but
+// not its employee menu.
 const GROUPS: SideGroup[] = [
   {
     title: 'CORE',
@@ -51,9 +50,8 @@ const GROUPS: SideGroup[] = [
     title: 'INVENTORY',
     items: [
       {kind: 'tab', label: 'Stock', Icon: BoxIcon, tab: 'Stock', paths: ['/stock']},
-      {kind: 'extra', label: 'Stock Reconciliation', Icon: BoxIcon, screen: 'stockReconciliation', path: '/stock-reconciliation', adminOnly: true},
       {kind: 'tab', label: 'Inventory Items', Icon: InventoryIcon, tab: 'Inventory', paths: ['/inventory']},
-      {kind: 'extra', label: 'Item Catalog', Icon: InventoryIcon, screen: 'inventoryCatalog', path: '/inventory'},
+      {kind: 'extra', label: 'Item Catalog', Icon: InventoryIcon, screen: 'inventoryCatalog', path: '/inventory', adminOnly: true},
       {kind: 'extra', label: 'Discrepancies', Icon: AlertCircleIcon, screen: 'discrepancyManagement', path: '/discrepancies'},
     ],
   },
@@ -63,35 +61,28 @@ const GROUPS: SideGroup[] = [
       {kind: 'tab', label: 'Orders', Icon: ClipboardIcon, tab: 'Orders', paths: ['/orders']},
       {kind: 'tab', label: 'Truck Checkouts', Icon: TruckIcon, tab: 'Checkout', paths: ['/truck-checkouts']},
       {kind: 'extra', label: 'Purchase Orders', Icon: FileTextIcon, screen: 'orders', path: '/orders'},
-      {kind: 'extra', label: 'Approvals', Icon: CheckCircleIcon, screen: 'approvals', path: '/approvals'},
     ],
   },
   {
     title: 'ROUTESTAR',
     items: [
       {kind: 'extra', label: 'RouteStar Items', Icon: BoxIcon, screen: 'routeStarItems', path: '/routestar/items'},
-      {kind: 'extra', label: 'RouteStar Customers', Icon: UserIcon, screen: 'routeStarCustomers', path: '/routestar/customers'},
-      {kind: 'extra', label: 'Closed Invoice Customers', Icon: UserIcon, screen: 'closedInvoiceCustomers', path: '/routestar/closed-invoice-customers'},
-      {kind: 'extra', label: 'Model Mapping', Icon: LinkIcon, screen: 'modelMapping', path: '/routestar/model-mapping'},
-      {kind: 'extra', label: 'Item Alias Mapping', Icon: TagIcon, screen: 'itemAlias', path: '/routestar/item-alias-mapping'},
+      {kind: 'extra', label: 'Model Mapping', Icon: LinkIcon, screen: 'modelMapping', path: '/routestar/model-mapping', adminOnly: true},
+      {kind: 'extra', label: 'Item Alias Mapping', Icon: TagIcon, screen: 'itemAlias', path: '/routestar/item-alias-mapping', adminOnly: true},
     ],
   },
   {
     title: 'MASTER DATA',
     items: [
-      {kind: 'extra', label: 'Vendors', Icon: TruckIcon, screen: 'vendors', path: '/vendors'},
-      {kind: 'extra', label: 'Manual PO Items', Icon: ClipboardIcon, screen: 'manualPOItems', path: '/manual-po-items'},
+      {kind: 'extra', label: 'Vendors', Icon: TruckIcon, screen: 'vendors', path: '/vendors', adminOnly: true},
+      {kind: 'extra', label: 'Manual PO Items', Icon: ClipboardIcon, screen: 'manualPOItems', path: '/manual-po-items', adminOnly: true},
       {kind: 'extra', label: 'Case Quantity Mapping', Icon: BoxIcon, screen: 'caseQuantity', path: '/case-quantity-mapping', adminOnly: true},
     ],
   },
   {
     title: 'REPORTS & ANALYTICS',
     items: [
-      {kind: 'extra', label: 'Reports Hub', Icon: BarChartIcon, screen: 'reportsHub', path: '/reports'},
       {kind: 'extra', label: 'Sales Report', Icon: FileTextIcon, screen: 'salesReport', path: '/routestar/sales-report'},
-      {kind: 'extra', label: 'Sales Analytics', Icon: BarChartIcon, screen: 'salesAnalytics', path: '/reports/sales'},
-      {kind: 'extra', label: 'Low Stock Report', Icon: WarningIcon, screen: 'lowStockReport', path: '/reports/low-stock'},
-      {kind: 'extra', label: 'Customer Export', Icon: FileTextIcon, screen: 'customerExport', path: '/reports/customer-export'},
       {kind: 'extra', label: 'Items Invoice Usage', Icon: BarChartIcon, screen: 'itemsInvoiceUsage', path: '/routestar/items-invoice-usage'},
       {kind: 'extra', label: 'Employee Activities', Icon: TimelineIcon, screen: 'activityLog', path: '/activities', adminOnly: true},
       {kind: 'extra', label: 'Fetch History', Icon: ClockIcon, screen: 'fetchHistory', path: '/system/fetch-history'},
@@ -103,7 +94,6 @@ const GROUPS: SideGroup[] = [
       {kind: 'extra', label: 'Users', Icon: SettingsIcon, screen: 'userManagement', path: '/users', adminOnly: true},
       {kind: 'extra', label: 'Screen Permissions', Icon: ShieldIcon, screen: 'screenPermissions', path: '/admin/screen-permissions', adminOnly: true},
       {kind: 'extra', label: 'Screen Management', Icon: GridIcon, screen: 'screenManagement', path: '/admin/screens', adminOnly: true},
-      {kind: 'extra', label: 'QuickBooks Sync', Icon: RefreshIcon, screen: 'quickBooksSync', path: '/system/quickbooks-sync', adminOnly: true},
       {kind: 'extra', label: 'Settings', Icon: SettingsIcon, screen: 'settings', path: '/settings', adminOnly: true},
       {kind: 'extra', label: 'Data Cleanup', Icon: TrashIcon, screen: 'dataCleanup', path: '/admin/data-cleanup', adminOnly: true},
     ],

@@ -40,9 +40,6 @@ import {
   CheckCircleIcon,
   ArrowRightIcon,
   TrashIcon,
-  UserIcon,
-  WarningIcon,
-  RefreshIcon,
   KeyIcon,
 } from '../components/icons';
 import userService from '../services/userService';
@@ -275,6 +272,9 @@ export const AccountScreen = () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   })();
 
+  // These menus list only the screens the webapp sidebar shows for the same
+  // role (inventory-webapp Sidebar.jsx). Rows that appear only in the webapp's
+  // admin menu are gated on isAdmin; employee rows follow screen permissions.
   const adminRows: MenuRow[] = [
     {
       Icon: SettingsIcon,
@@ -309,14 +309,6 @@ export const AccountScreen = () => {
       visible: !!isAdmin && canSee('/admin/screens'),
     },
     {
-      Icon: RefreshIcon,
-      title: 'QuickBooks Sync',
-      subtitle: 'Snapshot queue and retries',
-      tone: 'accent',
-      onPress: () => openScreen('quickBooksSync'),
-      visible: !!isAdmin && canSee('/system/quickbooks-sync'),
-    },
-    {
       Icon: SettingsIcon,
       title: 'Settings',
       subtitle: 'Stock cutoff date & low-stock threshold',
@@ -341,7 +333,9 @@ export const AccountScreen = () => {
       subtitle: 'Create, edit and view inventory items',
       tone: 'info',
       onPress: () => openScreen('inventoryCatalog'),
-      visible: canSee('/inventory'),
+      // Webapp: "Add New Item" is admin-only; employees just get the
+      // Inventory tab ("View All").
+      visible: !!isAdmin && canSee('/inventory'),
     },
     {
       Icon: LinkIcon,
@@ -349,7 +343,7 @@ export const AccountScreen = () => {
       subtitle: 'Link SKUs to canonical models',
       tone: 'info',
       onPress: () => openScreen('modelMapping'),
-      visible: canSee('/routestar/model-mapping'),
+      visible: !!isAdmin && canSee('/routestar/model-mapping'),
     },
     {
       Icon: TagIcon,
@@ -357,7 +351,7 @@ export const AccountScreen = () => {
       subtitle: 'Resolve external item names',
       tone: 'info',
       onPress: () => openScreen('itemAlias'),
-      visible: canSee('/routestar/item-alias-mapping'),
+      visible: !!isAdmin && canSee('/routestar/item-alias-mapping'),
     },
     {
       Icon: BoxIcon,
@@ -368,28 +362,12 @@ export const AccountScreen = () => {
       visible: canSee('/routestar/items'),
     },
     {
-      Icon: UserIcon,
-      title: 'RouteStar Customers',
-      subtitle: 'Customer records and locations',
-      tone: 'info',
-      onPress: () => openScreen('routeStarCustomers'),
-      visible: canSee('/routestar/customers'),
-    },
-    {
-      Icon: UserIcon,
-      title: 'Closed Invoice Customers',
-      subtitle: 'Customers from closed invoices',
-      tone: 'info',
-      onPress: () => openScreen('closedInvoiceCustomers'),
-      visible: canSee('/routestar/closed-invoice-customers'),
-    },
-    {
       Icon: ClipboardIcon,
       title: 'Manual PO Items',
       subtitle: 'Items captured from manual orders',
       tone: 'info',
       onPress: () => openScreen('manualPOItems'),
-      visible: canSee('/manual-po-items'),
+      visible: !!isAdmin && canSee('/manual-po-items'),
     },
     {
       Icon: BoxIcon,
@@ -398,14 +376,6 @@ export const AccountScreen = () => {
       tone: 'info',
       onPress: () => openScreen('caseQuantity'),
       visible: !!isAdmin && canSee('/case-quantity-mapping'),
-    },
-    {
-      Icon: BoxIcon,
-      title: 'Stock Reconciliation',
-      subtitle: 'In-stock / out-of-stock / oversold',
-      tone: 'info',
-      onPress: () => openScreen('stockReconciliation'),
-      visible: !!isAdmin && canSee('/stock-reconciliation'),
     },
   ];
 
@@ -424,7 +394,7 @@ export const AccountScreen = () => {
       subtitle: 'Vendor records and contacts',
       tone: 'success',
       onPress: () => openScreen('vendors'),
-      visible: canSee('/vendors'),
+      visible: !!isAdmin && canSee('/vendors'),
     },
     {
       Icon: ClockIcon,
@@ -442,25 +412,9 @@ export const AccountScreen = () => {
       onPress: () => openScreen('discrepancyManagement'),
       visible: canSee('/discrepancies'),
     },
-    {
-      Icon: CheckCircleIcon,
-      title: 'Approvals',
-      subtitle: 'Approve invoices & purchase deletions',
-      tone: 'success',
-      onPress: () => openScreen('approvals'),
-      visible: canSee('/approvals'),
-    },
   ];
 
   const reportsRows: MenuRow[] = [
-    {
-      Icon: BarChartIcon,
-      title: 'Reports Hub',
-      subtitle: 'Sales, profit, orders & low-stock overview',
-      tone: 'primary',
-      onPress: () => openScreen('reportsHub'),
-      visible: canSee('/reports'),
-    },
     {
       Icon: FileTextIcon,
       title: 'Sales Report',
@@ -468,30 +422,6 @@ export const AccountScreen = () => {
       tone: 'primary',
       onPress: () => openScreen('salesReport'),
       visible: canSee('/routestar/sales-report'),
-    },
-    {
-      Icon: BarChartIcon,
-      title: 'Sales Analytics',
-      subtitle: 'Date-range & category sales breakdown',
-      tone: 'primary',
-      onPress: () => openScreen('salesAnalytics'),
-      visible: canSee('/reports/sales'),
-    },
-    {
-      Icon: WarningIcon,
-      title: 'Low Stock Report',
-      subtitle: 'Items at or below reorder point',
-      tone: 'warning',
-      onPress: () => openScreen('lowStockReport'),
-      visible: canSee('/reports/low-stock'),
-    },
-    {
-      Icon: FileTextIcon,
-      title: 'Customer Export',
-      subtitle: 'Export closed-invoice customers (CSV)',
-      tone: 'primary',
-      onPress: () => openScreen('customerExport'),
-      visible: canSee('/reports/customer-export'),
     },
     {
       Icon: BarChartIcon,

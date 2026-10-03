@@ -32,6 +32,8 @@ import {StockReconciliationScreen} from '../screens/StockReconciliationScreen';
 // Screens that historically lived as modals opened from the Account screen.
 // They are centralized here so BOTH the sidebar (wide) and the Account menu
 // (phone) can open them, and so they render once at the app root.
+// Not every key has a menu entry: those menus only list screens the webapp
+// sidebar shows (e.g. approvals, reportsHub, stockReconciliation are hidden).
 export type ExtraScreenKey =
   | 'salesReport'
   | 'orders'
