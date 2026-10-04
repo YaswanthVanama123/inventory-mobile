@@ -53,23 +53,23 @@ const TABS = [
 
 const PAGE_SIZE = 20;
 
-const getOrderTypeColors = (type: string) => {
+const getOrderTypeColors = (type: string, theme: Theme) => {
   switch (type) {
     case 'Shortage':
-      return {bg: '#fff7ed', text: '#c2410c'};
+      return {bg: theme.colors.warning[50], text: theme.colors.warning[700]};
     case 'Overage':
-      return {bg: '#eff6ff', text: '#1d4ed8'};
+      return {bg: theme.colors.primary[50], text: theme.colors.primary[700]};
     case 'Matched':
-      return {bg: '#ecfdf5', text: '#047857'};
+      return {bg: theme.colors.success[50], text: theme.colors.success[700]};
     default:
-      return {bg: '#f8fafc', text: '#475569'};
+      return {bg: theme.colors.gray[50], text: theme.colors.gray[600]};
   }
 };
 
-const getOrderDiffColor = (qty: number) => {
-  if (qty > 0) return '#1d4ed8';
-  if (qty < 0) return '#c2410c';
-  return '#047857';
+const getOrderDiffColor = (qty: number, theme: Theme) => {
+  if (qty > 0) return theme.colors.primary[700];
+  if (qty < 0) return theme.colors.warning[700];
+  return theme.colors.success[700];
 };
 
 const getOrderStatusColors = (status: string, theme: Theme) => {
@@ -111,11 +111,11 @@ const getSourceLabel = (source: string): string => {
 const getSourceColors = (source: string, theme: Theme) => {
   switch (source) {
     case 'truck-return':
-      return {bg: '#eef2ff', text: '#4338ca'};
+      return {bg: theme.colors.primary[50], text: theme.colors.primary[700]};
     case 'stock-check':
-      return {bg: '#ecfdf5', text: '#047857'};
+      return {bg: theme.colors.success[50], text: theme.colors.success[700]};
     case 'stock-adjustment':
-      return {bg: '#fffbeb', text: '#b45309'};
+      return {bg: theme.colors.warning[50], text: theme.colors.warning[700]};
     default:
       return {bg: theme.colors.gray[100], text: theme.colors.gray[700]};
   }
@@ -448,7 +448,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
       case 'Damage':
         return {bg: theme.colors.primary[100], text: theme.colors.primary[700]};
       case 'Missing':
-        return {bg: '#9333ea20', text: '#9333ea'};
+        return {bg: `${theme.colors.accent[600]}20`, text: theme.colors.accent[600]};
       default:
         return {bg: theme.colors.gray[100], text: theme.colors.gray[700]};
     }
@@ -499,7 +499,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
 
   const renderOrderItem = ({item: discrepancy}: {item: any}) => {
     const isExpanded = orderExpandedRow === discrepancy._id;
-    const typeColors = getOrderTypeColors(discrepancy.discrepancyType);
+    const typeColors = getOrderTypeColors(discrepancy.discrepancyType, theme);
     const statusColors = getOrderStatusColors(discrepancy.status, theme);
 
     return (
@@ -507,7 +507,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
         <TouchableOpacity
           style={[
             styles.discrepancyHeader,
-            isExpanded && {backgroundColor: '#f0f9ff'},
+            isExpanded && {backgroundColor: theme.colors.primary[50]},
           ]}
           onPress={() =>
             setOrderExpandedRow(isExpanded ? null : discrepancy._id)
@@ -550,16 +550,16 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                 {
                   backgroundColor:
                     discrepancy.discrepancyQuantity > 0
-                      ? '#dbeafe'
+                      ? theme.colors.primary[100]
                       : discrepancy.discrepancyQuantity < 0
-                      ? '#ffedd5'
-                      : '#d1fae5',
+                      ? theme.colors.warning[100]
+                      : theme.colors.success[100],
                 },
               ]}>
               <Typography
                 variant="small"
                 weight="bold"
-                color={getOrderDiffColor(discrepancy.discrepancyQuantity)}>
+                color={getOrderDiffColor(discrepancy.discrepancyQuantity, theme)}>
                 {discrepancy.discrepancyQuantity > 0 ? '+' : ''}
                 {discrepancy.discrepancyQuantity}
               </Typography>
@@ -624,7 +624,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                 <Typography
                   variant="h3"
                   weight="bold"
-                  color={getOrderDiffColor(discrepancy.discrepancyQuantity)}>
+                  color={getOrderDiffColor(discrepancy.discrepancyQuantity, theme)}>
                   {discrepancy.discrepancyQuantity > 0 ? '+' : ''}
                   {discrepancy.discrepancyQuantity}
                 </Typography>
@@ -972,7 +972,7 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                 <TouchableOpacity
                   style={[
                     styles.discrepancyHeader,
-                    isExpanded && {backgroundColor: '#f0f9ff'},
+                    isExpanded && {backgroundColor: theme.colors.primary[50]},
                   ]}
                   onPress={() => setExpandedRow(isExpanded ? null : discrepancy._id)}
                   activeOpacity={0.7}>
@@ -2045,7 +2045,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     paddingTop: 0,
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray[100],
-    backgroundColor: '#fafbfc',
+    backgroundColor: theme.colors.gray[50],
   },
   sourceRow: {
     flexDirection: 'row',

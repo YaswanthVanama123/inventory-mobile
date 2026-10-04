@@ -50,6 +50,9 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   const {handleApiError} = useApiErrorHandler();
   const isAdmin = user?.role === 'admin';
   const [loading, setLoading] = useState(false);
+  // Full-screen spinner only until the first load finishes, so a search that
+  // returns nothing doesn't unmount the search box on the next keystroke.
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
@@ -144,6 +147,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       }
     } finally {
       setLoading(false);
+      setHasLoaded(true);
       setRefreshing(false);
     }
   };
@@ -263,7 +267,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   };
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      {loading && !refreshing && filteredOrders.length === 0 ? (
+      {loading && !refreshing && !hasLoaded ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary[600]} />
           <Typography

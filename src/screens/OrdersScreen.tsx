@@ -57,6 +57,9 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   const isAdmin = user?.role === 'admin';
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
+  // Full-screen spinner only until the first load finishes, so a search that
+  // returns nothing doesn't unmount the search box on the next keystroke.
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncingNew, setSyncingNew] = useState(false);
@@ -180,6 +183,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
       setError(err.message || 'Failed to load orders');
     } finally {
       setLoading(false);
+      setHasLoaded(true);
       setRefreshing(false);
     }
   };
@@ -413,7 +417,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
     <>
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {loading && !refreshing && filteredOrders.length === 0 ? (
+        {loading && !refreshing && !hasLoaded ? (
           <View style={styles.loadingContainer}>
             <View style={styles.loadingMark}>
               <FileTextIcon size={22} color={theme.colors.primary[600]} />

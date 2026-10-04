@@ -20,6 +20,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {useRefetchOnFocus} from '../hooks/useRefetchOnFocus';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
+import useDebounce from '../hooks/useDebounce';
 import {Theme} from '../theme';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import orderDiscrepancyService from '../services/orderDiscrepancyService';
@@ -42,6 +43,9 @@ export const OrderDiscrepancyListScreen: React.FC<
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
+  // Full-screen spinner only until the first load finishes; searches and
+  // filters refresh just the list (keeps the search box focused).
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
   // Ticked rows for the admin bulk-purge bar.
@@ -59,6 +63,7 @@ export const OrderDiscrepancyListScreen: React.FC<
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState('');
   const [searchText, setSearchText] = useState('');
+  const debouncedSearch = useDebounce(searchText, 400);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [pagination, setPagination] = useState({
@@ -71,13 +76,13 @@ export const OrderDiscrepancyListScreen: React.FC<
   // Reset to the first page whenever the type filter or search changes.
   useEffect(() => {
     setPage(1);
-  }, [typeFilter, searchText]);
+  }, [typeFilter, debouncedSearch]);
 
   useEffect(() => {
     if (token) {
       loadData();
     }
-  }, [token, typeFilter, searchText, page, pageSize]);
+  }, [token, typeFilter, debouncedSearch, page, pageSize]);
 
   // Refresh the discrepancy list whenever this screen regains focus (e.g. after
   // verifying an order, which can create new discrepancies).
@@ -89,7 +94,7 @@ export const OrderDiscrepancyListScreen: React.FC<
       setLoading(true);
       const params: any = {page, limit: pageSize};
       if (typeFilter) params.discrepancyType = typeFilter;
-      if (searchText.trim()) params.orderNumber = searchText.trim();
+      if (debouncedSearch.trim()) params.orderNumber = debouncedSearch.trim();
       const [discrepanciesResponse, statsResponse] = await Promise.all([
         orderDiscrepancyService.getOrderDiscrepancies(token, params),
         orderDiscrepancyService.getOrderDiscrepancyStats(token),
@@ -112,6 +117,7 @@ export const OrderDiscrepancyListScreen: React.FC<
       }
     } finally {
       setLoading(false);
+      setHasLoaded(true);
     }
   };
 
@@ -158,20 +164,20 @@ export const OrderDiscrepancyListScreen: React.FC<
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'Shortage':
-        return {bg: '#fff7ed', text: '#c2410c'};
+        return {bg: theme.colors.warning[50], text: theme.colors.warning[700]};
       case 'Overage':
-        return {bg: '#eff6ff', text: '#1d4ed8'};
+        return {bg: theme.colors.primary[50], text: theme.colors.primary[700]};
       case 'Matched':
-        return {bg: '#ecfdf5', text: '#047857'};
+        return {bg: theme.colors.success[50], text: theme.colors.success[700]};
       default:
-        return {bg: '#f8fafc', text: '#475569'};
+        return {bg: theme.colors.gray[50], text: theme.colors.gray[600]};
     }
   };
 
   const getDiffColor = (qty: number) => {
-    if (qty > 0) return '#1d4ed8';
-    if (qty < 0) return '#c2410c';
-    return '#047857';
+    if (qty > 0) return theme.colors.primary[700];
+    if (qty < 0) return theme.colors.warning[700];
+    return theme.colors.success[700];
   };
 
   // Search and type filtering are handled server-side; render the current page as-is.
@@ -187,7 +193,7 @@ export const OrderDiscrepancyListScreen: React.FC<
     });
   };
 
-  if (loading && !refreshing) {
+  if (loading && !refreshing && !hasLoaded) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
@@ -227,7 +233,7 @@ export const OrderDiscrepancyListScreen: React.FC<
             <Typography variant="body2" style={styles.statLabel}>
               Shortages
             </Typography>
-            <Typography variant="h3" style={[styles.statValue, {color: '#c2410c'}]}>
+            <Typography variant="h3" style={[styles.statValue, {color: theme.colors.warning[700]}]}>
               {stats.shortages || 0}
             </Typography>
           </View>
@@ -235,7 +241,7 @@ export const OrderDiscrepancyListScreen: React.FC<
             <Typography variant="body2" style={styles.statLabel}>
               Overages
             </Typography>
-            <Typography variant="h3" style={[styles.statValue, {color: '#1d4ed8'}]}>
+            <Typography variant="h3" style={[styles.statValue, {color: theme.colors.primary[700]}]}>
               {stats.overages || 0}
             </Typography>
           </View>
@@ -247,7 +253,7 @@ export const OrderDiscrepancyListScreen: React.FC<
         <TextInput
           style={styles.searchInput}
           placeholder="Search by order number"
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={theme.colors.gray[400]}
           value={searchText}
           onChangeText={setSearchText}
         />
@@ -310,7 +316,7 @@ export const OrderDiscrepancyListScreen: React.FC<
         onRefresh={onRefresh}
         pagedMode
         scrollTopKey={`${page}|${pageSize}`}
-        resetKey={`${typeFilter}|${searchText}`}
+        resetKey={`${typeFilter}|${debouncedSearch}`}
         ItemSeparatorComponent={() => <View style={{height: 0}} />}
         ListFooterComponent={
           <Pagination
@@ -327,7 +333,7 @@ export const OrderDiscrepancyListScreen: React.FC<
         }
         ListEmptyComponent={
           <Card style={styles.emptyCard}>
-            <AlertCircleIcon size={48} color="#94a3b8" />
+            <AlertCircleIcon size={48} color={theme.colors.gray[400]} />
             <Typography variant="h4" style={styles.emptyTitle}>
               No Order Discrepancies
             </Typography>
@@ -361,9 +367,9 @@ export const OrderDiscrepancyListScreen: React.FC<
                 {/* Chevron */}
                 <View style={styles.chevronContainer}>
                   {isExpanded ? (
-                    <ChevronDownIcon size={18} color="#2563eb" />
+                    <ChevronDownIcon size={18} color={theme.colors.primary[600]} />
                   ) : (
-                    <ChevronRightIcon size={18} color="#94a3b8" />
+                    <ChevronRightIcon size={18} color={theme.colors.gray[400]} />
                   )}
                 </View>
 
@@ -400,10 +406,10 @@ export const OrderDiscrepancyListScreen: React.FC<
                       {
                         backgroundColor:
                           discrepancy.discrepancyQuantity > 0
-                            ? '#dbeafe'
+                            ? theme.colors.primary[100]
                             : discrepancy.discrepancyQuantity < 0
-                            ? '#ffedd5'
-                            : '#d1fae5',
+                            ? theme.colors.warning[100]
+                            : theme.colors.success[100],
                       },
                     ]}>
                     <Typography
@@ -593,7 +599,7 @@ export const OrderDiscrepancyListScreen: React.FC<
 const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.gray[50],
   },
   loadingContainer: {
     flex: 1,
@@ -602,19 +608,19 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    color: '#64748b',
+    color: theme.colors.gray[500],
   },
   header: {
     padding: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: theme.colors.gray[200],
   },
   headerTitle: {
     fontWeight: 'bold',
   },
   subtitle: {
-    color: '#64748b',
+    color: theme.colors.gray[500],
     marginTop: 4,
   },
   statsRow: {
@@ -622,20 +628,20 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.gray[50],
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: theme.colors.gray[200],
   },
   statLabel: {
-    color: '#64748b',
+    color: theme.colors.gray[500],
     fontSize: theme.typography.roles.caption.fontSize,
     fontWeight: '500',
     textTransform: 'uppercase',
@@ -648,22 +654,26 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
   },
   searchInput: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: theme.colors.gray[100],
+    // Border keeps the field visible in dark mode, where gray[100] matches the
+    // surrounding surface (same as the shared SearchBar).
+    borderWidth: 1,
+    borderColor: theme.colors.gray[200],
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: theme.typography.roles.body.fontSize,
-    color: '#0f172a',
+    color: theme.colors.gray[900],
   },
   filterContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: theme.colors.gray[200],
   },
   filterContent: {
     gap: 8,
@@ -672,18 +682,18 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 6,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: theme.colors.gray[200],
   },
   filterButtonActive: {
     backgroundColor: theme.colors.primary[600],
   },
   filterButtonText: {
-    color: '#334155',
+    color: theme.colors.gray[700],
     fontWeight: '600',
     fontSize: theme.typography.roles.body.fontSize,
   },
   filterButtonTextActive: {
-    color: '#ffffff',
+    color: theme.colors.brand.text,
   },
   purgeBarWrap: {
     paddingHorizontal: bp.gutter,
@@ -705,12 +715,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   emptyTitle: {
     marginTop: 16,
-    color: '#334155',
+    color: theme.colors.gray[700],
     fontWeight: '600',
   },
   emptyText: {
     marginTop: 6,
-    color: '#64748b',
+    color: theme.colors.gray[500],
     textAlign: 'center',
   },
   discrepancyCard: {
@@ -725,7 +735,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     padding: 14,
   },
   rowHeaderExpanded: {
-    backgroundColor: '#eff6ff40',
+    backgroundColor: `${theme.colors.primary[50]}40`,
   },
   chevronContainer: {
     marginRight: 10,
@@ -741,18 +751,18 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   itemName: {
     fontWeight: '600',
     fontSize: theme.typography.roles.body.fontSize,
-    color: '#0f172a',
+    color: theme.colors.gray[900],
     flexShrink: 1,
   },
   skuBadge: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: theme.colors.gray[100],
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   skuText: {
     fontSize: theme.typography.roles.caption.fontSize,
-    color: '#64748b',
+    color: theme.colors.gray[500],
   },
   rowMeta: {
     flexDirection: 'row',
@@ -761,12 +771,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   orderNum: {
     fontSize: theme.typography.roles.caption.fontSize,
-    color: '#475569',
+    color: theme.colors.gray[600],
     fontWeight: '500',
   },
   rowDate: {
     fontSize: theme.typography.roles.caption.fontSize,
-    color: '#94a3b8',
+    color: theme.colors.gray[400],
   },
   rowRight: {
     alignItems: 'flex-end',
@@ -795,20 +805,20 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     padding: 14,
     paddingTop: 0,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    backgroundColor: '#fafbfc',
+    borderTopColor: theme.colors.gray[100],
+    backgroundColor: theme.colors.gray[50],
   },
   quantityGrid: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: theme.colors.gray[200],
   },
   quantityBox: {
     flex: 1,
@@ -816,7 +826,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   quantityLabel: {
     fontSize: theme.typography.roles.caption.fontSize,
-    color: '#64748b',
+    color: theme.colors.gray[500],
   },
   quantityValue: {
     fontWeight: 'bold',
@@ -826,16 +836,16 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     paddingHorizontal: 6,
   },
   arrowText: {
-    color: '#94a3b8',
+    color: theme.colors.gray[400],
     fontSize: theme.typography.roles.sideheading.fontSize,
   },
   detailSection: {
     marginTop: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: theme.colors.gray[200],
   },
   detailRow: {
     flexDirection: 'row',
@@ -845,12 +855,12 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   detailLabel: {
     fontSize: theme.typography.roles.caption.fontSize,
-    color: '#64748b',
+    color: theme.colors.gray[500],
   },
   detailValue: {
     fontSize: theme.typography.roles.body.fontSize,
     fontWeight: '600',
-    color: '#0f172a',
+    color: theme.colors.gray[900],
     maxWidth: '60%',
     textAlign: 'right',
   },
@@ -859,25 +869,25 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     gap: 8,
   },
   noteBox: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.white,
     borderRadius: 8,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: theme.colors.gray[200],
   },
   resolutionNoteBox: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#a7f3d0',
+    backgroundColor: theme.colors.success[50],
+    borderColor: theme.colors.success[200],
   },
   noteLabel: {
     fontSize: theme.typography.roles.caption.fontSize,
     fontWeight: '600',
-    color: '#475569',
+    color: theme.colors.gray[600],
     marginBottom: 4,
   },
   noteText: {
     fontSize: theme.typography.roles.body.fontSize,
-    color: '#1e293b',
+    color: theme.colors.gray[800],
   },
   deleteButton: {
     alignItems: 'center',
@@ -885,11 +895,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
     marginTop: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#fca5a5',
-    backgroundColor: '#fef2f2',
+    borderColor: theme.colors.error[300],
+    backgroundColor: theme.colors.error[50],
   },
   deleteButtonText: {
-    color: '#dc2626',
+    color: theme.colors.error[600],
     fontWeight: '600',
     fontSize: theme.typography.roles.body.fontSize,
   },
