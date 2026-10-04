@@ -150,7 +150,6 @@ export const DashboardScreen = () => {
     fetchDashboardData();
   }, [token]);
 
-  // Refresh when returning to this tab (after creates/deletes/sync elsewhere).
   useRefetchOnFocus(() => fetchDashboardData());
 
   useEffect(() => {
@@ -338,21 +337,13 @@ export const DashboardScreen = () => {
   const blobScale = blobPulse.interpolate({inputRange: [0, 1], outputRange: [1, 1.08]});
   const blobOpacity = blobPulse.interpolate({inputRange: [0, 1], outputRange: [0.18, 0.28]});
 
-  // Responsive layout: cap content width on large/XL screens and grow the
-  // grid from 2 columns (phone) up to 6 (XL), mirroring the webapp dashboard.
-  // Subtract the real left/right safe-area insets and floor the tile width so
-  // exactly 2 cards always fit per row on phones (no overflow → no 1-per-row).
   const contentWidth = Math.min(bp.width, bp.contentMaxWidth) - insets.left - insets.right;
   const innerWidth = contentWidth - bp.gutter * 2;
   const tileGap = bp.isMobile ? TILE_GAP : 16;
   const statCols = bp.isWide ? 6 : bp.isDesktop ? 4 : bp.isTablet ? 3 : 2;
-  // Percentage widths (resolved by the native layout engine against the real
-  // parent) — robust on Android, where exact-pixel widths + flexbox `gap` round
-  // up and overflow, wrapping a 2-up grid to 1-per-row.
   const tileWidth: DimensionValue = `${Math.floor(100 / statCols) - 2}%`;
   const quickCols = 4;
   const quickWidth: DimensionValue = `${Math.floor(100 / quickCols) - 2}%`;
-  // Charts live inside an elevated Card with `lg` padding (spacing.xl on each side).
   const chartWidth = innerWidth - theme.spacing.xl * 2;
 
   if (loading) {
@@ -817,7 +808,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingBottom: theme.spacing.xxxl,
     },
 
-    // Centers all post-hero content and caps its width on large/XL screens.
     contentWrap: {
       width: '100%',
       maxWidth: bp.contentMaxWidth,

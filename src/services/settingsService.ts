@@ -1,13 +1,5 @@
 import {API_BASE_URL} from '../config/api';
 
-/**
- * Settings Service (mobile)
- * Mirrors the webapp settingsService methods used by the Settings screen:
- * - getGeneralSettings   GET  /settings/general
- * - updateStockCutoffDate PUT /settings/stock-cutoff-date  { cutoffDate }
- * - updateLowStockThreshold PUT /settings/low-stock-threshold { threshold }
- */
-
 export interface GeneralSettings {
   stockCalculationCutoffDate?: string | null;
   lowStockThreshold?: number | null;
@@ -71,8 +63,6 @@ class SettingsService {
     const json = await response.json();
     return json.data || json;
   }
-
-  // ----- Units of Measurement -----
 
   async getUnits(token: string, includeInactive = true): Promise<Unit[]> {
     const response = await fetch(

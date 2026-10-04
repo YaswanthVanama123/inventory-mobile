@@ -28,7 +28,6 @@ import {InvoiceDetailScreen} from './InvoiceDetailScreen';
 import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
-// Real status enum used by web/backend.
 type StatusFilter = '' | 'Pending' | 'Completed' | 'Closed' | 'Cancelled';
 type StockProcessedFilter = '' | 'true' | 'false';
 
@@ -68,7 +67,6 @@ export const InvoicesScreen = () => {
 
   const resetKey = `${invoiceType}|${debouncedSearch}|${statusFilter}|${stockProcessedFilter}|${dateFrom}|${dateTo}`;
 
-  // Server-side numbered pagination.
   const {
     items: invoices,
     page,
@@ -112,7 +110,6 @@ export const InvoicesScreen = () => {
   const fetchInvoices = refetch;
   const onRefresh = refresh;
 
-  // Invoice range banner (#lowest – #highest (total)).
   const fetchInvoiceRange = async () => {
     if (!token) return;
     try {
@@ -124,7 +121,6 @@ export const InvoicesScreen = () => {
   };
   useEffect(() => {
     fetchInvoiceRange();
-    // Reset selection when switching tabs.
     setSelectMode(false);
     setSelectedInvoices([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,8 +146,6 @@ export const InvoicesScreen = () => {
     return () => clearInterval(autoSyncTimer);
   }, [autoSyncEnabled, autoSyncInterval, syncing, token, invoiceType, isAdmin]);
 
-  // Build a "Synced: X new, Y updated, Z skipped" summary, omitting any
-  // count the backend didn't return (mirrors web PendingInvoices/ClosedInvoices).
   const buildSyncSummary = (data: any, detailsSynced?: number) => {
     if (!data) return 'Sync complete';
     const parts: string[] = [];
@@ -232,7 +226,6 @@ export const InvoicesScreen = () => {
       setSyncing(false);
     }
   };
-  // Details-only sync (line items) for the current tab.
   const handleSyncDetails = async () => {
     if (!token) return;
     setSyncingDetails(true);
@@ -256,7 +249,6 @@ export const InvoicesScreen = () => {
       setSyncing(false);
     }
   };
-  // Admin: clear all invoices for the active tab.
   const handleClearAll = () => {
     if (!token || !isAdmin) return;
     const label = invoiceType === 'pending' ? 'pending' : 'closed';
@@ -289,7 +281,6 @@ export const InvoicesScreen = () => {
       ],
     );
   };
-  // Admin: delete a single manual invoice.
   const handleDeleteManual = (invoiceNumber: string) => {
     if (!token || !isAdmin) return;
     Alert.alert(
@@ -314,7 +305,6 @@ export const InvoicesScreen = () => {
       ],
     );
   };
-  // Admin (closed tab): bulk delete selected invoices by number.
   const toggleSelectInvoice = (invoiceNumber: string) => {
     setSelectedInvoices((prev) =>
       prev.includes(invoiceNumber)
@@ -427,7 +417,6 @@ export const InvoicesScreen = () => {
         }
         ListHeaderComponent={
           <View>
-            {/* Header */}
             <View style={styles.header}>
               <Typography variant="h2" weight="bold" style={styles.headerTitle}>
                 Invoices
@@ -448,7 +437,6 @@ export const InvoicesScreen = () => {
               ) : null}
             </View>
 
-            {/* Invoice Type Tabs */}
             <View style={styles.tabsContainer}>
               <TouchableOpacity
                 style={[styles.tab, invoiceType === 'pending' && styles.tabActive]}
@@ -472,7 +460,6 @@ export const InvoicesScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Sync Buttons (admin only) */}
             {isAdmin && (
               <>
                 <View style={styles.syncButtonsContainer}>
@@ -528,7 +515,6 @@ export const InvoicesScreen = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Details-only sync */}
                 <View style={styles.syncButtonsContainer}>
                   <TouchableOpacity
                     onPress={handleSyncDetails}
@@ -548,7 +534,6 @@ export const InvoicesScreen = () => {
                   </TouchableOpacity>
                 </View>
 
-                {/* Sync Limit Control */}
                 <View style={styles.syncLimitContainer}>
                   <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={styles.syncLimitLabel}>
                     Sync Limit
@@ -581,7 +566,6 @@ export const InvoicesScreen = () => {
                   </Typography>
                 </View>
 
-                {/* Danger Zone: Clear All */}
                 <View style={styles.dangerZone}>
                   <Button
                     title={`Clear All (${total})`}
@@ -595,7 +579,6 @@ export const InvoicesScreen = () => {
                   />
                 </View>
 
-                {/* Automation Settings */}
                 <View style={styles.automationContainer}>
                   <View style={styles.automationRow}>
                     <View style={styles.automationLabel}>
@@ -617,7 +600,6 @@ export const InvoicesScreen = () => {
               </>
             )}
 
-            {/* Search Bar */}
             <View style={styles.searchContainer}>
               <RNTextInput
                 style={styles.searchInput}
@@ -627,7 +609,6 @@ export const InvoicesScreen = () => {
                 placeholderTextColor={theme.colors.gray[400]}
               />
             </View>
-            {/* Date Range Filters */}
             <View style={styles.dateRow}>
               <View style={styles.dateField}>
                 <Typography variant="small" weight="semibold" style={styles.filterLabel}>
@@ -658,7 +639,6 @@ export const InvoicesScreen = () => {
                 />
               </View>
             </View>
-            {/* Stat Cards */}
             <View style={styles.statsRow}>
               <Card variant="elevated" padding="md" style={styles.statCard}>
                 <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -685,7 +665,6 @@ export const InvoicesScreen = () => {
                 </Typography>
               </Card>
             </View>
-            {/* Status Filter */}
             <View style={styles.filterSection}>
               <Typography variant="small" weight="semibold" style={styles.filterLabel}>
                 Status
@@ -721,7 +700,6 @@ export const InvoicesScreen = () => {
                 </View>
               </ScrollView>
             </View>
-            {/* Stock Processed Filter */}
             <View style={styles.filterSection}>
               <Typography variant="small" weight="semibold" style={styles.filterLabel}>
                 Stock Processed
@@ -755,7 +733,6 @@ export const InvoicesScreen = () => {
                 </View>
               </ScrollView>
             </View>
-            {/* Select / Bulk-delete bar (admin, closed tab only) */}
             {isAdmin && invoiceType === 'closed' && total > 0 && (
               <View style={styles.selectBar}>
                 <Button
@@ -780,7 +757,6 @@ export const InvoicesScreen = () => {
                 )}
               </View>
             )}
-            {/* Error State */}
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
                 <View style={styles.errorContent}>
@@ -832,7 +808,6 @@ export const InvoicesScreen = () => {
               variant="elevated"
               padding="none"
               style={[styles.invoiceCard, isSelected && styles.invoiceCardSelected]}>
-              {/* Invoice Header */}
               <View style={styles.invoiceHeader}>
                 <View style={styles.invoiceHeaderLeft}>
                   {isSelectable && (
@@ -881,7 +856,6 @@ export const InvoicesScreen = () => {
                   </Typography>
                 </View>
               </View>
-              {/* Invoice Details */}
               <View style={styles.invoiceDetails}>
                 <View style={styles.detailRow}>
                   <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -952,7 +926,6 @@ export const InvoicesScreen = () => {
           );
         }}
       />
-      {/* Invoice Detail Modal */}
       <InvoiceDetailScreen
         visible={detailModalVisible}
         invoiceId={selectedInvoiceId}

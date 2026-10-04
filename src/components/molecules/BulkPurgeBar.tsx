@@ -9,23 +9,12 @@ import dataPurgeService, {PURGE_CONFIRM_PHRASE} from '../../services/dataPurgeSe
 import {TrashIcon} from '../icons';
 
 export interface BulkPurgeBarProps {
-  /** Purge type key, e.g. 'truck-checkouts' (see dataPurge.service). */
   type: string;
-  /** Human name used in the confirmation copy. */
   label: string;
-  /** Ids of the currently ticked rows. */
   selectedIds?: string[];
-  /** Called after a successful purge so the list can refetch. */
   onDone?: () => void;
 }
 
-/**
- * Admin-only bulk purge controls for a list screen.
- *
- * "Delete Selected" removes the ticked rows; "Delete All" removes every record
- * of the type and is gated behind typing the confirm phrase. Both are
- * permanent — no trash, no restore. Renders nothing for non-admins.
- */
 export const BulkPurgeBar: React.FC<BulkPurgeBarProps> = ({
   type,
   label,
@@ -68,8 +57,6 @@ export const BulkPurgeBar: React.FC<BulkPurgeBarProps> = ({
     }
   };
 
-  // Deleting a few ticked rows is routine; wiping the whole collection is not,
-  // so only that one demands the typed phrase.
   const needsPhrase = confirmMode === 'all';
   const canConfirm = !purging && (!needsPhrase || confirmText === PURGE_CONFIRM_PHRASE);
 

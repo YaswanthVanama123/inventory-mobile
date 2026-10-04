@@ -32,7 +32,6 @@ interface SalesAnalyticsReportScreenProps {
   onClose: () => void;
 }
 
-// --- date helpers (no date-fns dependency in mobile) --------------------
 const fmt = (d: Date): string => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -126,7 +125,6 @@ export const SalesAnalyticsReportScreen: React.FC<SalesAnalyticsReportScreenProp
 
   const summary = data?.summary;
   const categoryStats = data?.categoryStats || [];
-  // Backend does not send a percentage; compute it client-side from sales.
   const totalCategorySales = categoryStats.reduce((s, c) => s + (c.sales || 0), 0);
 
   const summaryCards = [
@@ -188,7 +186,6 @@ export const SalesAnalyticsReportScreen: React.FC<SalesAnalyticsReportScreenProp
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={styles.contentWrap}>
-            {/* Filters */}
             <Card variant="elevated" padding="lg" style={styles.section}>
               <Typography variant="body" weight="bold" style={styles.sectionTitle}>
                 Filters
@@ -273,7 +270,6 @@ export const SalesAnalyticsReportScreen: React.FC<SalesAnalyticsReportScreenProp
               </View>
             ) : (
               <>
-                {/* Summary cards */}
                 <View style={styles.cardsGrid}>
                   {summaryCards.map(c => (
                     <Card key={c.label} variant="elevated" padding="lg" style={styles.summaryCard}>
@@ -290,7 +286,6 @@ export const SalesAnalyticsReportScreen: React.FC<SalesAnalyticsReportScreenProp
                   ))}
                 </View>
 
-                {/* Profit margin note */}
                 {summary && (
                   <Card variant="outlined" padding="md" style={styles.marginCard}>
                     <Typography variant="small" color={theme.colors.gray[600]}>
@@ -302,7 +297,6 @@ export const SalesAnalyticsReportScreen: React.FC<SalesAnalyticsReportScreenProp
                   </Card>
                 )}
 
-                {/* Category breakdown table */}
                 <Card variant="elevated" padding="lg" style={styles.section}>
                   <View style={styles.tableTitleRow}>
                     <TagIcon size={18} color={theme.colors.gray[600]} />
@@ -364,7 +358,6 @@ export const SalesAnalyticsReportScreen: React.FC<SalesAnalyticsReportScreenProp
                   )}
                 </Card>
 
-                {/* TODO note */}
                 <Card variant="outlined" padding="md" style={styles.todoCard}>
                   <View style={styles.errorContent}>
                     <FileTextIcon size={18} color={theme.colors.gray[500]} />

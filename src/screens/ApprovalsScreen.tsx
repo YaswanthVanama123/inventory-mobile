@@ -58,11 +58,9 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // Numbered pagination over the active tab's list.
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Reject-reason prompt state.
   const [promptVisible, setPromptVisible] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectTarget, setRejectTarget] = useState<
@@ -116,7 +114,6 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
     }
   }, [visible, token, loadData]);
 
-  // Switching tab or page size starts over at page 1.
   useEffect(() => {
     setPage(1);
   }, [activeTab, pageSize]);
@@ -126,7 +123,6 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
     loadData();
   };
 
-  // Invoice actions --------------------------------------------------------
   const handleApproveInvoice = async (invoiceId: string) => {
     if (!token) return;
     try {
@@ -169,7 +165,6 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
     }
   };
 
-  // Purchase deletion actions ---------------------------------------------
   const handleApproveDeletion = async (purchaseId: string) => {
     if (!token) return;
     try {
@@ -241,7 +236,6 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
   const pendingCount =
     activeTab === 'invoices' ? pendingInvoices.length : pendingDeletions.length;
 
-  // Client-side numbered pagination over the active tab's pending list.
   const activeList = activeTab === 'invoices' ? pendingInvoices : pendingDeletions;
   const totalPages = Math.max(1, Math.ceil(activeList.length / pageSize));
   const pagedList = useMemo(() => {
@@ -249,7 +243,6 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
     return activeList.slice(start, start + pageSize);
   }, [activeList, page, pageSize]);
 
-  // Approving/rejecting can shrink the list past the current page — clamp back.
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
@@ -418,7 +411,6 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -435,7 +427,6 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Tabs */}
         <View style={styles.tabBar}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'invoices' && styles.tabActive]}
@@ -529,7 +520,6 @@ export const ApprovalsScreen: React.FC<ApprovalsScreenProps> = ({
           </ScrollView>
         )}
 
-        {/* Reject reason prompt */}
         <Modal
           visible={promptVisible}
           transparent

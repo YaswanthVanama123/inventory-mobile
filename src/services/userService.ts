@@ -37,8 +37,6 @@ class UserService {
       console.log('[UserService] Users count:', result.data?.users?.length || 0);
       if (result.success && result.data) {
         const users = result.data.users || [];
-        // Stats come from the server so they cover ALL users, not just this page.
-        // Older servers didn't send them — fall back to counting the page.
         const stats = result.data.stats || {
           total: users.length,
           active: users.filter((u: any) => u.isActive).length,
@@ -176,8 +174,6 @@ class UserService {
       throw error;
     }
   }
-  // Self-service: any authenticated user can deactivate their own account.
-  // Backend route: POST /api/users/me/deactivate (no admin gate).
   async deactivateOwnAccount(token: string) {
     const url = `${API_BASE_URL}/users/me/deactivate`;
     const response = await fetch(url, {

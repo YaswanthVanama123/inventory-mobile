@@ -1,8 +1,5 @@
 import {API_BASE_URL} from '../config/api';
 
-/**
- * Enhanced fetch wrapper that handles token expiration
- */
 export const apiFetch = async (
   endpoint: string,
   options: RequestInit = {},
@@ -17,9 +14,6 @@ export const apiFetch = async (
   }
   return response;
 };
-/**
- * Check if error is token expiration
- */
 export const isTokenExpiredError = (error: any): boolean => {
   return (
     error?.status === 401 ||

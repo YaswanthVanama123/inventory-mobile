@@ -57,7 +57,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Filters
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     resource: '',
@@ -70,7 +69,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
     endDate: '',
   });
 
-  // Tabs (admin): All / Sales / Stock Changes / Deletions -> /activities endpoints.
   type ActivityTab = 'all' | 'sales' | 'stock' | 'deletions';
   const [activeTab, setActiveTab] = useState<ActivityTab>('all');
   const [employees, setEmployees] = useState<any[]>([]);
@@ -79,12 +77,10 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   const isAdmin = user?.role === 'admin';
   const listScrollRef = useRef<ScrollView>(null);
 
-  // Jump back to the top of the list whenever the page changes.
   useEffect(() => {
     listScrollRef.current?.scrollTo({y: 0, animated: true});
   }, [page]);
 
-  // Filters / tab changes reset to page 1; page changes refetch that page.
   useEffect(() => {
     setPage(1);
   }, [filters, activeTab, pageSize]);
@@ -95,7 +91,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
     }
   }, [visible, token, filters, activeTab, page, pageSize]);
 
-  // Load the employee list for the filter dropdown (admin only).
   useEffect(() => {
     if (visible && token && isAdmin && employees.length === 0) {
       activityLogService
@@ -105,7 +100,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
     }
   }, [visible, token, isAdmin]);
 
-  // Build the query params for the employee-activities endpoints.
   const buildActivityParams = (pageNum: number) => {
     const base: any = {
       page: pageNum,
@@ -114,7 +108,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
       startDate: filters.startDate,
       endDate: filters.endDate,
     };
-    // The /activities (all) endpoint additionally supports action/resource/search.
     if (activeTab === 'all') {
       base.action = filters.action;
       base.resource = filters.resource;
@@ -150,7 +143,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
         : (logsData as any).logs || [];
       const pagination = (logsData as any).pagination;
       const resolvedPages = pagination?.pages || pagination?.totalPages || 1;
-      // Deleting/filtering can leave `page` past the end — clamp to the last page.
       if (page > resolvedPages && (pagination?.total || 0) > 0) {
         setPage(resolvedPages);
         return;
@@ -313,7 +305,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
           </View>
 
           <ScrollView style={styles.filterContent}>
-            {/* Employee (admin only) */}
             {isAdmin && (
               <View style={styles.filterGroup}>
                 <Typography
@@ -341,7 +332,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
               </View>
             )}
 
-            {/* Date range (admin only) */}
             {isAdmin && (
               <View style={styles.filterGroup}>
                 <Typography
@@ -393,7 +383,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
               </View>
             )}
 
-            {/* Search */}
             <View style={styles.filterGroup}>
               <Typography
                 variant="small"
@@ -410,7 +399,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
               />
             </View>
 
-            {/* Resource */}
             {(!isAdmin || activeTab === 'all') && (
             <View style={styles.filterGroup}>
               <Typography
@@ -447,7 +435,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
             </View>
             )}
 
-            {/* Action */}
             {(!isAdmin || activeTab === 'all') && (
             <View style={styles.filterGroup}>
               <Typography
@@ -489,7 +476,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
             </View>
             )}
 
-            {/* Device */}
             {!isAdmin && (
             <View style={styles.filterGroup}>
               <Typography
@@ -523,7 +509,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
             </View>
             )}
 
-            {/* Status */}
             {!isAdmin && (
             <View style={styles.filterGroup}>
               <Typography
@@ -742,16 +727,13 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
                   Additional Details:
                 </Typography>
                 {Object.entries(log.details).map(([key, value]) => {
-                  // Skip null, undefined, or empty values
                   if (value === null || value === undefined || value === '') return null;
 
-                  // Format the key to be more readable
                   const formattedKey = key
                     .replace(/([A-Z])/g, ' $1')
                     .replace(/^./, str => str.toUpperCase())
                     .trim();
 
-                  // Format the value
                   let formattedValue: string;
                   if (typeof value === 'object') {
                     formattedValue = JSON.stringify(value);
@@ -786,7 +768,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Typography variant="h2" weight="bold">
@@ -804,10 +785,8 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
         {renderStatsCard()}
 
-        {/* Tabs (admin only) */}
         {isAdmin && (
           <View style={styles.tabBarWrap}>
             <ScrollView
@@ -845,7 +824,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
           </View>
         )}
 
-        {/* Action Bar */}
         <View style={styles.actionBar}>
           <TouchableOpacity
             style={styles.filterButton}
@@ -865,7 +843,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Logs List */}
         <ScrollView
           ref={listScrollRef}
           style={styles.scrollView}
@@ -921,7 +898,6 @@ export const ActivityLogScreen: React.FC<ActivityLogScreenProps> = ({
 
         {renderFilters()}
 
-        {/* Employee filter picker (admin) */}
         <PickerModal
           visible={showEmployeePicker}
           onClose={() => setShowEmployeePicker(false)}

@@ -7,45 +7,15 @@ import {Theme} from '../../theme';
 export type GradientColor = 'blue' | 'purple' | 'orange' | 'green' | 'teal' | 'pink' | 'indigo' | 'cyan' | 'red';
 
 export interface GradientStatCardProps {
-  /**
-   * Card title/label
-   */
   title: string;
-  /**
-   * Main value to display
-   */
   value: string | number;
-  /**
-   * Optional subtitle/description
-   */
   subtitle?: string;
-  /**
-   * Optional icon element
-   */
   icon?: React.ReactNode;
-  /**
-   * Gradient color theme
-   */
   gradientColor?: GradientColor;
-  /**
-   * Size variant
-   */
   size?: 'sm' | 'md' | 'lg';
-  /**
-   * Custom container style
-   */
   style?: ViewStyle;
-  /**
-   * Optional trend indicator (up/down)
-   */
   trend?: 'up' | 'down' | 'neutral';
 }
-/**
- * GradientStatCard - Modern stat card with gradient-inspired colors
- *
- * Provides beautiful, modern stat cards for dashboards and summary screens.
- * Uses solid colors from gradient palettes for a clean, professional look.
- */
 export const GradientStatCard: React.FC<GradientStatCardProps> = ({
   title,
   value,
@@ -90,7 +60,6 @@ export const GradientStatCard: React.FC<GradientStatCardProps> = ({
   };
   return (
     <View style={containerStyle}>
-      {/* Decorative overlay */}
       <View style={styles.overlay} />
       <View style={styles.content}>
         <View style={styles.topRow}>

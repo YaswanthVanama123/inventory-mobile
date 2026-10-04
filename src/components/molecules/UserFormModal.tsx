@@ -57,16 +57,11 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     hasNumber: false,
     hasSpecialChar: false,
   });
-  // Screen permissions — mirrors webapp UserForm behavior.
-  // Shown for employees in BOTH create and edit mode. In edit mode we also
-  // load the user's existing user-specific (non-default) permissions.
   const [allScreens, setAllScreens] = useState<Screen[]>([]);
   const [defaultScreens, setDefaultScreens] = useState<Screen[]>([]);
   const [selectedScreenIds, setSelectedScreenIds] = useState<string[]>([]);
   const [loadingScreens, setLoadingScreens] = useState(false);
 
-  // Load the screen catalog (all screens + defaults) whenever the picker is
-  // relevant: an employee is being created or edited.
   useEffect(() => {
     if (role === 'employee' && visible && allScreens.length === 0 && token) {
       const fetchScreens = async () => {
@@ -88,9 +83,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     }
   }, [role, visible, token, allScreens.length]);
 
-  // In edit mode, load the user's existing user-specific permissions so the
-  // picker reflects (and can modify) what they currently have. Mirrors the
-  // webapp's fetchUserPermissions(getUserSpecificPermissions).
   useEffect(() => {
     if (isEditMode && visible && role === 'employee' && user && token) {
       const userId = user._id || user.id;
@@ -172,7 +164,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       if (!Object.values(passwordStrength).every(Boolean)) return 'Password does not meet requirements';
       if (password !== confirmPassword) return 'Passwords do not match';
     } else {
-      // In edit mode, password is optional but must meet requirements if provided
       if (password) {
         if (!Object.values(passwordStrength).every(Boolean)) return 'Password does not meet requirements';
         if (password !== confirmPassword) return 'Passwords do not match';
@@ -199,13 +190,10 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           isActive,
           truckNumber: truckNumber.trim() || undefined,
         };
-        // Include password if admin is resetting it
         if (password) {
           updateData.password = password;
         }
         await userService.update(token, user._id, updateData);
-        // Persist screen permissions for employees (mirrors webapp UserForm
-        // which calls updateUserPermissions in edit mode too).
         if (role === 'employee') {
           try {
             const userId = user._id || user.id;
@@ -234,9 +222,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           role,
           truckNumber: truckNumber.trim() || undefined,
         });
-        // For new employees, save selected screen permissions. Mirrors
-        // webapp UserForm. Reads _id || id defensively because the backend
-        // response includes both.
         if (role === 'employee') {
           try {
             const createdUser = created?.user || {};
@@ -281,7 +266,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -294,7 +278,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
           <View style={styles.closeButton} />
         </View>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* Username (Create only) */}
           {!isEditMode && (
             <View style={styles.inputSection}>
               <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -314,7 +297,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               </Typography>
             </View>
           )}
-          {/* Email */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
               Email *
@@ -330,7 +312,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCorrect={false}
             />
           </View>
-          {/* Full Name */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
               Full Name *
@@ -344,7 +325,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCapitalize="words"
             />
           </View>
-          {/* Role */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
               Role *
@@ -358,7 +338,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               <ChevronDownIcon size={20} color={theme.colors.gray[400]} />
             </TouchableOpacity>
           </View>
-          {/* Route Name */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
               Route Name (Optional)
@@ -372,7 +351,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               autoCapitalize="characters"
             />
           </View>
-          {/* Screen Permissions (employees, create + edit) — mirrors webapp UserForm */}
           {role === 'employee' && (
             <Card variant="outlined" padding="md" style={styles.permissionsCard}>
               <Typography variant="small" weight="semibold" style={styles.inputLabel}>
@@ -452,7 +430,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               )}
             </Card>
           )}
-          {/* Password */}
           {!isEditMode ? (
             <>
               <View style={styles.inputSection}>
@@ -480,7 +457,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     )}
                   </TouchableOpacity>
                 </View>
-                {/* Password Strength Indicators */}
                 {password && (
                   <Card variant="outlined" padding="sm" style={styles.strengthCard}>
                     <Typography variant="caption" weight="semibold" style={{marginBottom: 6}}>
@@ -581,7 +557,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             </>
           ) : (
             <>
-              {/* Admin Password Reset Notice */}
               <Card variant="outlined" padding="md" style={styles.adminNoticeCard}>
                 <View style={styles.adminNoticeRow}>
                   <AlertCircleIcon size={20} color={theme.colors.primary[600]} />
@@ -624,7 +599,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 <Typography variant="caption" color={theme.colors.gray[500]} style={{marginTop: 4}}>
                   As admin, you can reset without knowing the current password
                 </Typography>
-                {/* Password Strength Indicators for Edit Mode */}
                 {password && (
                   <Card variant="outlined" padding="sm" style={styles.strengthCard}>
                     <Typography variant="caption" weight="semibold" style={{marginBottom: 6}}>
@@ -727,7 +701,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               </View>
             </>
           )}
-          {/* Status (Edit only) */}
           {isEditMode && (
             <Card variant="outlined" padding="md" style={styles.statusCard}>
               <View style={styles.switchRow}>
@@ -748,7 +721,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               </View>
             </Card>
           )}
-          {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <Button
               title={isEditMode ? 'Update User' : 'Create User'}
@@ -759,7 +731,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             />
           </View>
         </ScrollView>
-        {/* Role Picker Modal */}
         <PickerModal
           visible={rolePickerVisible}
           onClose={() => setRolePickerVisible(false)}

@@ -66,8 +66,6 @@ export const OrderVerificationScreen: React.FC<
     }
   }, [orderNumber, token]);
 
-  // Re-fetch the order whenever this screen regains focus so the receiving
-  // quantities reflect any verification done elsewhere.
   useRefetchOnFocus(() => fetchOrder());
 
   useEffect(() => {
@@ -311,7 +309,6 @@ export const OrderVerificationScreen: React.FC<
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled">
-          {/* Order summary card */}
           <View style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
               <View style={styles.flex}>
@@ -359,7 +356,6 @@ export const OrderVerificationScreen: React.FC<
             </View>
           </View>
 
-          {/* Items */}
           <View style={styles.itemsSection}>
             <View style={styles.itemsSectionHeader}>
               <Typography variant="body" weight="semibold">
@@ -461,7 +457,6 @@ export const OrderVerificationScreen: React.FC<
             })}
           </View>
 
-          {/* Notes */}
           <View style={styles.notesCard}>
             <Typography variant="body" weight="semibold" style={styles.notesLabel}>
               Notes
@@ -490,7 +485,6 @@ export const OrderVerificationScreen: React.FC<
           ) : null}
         </ScrollView>
 
-        {/* Sticky bottom bar */}
         <SafeAreaView edges={['bottom']} style={styles.bottomBarSafe}>
           <View style={styles.bottomBar}>
             <TouchableOpacity

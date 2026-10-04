@@ -75,12 +75,8 @@ export const Button: React.FC<ButtonProps> = ({
   );
 };
 const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
-  // Scale buttons up a little on big screens so they don't look tiny, but
-  // CAP full-width buttons so they stop stretching edge-to-edge on Mac/iPad.
   const padScale = bp.isWide ? 1.35 : bp.isDesktop ? 1.18 : 1;
   const fontScale = bp.isWide ? 1.22 : bp.isDesktop ? 1.12 : 1;
-  // Largest a "full width" button is allowed to grow to on big screens; it
-  // fills its container on phones (undefined cap) and centers when capped.
   const fullMaxWidth = bp.isWide ? 560 : bp.isDesktop ? 480 : undefined;
   const sz = theme.typography.fontSizes;
   const r = (n: number) => Math.round(n);

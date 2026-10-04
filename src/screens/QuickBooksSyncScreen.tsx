@@ -255,7 +255,6 @@ export const QuickBooksSyncScreen: React.FC<QuickBooksSyncScreenProps> = ({
                   </Typography>
                 ) : null}
 
-                {/* Stat cards */}
                 <View style={styles.statsGrid}>
                   <StatCard
                     label="Pending"
@@ -289,7 +288,6 @@ export const QuickBooksSyncScreen: React.FC<QuickBooksSyncScreenProps> = ({
                   />
                 </View>
 
-                {/* Admin action */}
                 {isAdmin && (
                   <View style={styles.actionContainer}>
                     <Button
@@ -303,7 +301,6 @@ export const QuickBooksSyncScreen: React.FC<QuickBooksSyncScreenProps> = ({
                   </View>
                 )}
 
-                {/* Status filter chips */}
                 <View style={styles.filterRow}>
                   {filterOptions.map(opt => {
                     const active = statusFilter === opt.key;

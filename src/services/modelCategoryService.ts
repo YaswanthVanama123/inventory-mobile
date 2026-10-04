@@ -1,13 +1,6 @@
 import {API_BASE_URL} from '../config/api';
 
 class ModelCategoryService {
-  /**
-   * Fetch one page of unique models. The backend paginates (default limit 20)
-   * and applies `search`/`status` server-side over the FULL set, so these
-   * params must be forwarded — otherwise only the first 20 of ~336 models are
-   * ever visible and searching can't reach the rest (notably manual PO items,
-   * which sort after the CustomerConnect SKUs).
-   */
   async getUniqueModels(
     token: string,
     params: {

@@ -48,7 +48,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
 
   useEffect(() => {
     if (visible) {
-      // Default to remaining quantity
       setReceivedQty(remainingQty.toString());
       setNotes('');
     }
@@ -73,7 +72,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <Card variant="elevated" padding="none" style={styles.card}>
-            {/* Header */}
             <View style={styles.header}>
               <View style={styles.headerContent}>
                 <Typography variant="h3" weight="bold">
@@ -92,7 +90,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
             </View>
 
             <ScrollView style={styles.scrollView}>
-              {/* Order Details */}
               <View style={styles.section}>
                 <Typography
                   variant="small"
@@ -137,7 +134,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                 </View>
               </View>
 
-              {/* Quantity Information */}
               <View style={styles.section}>
                 <Typography
                   variant="small"
@@ -174,7 +170,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                 </View>
               </View>
 
-              {/* Input Section */}
               <View style={styles.section}>
                 <Typography
                   variant="small"
@@ -193,7 +188,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                 />
               </View>
 
-              {/* Notes Section */}
               <View style={styles.section}>
                 <Typography
                   variant="small"
@@ -214,7 +208,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                 />
               </View>
 
-              {/* Verification History */}
               {verificationHistory.length > 0 && (
                 <View style={styles.section}>
                   <Typography
@@ -264,7 +257,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                         </View>
                       </View>
                     ))}
-                    {/* Total */}
                     <View style={styles.historyTotal}>
                       <Typography variant="small" weight="semibold" color={theme.colors.gray[700]}>
                         Total Previously Received:
@@ -278,7 +270,6 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
               )}
             </ScrollView>
 
-            {/* Footer Actions */}
             <View style={styles.footer}>
               <TouchableOpacity
                 style={styles.cancelButton}

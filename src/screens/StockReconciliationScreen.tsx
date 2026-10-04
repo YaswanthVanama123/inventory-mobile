@@ -29,11 +29,9 @@ interface StockReconciliationScreenProps {
   onClose: () => void;
 }
 
-// Per-SKU reconciliation row shape returned by GET /stock-reconciliation.
 interface ReconItem {
   sku: string;
   name: string;
-  // How many selling units one purchased case holds (1 when not mapped).
   unitsPerCase?: number;
   purchased: {
     quantity: number;
@@ -108,7 +106,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
     loadData();
   };
 
-  // Reset to page 1 whenever the status filter changes.
   useEffect(() => {
     setPage(1);
   }, [filter]);
@@ -176,7 +173,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -224,7 +220,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
               />
             }>
             <View style={styles.contentWrap}>
-              {/* TODO: CSV export ("Download Report") — skipped in mobile port. */}
 
               {error && (
                 <Card variant="outlined" padding="lg" style={styles.errorCard}>
@@ -237,7 +232,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
                 </Card>
               )}
 
-              {/* Summary cards */}
               {summary && (
                 <View style={styles.summaryGrid}>
                   <Card variant="elevated" padding="md" style={styles.summaryCard}>
@@ -275,7 +269,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
                 </View>
               )}
 
-              {/* Status filter tabs */}
               <View style={styles.filterChips}>
                 {filterTabs.map(tab => {
                   const active = filter === tab.key;
@@ -296,7 +289,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
                 })}
               </View>
 
-              {/* Empty state */}
               {!error && items.length === 0 && (
                 <Card variant="outlined" padding="lg" style={styles.emptyCard}>
                   <BoxIcon size={48} color={theme.colors.gray[400]} />
@@ -313,7 +305,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
                 </Card>
               )}
 
-              {/* Filtered-empty state */}
               {!error && items.length > 0 && filteredItems.length === 0 && (
                 <Card variant="outlined" padding="lg" style={styles.emptyCard}>
                   <BoxIcon size={40} color={theme.colors.gray[400]} />
@@ -327,7 +318,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
                 </Card>
               )}
 
-              {/* Per-SKU cards */}
               {pagedItems.map((item, index) => {
                 const status = statusFromItem(item);
                 const palette = statusPalette(status);
@@ -412,7 +402,6 @@ export const StockReconciliationScreen: React.FC<StockReconciliationScreenProps>
                 );
               })}
 
-              {/* Pagination */}
               {filteredItems.length > 0 && (
                 <Pagination
                   currentPage={page}

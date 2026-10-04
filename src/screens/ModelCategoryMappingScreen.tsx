@@ -68,9 +68,6 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
   const heroSlide = useRef(new Animated.Value(0)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
-  // Server-side numbered pagination. Search + status filter run on the backend
-  // over the FULL model set (~336 rows across CustomerConnect + manual PO
-  // items), so results are never limited to a locally-held first page.
   const {
     items: pageModels,
     page,
@@ -107,17 +104,14 @@ export const ModelCategoryMappingScreen: React.FC<ModelCategoryMappingScreenProp
     },
   );
 
-  // Keep the editable copy in sync with the freshly-fetched page.
   useEffect(() => {
     setModels(pageModels);
   }, [pageModels]);
 
-  // Stats come from the backend, computed over the full (unfiltered) set.
   useEffect(() => {
     if (extra) setStats(extra);
   }, [extra]);
 
-  // RouteStar items are a separate, unpaginated lookup for the category picker.
   useEffect(() => {
     if (!visible || !token) return;
     modelCategoryService

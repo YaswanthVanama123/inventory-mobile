@@ -26,7 +26,6 @@ interface SettingsScreenProps {
   onClose: () => void;
 }
 
-// Normalizes an ISO date (or date-only) string into YYYY-MM-DD for the input.
 const toDateInput = (value?: string | null): string => {
   if (!value) return '';
   try {
@@ -125,7 +124,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -181,7 +179,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 </Card>
               )}
 
-              {/* Stock Calculation Cutoff Date */}
               <Card variant="elevated" padding="lg" style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
                   <ClockIcon size={20} color={theme.colors.primary[600]} />
@@ -223,7 +220,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 </View>
               </Card>
 
-              {/* Low Stock Threshold */}
               <Card variant="elevated" padding="lg" style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
                   <WarningIcon size={20} color={theme.colors.warning[600]} />

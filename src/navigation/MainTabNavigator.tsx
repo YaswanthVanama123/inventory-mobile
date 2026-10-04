@@ -60,8 +60,6 @@ export const MainTabNavigator = () => {
 
   const visibleTabs = TABS.filter(t => isAdmin || hasAccessToAnyScreen(t.paths));
 
-  // On Mac / desktop-width, render a left sidebar (matching the webapp) instead
-  // of the bottom tab bar. Phone & small tablet keep the bottom tabs.
   const wide = breakpoint.isDesktop || breakpoint.isWide;
 
   const labelFontSize = breakpoint.isWide ? 16 : breakpoint.isDesktop ? 15 : breakpoint.isTablet ? 13 : 11;

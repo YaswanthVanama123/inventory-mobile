@@ -7,7 +7,6 @@ export interface ManualPOItem {
   mappedCategoryItemId?: string;
   mappedCategoryItemName?: string;
   itemType?: string;
-  // Vendor is informational (tracking only) — matches the webapp form.
   vendorId?: any;
   vendorName?: string | null;
   isActive: boolean;
@@ -42,7 +41,6 @@ class ManualPOItemService {
     });
     if (!response.ok) throw new Error('Failed to fetch manual PO items');
     const result = await response.json();
-    // Backend returns: { success, data: { items: [...], total, page, pages } }
     const data = result.data || {};
     const items = data.items || result.items || (Array.isArray(data) ? data : []);
     return {
@@ -74,8 +72,6 @@ class ManualPOItemService {
     const result = await response.json();
     console.log('[ManualPOItemService] Raw result:', JSON.stringify(result, null, 2));
 
-    // Backend returns: { success: true, data: { items: [...], total: 1 } }
-    // So we need to access result.data.items, not result.data
     const items = result.data?.items || result.data || result.items || [];
     console.log('[ManualPOItemService] Returning items:', items.length, 'items');
 
@@ -126,9 +122,6 @@ class ManualPOItemService {
     }
   }
 
-  // Source list for the "Map to Inventory Item" picker. The backend
-  // /manual-po-items/routestar-items endpoint returns the same canonical +
-  // RouteStar item list the webapp ManualPOItems page uses.
   async getRouteStarItems(token: string): Promise<RouteStarPickerItem[]> {
     const url = `${API_BASE_URL}/manual-po-items/routestar-items`;
     const response = await fetch(url, {
@@ -147,8 +140,6 @@ class ManualPOItemService {
   }
 }
 
-// Pull a useful message out of the backend's JSON error body so users see
-// real errors like "SKU 'X' already exists" instead of a generic fallback.
 async function extractErrorMessage(response: Response, fallback: string): Promise<string> {
   try {
     const body = await response.json();

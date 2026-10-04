@@ -43,12 +43,9 @@ export const OrderDiscrepancyListScreen: React.FC<
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(true);
-  // Full-screen spinner only until the first load finishes; searches and
-  // filters refresh just the list (keeps the search box focused).
   const [hasLoaded, setHasLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
-  // Ticked rows for the admin bulk-purge bar.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const toggleSelected = (id: string) => {
@@ -73,7 +70,6 @@ export const OrderDiscrepancyListScreen: React.FC<
     pages: 0,
   });
 
-  // Reset to the first page whenever the type filter or search changes.
   useEffect(() => {
     setPage(1);
   }, [typeFilter, debouncedSearch]);
@@ -84,8 +80,6 @@ export const OrderDiscrepancyListScreen: React.FC<
     }
   }, [token, typeFilter, debouncedSearch, page, pageSize]);
 
-  // Refresh the discrepancy list whenever this screen regains focus (e.g. after
-  // verifying an order, which can create new discrepancies).
   useRefetchOnFocus(() => loadData());
 
   const loadData = async () => {
@@ -180,7 +174,6 @@ export const OrderDiscrepancyListScreen: React.FC<
     return theme.colors.success[700];
   };
 
-  // Search and type filtering are handled server-side; render the current page as-is.
   const filteredDiscrepancies = discrepancies;
 
   const formatDate = (date: string) => {
@@ -208,7 +201,6 @@ export const OrderDiscrepancyListScreen: React.FC<
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      {/* Header */}
       <View style={styles.header}>
         <Typography variant="h2" style={styles.headerTitle}>
           Order Discrepancies
@@ -218,7 +210,6 @@ export const OrderDiscrepancyListScreen: React.FC<
         </Typography>
       </View>
 
-      {/* Compact Stats */}
       {stats && (
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
@@ -248,7 +239,6 @@ export const OrderDiscrepancyListScreen: React.FC<
         </View>
       )}
 
-      {/* Search */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -259,7 +249,6 @@ export const OrderDiscrepancyListScreen: React.FC<
         />
       </View>
 
-      {/* Type Filter */}
       <View style={styles.filterContainer}>
         <ScrollView
           horizontal
@@ -293,7 +282,6 @@ export const OrderDiscrepancyListScreen: React.FC<
         </ScrollView>
       </View>
 
-      {/* Admin-only permanent delete controls */}
       <View style={styles.purgeBarWrap}>
         <BulkPurgeBar
           type="order-discrepancies"
@@ -306,7 +294,6 @@ export const OrderDiscrepancyListScreen: React.FC<
         />
       </View>
 
-      {/* Discrepancy List */}
       <PaginatedList
         data={filteredDiscrepancies}
         keyExtractor={(item) => item._id}
@@ -349,7 +336,6 @@ export const OrderDiscrepancyListScreen: React.FC<
           return (
             <Card
               style={styles.discrepancyCard}>
-              {/* Clickable Row Header */}
               <TouchableOpacity
                 style={[
                   styles.rowHeader,
@@ -359,12 +345,10 @@ export const OrderDiscrepancyListScreen: React.FC<
                   setExpandedRow(isExpanded ? null : discrepancy._id)
                 }
                 activeOpacity={0.7}>
-                {/* Select for permanent delete */}
                 <Checkbox
                   checked={selectedIds.has(discrepancy._id)}
                   onChange={() => toggleSelected(discrepancy._id)}
                 />
-                {/* Chevron */}
                 <View style={styles.chevronContainer}>
                   {isExpanded ? (
                     <ChevronDownIcon size={18} color={theme.colors.primary[600]} />
@@ -373,7 +357,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                   )}
                 </View>
 
-                {/* Item Info */}
                 <View style={styles.rowInfo}>
                   <View style={styles.rowTitleRow}>
                     <Typography variant="body2" style={styles.itemName} numberOfLines={1}>
@@ -398,7 +381,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                   </View>
                 </View>
 
-                {/* Right side: diff + type badge */}
                 <View style={styles.rowRight}>
                   <View
                     style={[
@@ -436,10 +418,8 @@ export const OrderDiscrepancyListScreen: React.FC<
                 </View>
               </TouchableOpacity>
 
-              {/* Expanded Detail Panel */}
               {isExpanded && (
                 <View style={styles.expandedPanel}>
-                  {/* Quantity Grid */}
                   <View style={styles.quantityGrid}>
                     <View style={styles.quantityBox}>
                       <Typography variant="body2" style={styles.quantityLabel}>
@@ -479,7 +459,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                     </View>
                   </View>
 
-                  {/* Details Section */}
                   <View style={styles.detailSection}>
                     <View style={styles.detailRow}>
                       <Typography variant="body2" style={styles.detailLabel}>
@@ -548,7 +527,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                     </View>
                   </View>
 
-                  {/* Notes Section */}
                   {(discrepancy.notes || discrepancy.resolutionNotes) && (
                     <View style={styles.notesSection}>
                       {discrepancy.notes && (
@@ -578,7 +556,6 @@ export const OrderDiscrepancyListScreen: React.FC<
                     </View>
                   )}
 
-                  {/* Delete Button */}
                   <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => handleDelete(discrepancy)}>
@@ -658,8 +635,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   },
   searchInput: {
     backgroundColor: theme.colors.gray[100],
-    // Border keeps the field visible in dark mode, where gray[100] matches the
-    // surrounding surface (same as the shared SearchBar).
     borderWidth: 1,
     borderColor: theme.colors.gray[200],
     borderRadius: 8,

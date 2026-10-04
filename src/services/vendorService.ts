@@ -30,7 +30,6 @@ class VendorService {
     });
     if (!response.ok) throw new Error('Failed to fetch vendors');
     const result = await response.json();
-    // Backend returns: { success, data: { vendors: [...], total, page, pages } }
     const data = result.data || {};
     const vendors = data.vendors || result.vendors || (Array.isArray(data) ? data : []);
     return {
@@ -49,7 +48,6 @@ class VendorService {
     });
     if (!response.ok) throw new Error('Failed to fetch active vendors');
     const result = await response.json();
-    // Backend returns: { success: true, data: { vendors: [...], total: 1 } }
     const vendors = result.data?.vendors || result.data || result.vendors || [];
     return Array.isArray(vendors) ? vendors : [];
   }

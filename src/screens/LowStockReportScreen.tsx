@@ -27,9 +27,6 @@ import {
   BarChartIcon,
 } from '../components/icons';
 
-// NOTE: CSV/PDF export from the web report is intentionally omitted on mobile.
-// TODO: add CSV/PDF export (share sheet) if product wants parity with the webapp.
-
 type Priority = 'critical' | 'high' | 'medium' | 'low';
 type PriorityFilter = 'all' | 'critical' | 'high' | 'medium';
 
@@ -51,8 +48,6 @@ interface LowStockReportScreenProps {
   onClose: () => void;
 }
 
-// Mirror of the webapp getPriorityLevel: 0 stock = critical, else by
-// (currentStock / reorderPoint) * 100 — <=25 high, <=50 medium, else low.
 const getPriorityLevel = (currentStock: number, reorderPoint: number): Priority => {
   if (currentStock === 0) return 'critical';
   const pct = reorderPoint > 0 ? (currentStock / reorderPoint) * 100 : 100;
@@ -75,9 +70,6 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [filterPriority, setFilterPriority] = useState<PriorityFilter>('all');
 
-  // reorder-list has no server pagination/search, so we fetch the full list once
-  // (backend-debounced via the resetKey) and filter + slice client-side inside
-  // fetchPage — still driven through useServerPagination for the numbered control.
   const {
     items,
     page,
@@ -117,7 +109,6 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
           return matchesSearch && matchesPriority;
         });
 
-        // Stat counts are computed over the *unfiltered* set (like the webapp).
         const stats = {
           total: all.length,
           critical: all.filter(i => getPriorityLevel(i.currentStock, i.reorderPoint) === 'critical').length,
@@ -258,7 +249,6 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>
-                {/* Stat cards */}
                 <View style={styles.statsGrid}>
                   <StatCard
                     label="Total Items"
@@ -292,7 +282,6 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
                   />
                 </View>
 
-                {/* Search */}
                 <View style={styles.searchContainer}>
                   <RNTextInput
                     style={styles.searchInput}
@@ -303,7 +292,6 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
                   />
                 </View>
 
-                {/* Priority filter chips */}
                 <View style={styles.filterRow}>
                   {filterOptions.map(opt => {
                     const active = filterPriority === opt.key;
@@ -397,7 +385,6 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
                     </View>
                   </View>
 
-                  {/* Stock level */}
                   <View style={styles.stockBlock}>
                     <View style={styles.stockRow}>
                       <Typography variant="small" color={theme.colors.gray[700]}>
@@ -425,7 +412,6 @@ export const LowStockReportScreen: React.FC<LowStockReportScreenProps> = ({
                     </View>
                   </View>
 
-                  {/* Supplier */}
                   {hasSupplier && (
                     <View style={styles.supplierBlock}>
                       <Typography variant="caption" weight="semibold" color={theme.colors.primary[900]} style={{marginBottom: 4}}>

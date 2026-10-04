@@ -167,7 +167,6 @@ export const ReportsHubScreen: React.FC<ReportsHubScreenProps> = ({
               </View>
             ) : (
               <>
-                {/* Low stock alert banner */}
                 {!!summary?.lowStockCount && summary.lowStockCount > 0 && (
                   <Card variant="outlined" padding="lg" style={styles.alertBanner}>
                     <View style={styles.alertContent}>
@@ -190,7 +189,6 @@ export const ReportsHubScreen: React.FC<ReportsHubScreenProps> = ({
                   </Card>
                 )}
 
-                {/* Summary cards */}
                 <View style={styles.cardsGrid}>
                   {summaryCards.map(c => (
                     <Card key={c.label} variant="elevated" padding="lg" style={styles.summaryCard}>
@@ -210,7 +208,6 @@ export const ReportsHubScreen: React.FC<ReportsHubScreenProps> = ({
                   ))}
                 </View>
 
-                {/* Top selling items */}
                 <Card variant="elevated" padding="lg" style={styles.section}>
                   <View style={styles.tableTitleRow}>
                     <BarChartIcon size={18} color={theme.colors.gray[600]} />

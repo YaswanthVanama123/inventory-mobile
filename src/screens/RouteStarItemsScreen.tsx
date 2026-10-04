@@ -80,7 +80,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
 
   const filterKey = `${debouncedSearch}|${filterForUse}|${filterForSell}|${filterMapped}|${selectedParent}|${selectedType}|${selectedCategory}`;
 
-  // Server-side numbered pagination — replaces the old hardcoded limit:100/page:1.
   const {
     items,
     setItems,
@@ -125,7 +124,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
   const loadData = refetch;
   const onRefresh = refresh;
 
-  // Keep stats + filter dropdown options in sync with the latest page fetch.
   useEffect(() => {
     if (extra?.stats) setStats(extra.stats);
     if (extra?.filters) setFilterOptions(extra.filters);
@@ -574,9 +572,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                       <BoxIcon size={20} color={isMapped ? theme.colors.success[600] : theme.colors.warning[600]} />
                     </View>
                     <View style={styles.itemInfo}>
-                      {/* The name gets its own full-width line — badges on the
-                          same row would compete for space and shrink long
-                          canonical names away to nothing. */}
                       <Typography variant="body" weight="bold" numberOfLines={2}>
                         {item.itemName}
                       </Typography>
@@ -585,10 +580,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                       </Typography>
                       {item.mergedCount > 1 || item.hasMasterRecord === false ? (
                         <View style={styles.itemBadgeRow}>
-                          {/* Alias-mapped rows are MERGED under their canonical
-                              name by the backend, so the alias spellings are
-                              not separate rows. Surface that here (as the
-                              webapp does) or they look like they vanished. */}
                           {item.mergedCount > 1 ? (
                             <View style={styles.mergedPill}>
                               <Typography
@@ -599,9 +590,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                               </Typography>
                             </View>
                           ) : null}
-                          {/* Canonical group built only from CustomerConnect /
-                              Manual PO names — no RouteStarItem behind it, so
-                              usage flags can't be set. */}
                           {item.hasMasterRecord === false ? (
                             <View style={styles.noMasterPill}>
                               <Typography
@@ -684,9 +672,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
                       </Typography>
                     </View>
                     {item.mergedCount > 1 && Array.isArray(item.variations) ? (
-                      /* Alias names are long invoice-style descriptions, so
-                         stack them one per line instead of cramming them into
-                         a right-aligned value that truncates mid-word. */
                       <View style={styles.mergedFromBlock}>
                         <Typography variant="caption" color={theme.colors.gray[500]}>
                           Merged from
@@ -711,9 +696,6 @@ export const RouteStarItemsScreen: React.FC<RouteStarItemsScreenProps> = ({
 
                   {isExpanded && (
                     <View style={styles.expandedContent}>
-                      {/* Purchased-only rows have no RouteStarItem behind them,
-                          so flags and category can never be written. Show the
-                          reason instead of controls that do nothing. */}
                       {item.hasMasterRecord === false ? (
                         <View style={styles.noMasterNotice}>
                           <WarningIcon size={14} color={theme.colors.warning[700]} />

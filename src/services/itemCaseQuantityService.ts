@@ -26,13 +26,6 @@ export interface CaseQuantityStats {
   bulk: number;
 }
 
-/**
- * Case Quantity (pack size) mappings.
- *
- * Purchase orders count in cases; stock, sales and truck checkouts count in
- * single selling units. These mappings say how many units a case holds so one
- * purchased case of 200 adds 200 units while one sale removes one unit.
- */
 class ItemCaseQuantityService {
   async getPurchasedItems(
     token: string,

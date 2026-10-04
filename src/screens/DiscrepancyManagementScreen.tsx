@@ -87,7 +87,6 @@ const getOrderStatusColors = (status: string, theme: Theme) => {
 
 const getDiscrepancySource = (discrepancy: any): string => {
   const invoiceNumber = discrepancy.invoiceNumber || '';
-  // Truck discrepancies from TruckDiscrepancy collection
   if (discrepancy._discrepancySource === 'truck') return 'truck-return';
   if (invoiceNumber === 'STOCK-ADJUSTMENT') return 'stock-adjustment';
   if (invoiceNumber.startsWith('CHECKOUT-') || discrepancy.invoiceType === 'TruckCheckout')
@@ -133,7 +132,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
-  // Ticked rows for the admin bulk-purge bar.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const toggleSelected = (id: string) => {
@@ -162,7 +160,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     pages: number;
   }>({total: 0, page: 1, limit: PAGE_SIZE, pages: 1});
 
-  // Order tab state
   const [orderDiscrepancies, setOrderDiscrepancies] = useState<any[]>([]);
   const [orderExpandedRow, setOrderExpandedRow] = useState<string | null>(null);
   const [orderStatusFilter, setOrderStatusFilter] = useState('');
@@ -174,7 +171,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     pages: number;
   }>({total: 0, page: 1, limit: PAGE_SIZE, pages: 1});
 
-  // Reset to page 1 when switching top tab, sub-tab, status filter, or search.
   useEffect(() => {
     setPage(1);
   }, [topTab, activeTab, filters.status, debouncedSearch]);
@@ -454,7 +450,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
     }
   };
 
-  // Text search runs on the backend; only the source tab is filtered locally.
   const filteredDiscrepancies = discrepancies.filter(d => {
     const source = getDiscrepancySource(d);
     if (activeTab !== 'all' && source !== activeTab) return false;
@@ -577,7 +572,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
 
         {isExpanded && (
           <View style={styles.expandedPanel}>
-            {/* Status badge */}
             <View style={styles.sourceRow}>
               <View style={[styles.badge, {backgroundColor: statusColors.bg}]}>
                 <Typography
@@ -589,7 +583,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
               </View>
             </View>
 
-            {/* Quantities Grid */}
             <View style={styles.quantityGrid}>
               <View style={styles.quantityBox}>
                 <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -631,7 +624,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
               </View>
             </View>
 
-            {/* Details */}
             <View style={styles.detailSection}>
               <View style={styles.detailRow}>
                 <Typography variant="small" color={theme.colors.gray[500]}>
@@ -673,7 +665,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
               </View>
             </View>
 
-            {/* Approve / Reject for pending */}
             {discrepancy.status === 'pending' && (
               <View style={styles.actionRow}>
                 <TouchableOpacity
@@ -699,7 +690,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
               </View>
             )}
 
-            {/* Delete (admin) */}
             {user?.role === 'admin' && (
               <TouchableOpacity
                 style={styles.deleteButton}
@@ -721,7 +711,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
   return (
     <Modal visible={visible} animationType="slide">
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Typography variant="h2" weight="bold">
@@ -738,7 +727,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           </TouchableOpacity>
         </View>
 
-        {/* Top-level Tab Switcher */}
         <View style={styles.topTabContainer}>
           {TOP_TABS.map(tab => {
             const isActive = topTab === tab.id;
@@ -766,7 +754,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
 
         {topTab === 'stock' && (
           <>
-        {/* Record Discrepancy (admin) */}
         {user?.role === 'admin' && (
           <View style={styles.recordButtonContainer}>
             <Button
@@ -778,7 +765,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
             />
           </View>
         )}
-        {/* Summary Cards */}
         {summary && (
           <View style={styles.summaryContainer}>
             <View style={styles.summaryGrid}>
@@ -813,7 +799,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           </View>
         )}
 
-        {/* Source Tabs */}
         <View style={styles.tabContainer}>
           <ScrollView
             horizontal
@@ -857,7 +842,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           </ScrollView>
         </View>
 
-        {/* Search */}
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -868,7 +852,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           />
         </View>
 
-        {/* Status Filter */}
         <View style={styles.filterContainer}>
           <ScrollView
             horizontal
@@ -905,7 +888,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           </ScrollView>
         </View>
 
-        {/* Admin-only permanent delete controls */}
         <View style={styles.purgeBarWrap}>
           <BulkPurgeBar
             type="stock-discrepancies"
@@ -918,7 +900,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
           />
         </View>
 
-        {/* Discrepancies List */}
         <PaginatedList
           data={filteredDiscrepancies}
           keyExtractor={(item) => item._id}
@@ -968,7 +949,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                 variant="elevated"
                 padding="none"
                 style={styles.discrepancyCard}>
-                {/* Clickable Row Header */}
                 <TouchableOpacity
                   style={[
                     styles.discrepancyHeader,
@@ -1002,7 +982,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                     </View>
                   </View>
                   <View style={styles.rowRight}>
-                    {/* Difference badge */}
                     <View
                       style={[
                         styles.diffBadge,
@@ -1025,7 +1004,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                         {discrepancy.difference}
                       </Typography>
                     </View>
-                    {/* Status badge */}
                     <View style={[styles.badge, {backgroundColor: statusColors.bg}]}>
                       {getStatusIcon(discrepancy.status)}
                       <Typography
@@ -1039,10 +1017,8 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                   </View>
                 </TouchableOpacity>
 
-                {/* Expanded Detail Panel */}
                 {isExpanded && (
                   <View style={styles.expandedPanel}>
-                    {/* Source Badge */}
                     {activeTab === 'all' && (
                       <View style={styles.sourceRow}>
                         <View
@@ -1068,7 +1044,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                       </View>
                     )}
 
-                    {/* Quantities Grid */}
                     <View style={styles.quantityGrid}>
                       <View style={styles.quantityBox}>
                         <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -1114,7 +1089,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                       </View>
                     </View>
 
-                    {/* Details */}
                     <View style={styles.detailSection}>
                       {discrepancy.itemSku && (
                         <View style={styles.detailRow}>
@@ -1165,7 +1139,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                       </View>
                     </View>
 
-                    {/* Reason & Notes */}
                     {(discrepancy.reason || discrepancy.notes) && (
                       <View style={styles.notesSection}>
                         {discrepancy.reason && (
@@ -1203,7 +1176,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                       </View>
                     )}
 
-                    {/* Resolution Info */}
                     {discrepancy.resolvedBy && (
                       <View style={styles.resolutionSection}>
                         <Typography
@@ -1244,7 +1216,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
                       </View>
                     )}
 
-                    {/* Delete Button */}
                     {user?.role === 'admin' && (
                       <TouchableOpacity
                         style={styles.deleteButton}
@@ -1268,7 +1239,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
 
         {topTab === 'order' && (
           <>
-            {/* Order Status Filter */}
             <View style={styles.filterContainer}>
               <ScrollView
                 horizontal
@@ -1303,7 +1273,6 @@ export const DiscrepancyManagementScreen: React.FC<DiscrepancyManagementScreenPr
               </ScrollView>
             </View>
 
-            {/* Order Discrepancy List */}
             <PaginatedList
               data={orderDiscrepancies}
               keyExtractor={(item) => item._id}
@@ -1399,7 +1368,6 @@ const RecordDiscrepancyModal: React.FC<RecordDiscrepancyModalProps> = ({
   });
   const [actualQtyText, setActualQtyText] = useState('');
 
-  // Debounced invoice search.
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -1426,7 +1394,6 @@ const RecordDiscrepancyModal: React.FC<RecordDiscrepancyModalProps> = ({
     };
   }, [debouncedInvoiceSearch]);
 
-  // Auto-detect discrepancy type from quantities.
   useEffect(() => {
     const diff = form.actualQuantity - form.systemQuantity;
     let type = '';
@@ -1537,7 +1504,6 @@ const RecordDiscrepancyModal: React.FC<RecordDiscrepancyModalProps> = ({
             style={styles.sheetBody}
             contentContainerStyle={styles.sheetBodyContent}
             keyboardShouldPersistTaps="handled">
-            {/* Invoice search */}
             <Typography variant="small" weight="semibold" style={styles.fieldLabel}>
               Invoice Number *
             </Typography>
@@ -1583,7 +1549,6 @@ const RecordDiscrepancyModal: React.FC<RecordDiscrepancyModalProps> = ({
               </View>
             )}
 
-            {/* Line item select */}
             {selectedInvoice &&
               Array.isArray(selectedInvoice.lineItems) &&
               selectedInvoice.lineItems.length > 0 && (
@@ -1620,7 +1585,6 @@ const RecordDiscrepancyModal: React.FC<RecordDiscrepancyModalProps> = ({
                 </>
               )}
 
-            {/* Quantities + type */}
             {form.itemName ? (
               <>
                 <Typography

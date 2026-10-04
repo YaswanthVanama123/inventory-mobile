@@ -38,9 +38,6 @@ type SideItem =
 
 type SideGroup = {title: string; items: SideItem[]};
 
-// Mirrors the webapp sidebar structure and order (inventory-webapp Sidebar.jsx),
-// listing only the screens it shows. adminOnly = in the webapp's admin menu but
-// not its employee menu.
 const GROUPS: SideGroup[] = [
   {
     title: 'CORE',

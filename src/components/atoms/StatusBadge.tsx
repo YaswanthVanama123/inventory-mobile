@@ -15,37 +15,12 @@ import {
 export type StatusType = 'invoice' | 'payment' | 'stock' | 'order' | 'fetch' | 'general';
 
 export interface StatusBadgeProps {
-  /**
-   * The status value to display (e.g., 'paid', 'pending', 'completed')
-   */
   status: string;
-  /**
-   * The type of status, determines which color palette to use
-   */
   type: StatusType;
-  /**
-   * Size variant of the badge
-   */
   size?: 'sm' | 'md' | 'lg';
-  /**
-   * Custom container style
-   */
   style?: ViewStyle;
-  /**
-   * Custom text style
-   */
   textStyle?: TextStyle;
 }
-/**
- * StatusBadge - Reusable status indicator component
- *
- * Automatically applies correct colors based on status type and value.
- * Provides consistent styling across all status indicators in the app.
- *
- * @example
- * <StatusBadge status="paid" type="invoice" />
- * <StatusBadge status="overdue" type="payment" size="sm" />
- */
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   type,

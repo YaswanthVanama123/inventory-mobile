@@ -27,9 +27,6 @@ const baseTokens = {
   },
 };
 
-// Shadows are intentionally disabled app-wide (flat UI). Every token resolves
-// to a no-op so existing `...theme.shadows.X` spreads keep working but render
-// flat. To re-enable shadows, restore real values here.
 const noShadow = {
   shadowColor: 'transparent',
   shadowOffset: {width: 0, height: 0},
@@ -63,8 +60,6 @@ export const darkTheme = {
   ...baseTokens,
 };
 
-// Backwards-compat default. Files that still `import {theme}` get the light theme;
-// they won't react to mode changes until migrated to useTheme().
 export const theme = lightTheme;
 
 export type Theme = typeof lightTheme;

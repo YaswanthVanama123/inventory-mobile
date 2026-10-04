@@ -1,8 +1,3 @@
-/**
- * Inventory Management Mobile App
- *
- * @format
- */
 
 import React, {useState} from 'react';
 import {StatusBar, View} from 'react-native';

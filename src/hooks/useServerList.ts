@@ -7,21 +7,11 @@ export interface ServerPageResult<T> {
 }
 
 interface UseServerListOptions {
-  /** Rows per page (default 20). */
   limit?: number;
-  /** Change this (search text / active tab) to reload from page 1. */
   resetKey?: unknown;
-  /** Gate fetching (e.g. wait for token / modal visible). */
   enabled?: boolean;
 }
 
-/**
- * Server-side pagination for mobile lists. Calls `fetchPage(page, limit)` (which
- * should hit the backend with `?page=&limit=`), accumulates pages as the user
- * scrolls, and exposes the flags the (server-mode) PaginatedList needs.
- *
- * `fetchPage` must resolve to `{ items, total?, pages? }`.
- */
 export function useServerList<T>(
   fetchPage: (page: number, limit: number) => Promise<ServerPageResult<T>>,
   {limit = 20, resetKey, enabled = true}: UseServerListOptions = {},
@@ -34,8 +24,6 @@ export function useServerList<T>(
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Always call the latest fetcher (which closes over the current search text)
-  // without making it a reload trigger.
   const fetchRef = useRef(fetchPage);
   fetchRef.current = fetchPage;
 
@@ -65,7 +53,6 @@ export function useServerList<T>(
     [enabled, limit],
   );
 
-  // Initial load + reload whenever the reset key changes.
   useEffect(() => {
     if (enabled) {
       load(1, 'initial');

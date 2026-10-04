@@ -41,7 +41,6 @@ interface InventoryCatalogScreenProps {
   onClose: () => void;
 }
 
-// Units of measurement — identical set/order to the web InventoryForm.
 const UNIT_OPTIONS: {label: string; value: string}[] = [
   {label: 'Pieces', value: 'pieces'},
   {label: 'Kilograms (kg)', value: 'kg'},
@@ -64,7 +63,6 @@ const UNIT_OPTIONS: {label: string; value: string}[] = [
 ];
 
 const generateSku = (seed: number) => {
-  // Mirror the web SKU-YYYYMMDD-HHMMSS-mmm format. `seed` varies the value.
   const now = new Date(seed);
   const p = (n: number, l = 2) => String(n).padStart(l, '0');
   return `SKU-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(
@@ -88,12 +86,10 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
   const [statusFilter, setStatusFilter] = useState<'all' | 'low' | 'adequate'>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  // Detail view
   const [detailItem, setDetailItem] = useState<any>(null);
   const [activities, setActivities] = useState<any[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
 
-  // Form state
   const [formVisible, setFormVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [fName, setFName] = useState('');
@@ -154,7 +150,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
     });
   };
 
-  // ---- Form helpers ----
   const resetForm = () => {
     setEditingItem(null);
     setFName('');
@@ -169,7 +164,7 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
 
   const openCreate = () => {
     resetForm();
-    setFSku(generateSku(total + Date.now() % 100000)); // seed avoids Date.now() lint but varies
+    setFSku(generateSku(total + Date.now() % 100000));
     setFormVisible(true);
   };
 
@@ -503,7 +498,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
         )}
       </SafeAreaView>
 
-      {/* ---- Detail Modal ---- */}
       <Modal
         visible={!!detailItem}
         animationType="slide"
@@ -598,7 +592,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
         </SafeAreaView>
       </Modal>
 
-      {/* ---- Create / Edit Form Modal ---- */}
       <Modal
         visible={formVisible}
         animationType="slide"
@@ -622,7 +615,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             <View style={styles.contentWrap}>
-              {/* Item Name */}
               <View style={styles.formField}>
                 <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={{marginBottom: 6}}>
                   Item Name *
@@ -637,7 +629,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
                 {formErrors.itemName ? <Typography variant="caption" color={theme.colors.error[600]}>{formErrors.itemName}</Typography> : null}
               </View>
 
-              {/* SKU */}
               <View style={styles.formField}>
                 <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={{marginBottom: 6}}>
                   SKU *
@@ -657,7 +648,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
                 {formErrors.skuCode ? <Typography variant="caption" color={theme.colors.error[600]}>{formErrors.skuCode}</Typography> : null}
               </View>
 
-              {/* Category */}
               <View style={styles.formField}>
                 <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={{marginBottom: 6}}>
                   Category *
@@ -672,7 +662,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
                 {formErrors.category ? <Typography variant="caption" color={theme.colors.error[600]}>{formErrors.category}</Typography> : null}
               </View>
 
-              {/* Unit */}
               <View style={styles.formField}>
                 <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={{marginBottom: 6}}>
                   Unit of Measurement *
@@ -701,7 +690,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
                 )}
               </View>
 
-              {/* Description */}
               <View style={styles.formField}>
                 <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={{marginBottom: 6}}>
                   Description
@@ -717,7 +705,6 @@ export const InventoryCatalogScreen: React.FC<InventoryCatalogScreenProps> = ({
                 />
               </View>
 
-              {/* Tags */}
               <View style={styles.formField}>
                 <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={{marginBottom: 6}}>
                   Tags

@@ -1,10 +1,6 @@
 import {useCallback} from 'react';
 import {useAuth} from '../contexts/AuthContext';
 
-/**
- * Hook to handle API errors, especially token expiration
- * Returns a function that checks for token expiration and logs out if needed
- */
 export const useApiErrorHandler = () => {
   const {logout} = useAuth();
 

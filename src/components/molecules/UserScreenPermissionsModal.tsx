@@ -235,7 +235,6 @@ export const UserScreenPermissionsModal: React.FC<
       presentationStyle="pageSheet"
       onRequestClose={() => !saving && onClose()}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.topHeader}>
           <View style={styles.headerLeft}>
             <View style={styles.headerIcon}>
@@ -277,7 +276,6 @@ export const UserScreenPermissionsModal: React.FC<
               style={styles.scroll}
               contentContainerStyle={styles.scrollContent}>
               <View style={styles.contentWrap}>
-                {/* User banner */}
                 {user && (
                   <Card
                     variant="outlined"
@@ -333,7 +331,6 @@ export const UserScreenPermissionsModal: React.FC<
                   </Card>
                 )}
 
-                {/* Search */}
                 <RNTextInput
                   style={styles.searchInput}
                   placeholder="Search screens by name or path..."
@@ -342,7 +339,6 @@ export const UserScreenPermissionsModal: React.FC<
                   placeholderTextColor={theme.colors.gray[400]}
                 />
 
-                {/* Summary + select all */}
                 <View style={styles.summaryRow}>
                   <View style={styles.summaryLeft}>
                     <Typography
@@ -371,7 +367,6 @@ export const UserScreenPermissionsModal: React.FC<
                   />
                 </View>
 
-                {/* Screens grouped by category */}
                 {Object.keys(groupedScreens).length === 0 ? (
                   <View style={styles.emptyState}>
                     <GridIcon size={40} color={theme.colors.gray[400]} />
@@ -518,7 +513,6 @@ export const UserScreenPermissionsModal: React.FC<
               </View>
             </ScrollView>
 
-            {/* Footer */}
             <View style={styles.footer}>
               <View style={styles.contentWrap}>
                 <Typography

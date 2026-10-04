@@ -114,7 +114,6 @@ const MenuSection: React.FC<MenuSectionProps> = ({theme, bp, eyebrow, rows}) => 
 export const AccountScreen = () => {
   const {user, token, logout} = useAuth();
 
-  // Change password modal
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [curPw, setCurPw] = useState('');
   const [newPw, setNewPw] = useState('');
@@ -156,9 +155,6 @@ export const AccountScreen = () => {
   const isAdmin = user?.role === 'admin';
   const canSee = (path: string) => isAdmin || hasAccessToScreen(path);
   const {openScreen} = useExtraScreens();
-  // On Mac / desktop the left sidebar already lists these destinations, so the
-  // Account screen hides its navigation menu there and just keeps profile,
-  // appearance and account actions.
   const sidebarActive = bp.isDesktop || bp.isWide;
 
   const heroFade = useRef(new Animated.Value(0)).current;
@@ -272,9 +268,6 @@ export const AccountScreen = () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   })();
 
-  // These menus list only the screens the webapp sidebar shows for the same
-  // role (inventory-webapp Sidebar.jsx). Rows that appear only in the webapp's
-  // admin menu are gated on isAdmin; employee rows follow screen permissions.
   const adminRows: MenuRow[] = [
     {
       Icon: SettingsIcon,
@@ -333,8 +326,6 @@ export const AccountScreen = () => {
       subtitle: 'Create, edit and view inventory items',
       tone: 'info',
       onPress: () => openScreen('inventoryCatalog'),
-      // Webapp: "Add New Item" is admin-only; employees just get the
-      // Inventory tab ("View All").
       visible: !!isAdmin && canSee('/inventory'),
     },
     {
@@ -695,7 +686,6 @@ export const AccountScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Change Password Modal */}
       <Modal
         visible={showChangePassword}
         transparent
@@ -935,7 +925,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       backgroundColor: 'rgba(255,255,255,0.18)',
     },
 
-    // Content wrap: centers & caps all post-hero content
     body: {
       width: '100%',
       maxWidth: bp.contentMaxWidth,

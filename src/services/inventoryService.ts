@@ -181,26 +181,16 @@ class InventoryService {
       return imagePath;
     }
     if (imagePath.startsWith('/uploads')) {
-      // Derive the backend origin from the configured API base URL rather than
-      // hardcoding an IP, so uploaded images resolve in every environment.
       const backendUrl = API_BASE_URL.replace(/\/api\/?$/, '');
       return `${backendUrl}${imagePath}`;
     }
     return imagePath;
   }
 
-  /**
-   * Create a catalog inventory item. Sends multipart/form-data to match the
-   * web form (backend route uses multer). Image files may be attached as
-   * {uri, name, type} objects under the `images` key.
-   */
   async createItem(token: string, data: any) {
     return this._saveItem(token, 'POST', `${API_BASE_URL}/inventory`, data);
   }
 
-  /**
-   * Update a catalog inventory item (SKU rename cascades server-side).
-   */
   async updateItem(token: string, id: string, data: any) {
     return this._saveItem(token, 'PUT', `${API_BASE_URL}/inventory/${id}`, data);
   }
@@ -227,7 +217,6 @@ class InventoryService {
       const response = await fetch(url, {
         method,
         headers: {
-          // Do NOT set Content-Type; fetch sets the multipart boundary.
           Authorization: `Bearer ${token}`,
         },
         body: form,
@@ -243,9 +232,6 @@ class InventoryService {
     }
   }
 
-  /**
-   * Delete a catalog inventory item.
-   */
   async deleteItem(token: string, id: string) {
     try {
       const response = await fetch(`${API_BASE_URL}/inventory/${id}`, {
@@ -266,9 +252,6 @@ class InventoryService {
     }
   }
 
-  /**
-   * Fetch the activity history for a single inventory item.
-   */
   async getItemActivities(token: string, itemId: string) {
     try {
       const response = await fetch(

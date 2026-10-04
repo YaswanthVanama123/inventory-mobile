@@ -44,9 +44,6 @@ export const useBreakpoint = (): BreakpointInfo => {
 
   const scale = isWide ? 1.4 : isDesktop ? 1.25 : isTablet ? 1.1 : 1;
   const fontScale = isWide ? 1.36 : isDesktop ? 1.24 : isTablet ? 1.12 : 1;
-  // Fill the full window width on every device — content spans edge to edge
-  // (minus the gutter padding) instead of sitting in a narrow centered column.
-  // Layouts still use more columns / larger gutters on bigger screens.
   const contentMaxWidth = width;
   const gutter = isWide ? 48 : isDesktop ? 36 : isTablet ? 28 : 16;
 

@@ -96,7 +96,6 @@ export const StockScreen = () => {
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [useStockData, setUseStockData] = useState<any>({items: [], totals: {}});
   const [sellStockData, setSellStockData] = useState<any>({items: [], totals: {}});
-  // Current server page of categories + the server's full-set counts.
   const [categories, setCategories] = useState<any[]>([]);
   const [categoryTotal, setCategoryTotal] = useState(0);
   const [categoryPages, setCategoryPages] = useState(1);
@@ -144,22 +143,17 @@ export const StockScreen = () => {
     } else if (isMounted) {
       setLoading(false);
     }
-    // Refetch whenever the requested page / page size / tab / search changes —
-    // all four are server-side query params now.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, page, pageSize, activeTab, debouncedSearch]);
 
-  // A new search or tab starts over at page 1.
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, activeTab, pageSize]);
 
-  // Jump to the top of the list when the page changes.
   useEffect(() => {
     stockScrollRef.current?.scrollTo({y: 0, animated: true});
   }, [page]);
 
-  // Refresh when returning to this tab (after creates/deletes/sync elsewhere).
   useRefetchOnFocus(() => {
     loadData();
     refreshExpandedCategories();
@@ -203,9 +197,6 @@ export const StockScreen = () => {
   const loadData = async () => {
     try {
       if (token && isMounted) {
-        // The backend paginates categories server-side and returns them as a
-        // top-level `categories` array; useStock/sellStock carry TOTALS ONLY
-        // (no `items`). Search runs server-side over the full category set.
         const response = await stockService.getStockSummary(token, {
           page,
           limit: pageSize,
@@ -216,7 +207,6 @@ export const StockScreen = () => {
           const rows = response.categories || [];
           const pg = response.pagination || {};
           const resolvedPages = pg.totalPages || 1;
-          // A shrinking result set can leave `page` past the end.
           if (page > resolvedPages && (pg.total || 0) > 0) {
             setPage(resolvedPages);
             return;
@@ -302,9 +292,6 @@ export const StockScreen = () => {
     setExpandedSKUs(newExpanded);
   };
 
-  // Force-refetch one category's detail (SKUs, sales/checkout history, and its
-  // discrepancy list) and overwrite the cache — used after adding a discrepancy
-  // and on focus so an open category shows fresh data without a collapse/expand.
   const refreshCategory = async (categoryName: string) => {
     if (!token || !categoryName) return;
     try {
@@ -314,7 +301,6 @@ export const StockScreen = () => {
       setCategoryCheckoutHistory(prev => ({...prev, [categoryName]: response.categoryCheckoutHistory || []}));
       setCategoryDiscrepancies(prev => ({...prev, [categoryName]: response.categoryDiscrepancies || []}));
     } catch (err) {
-      // Non-fatal: the summary still refreshes via loadData.
     }
   };
 
@@ -351,16 +337,11 @@ export const StockScreen = () => {
   };
 
   const currentData = activeTab === 'use' ? useStockData : sellStockData;
-  // `categories` is the current SERVER page (already name/alias filtered by the
-  // backend). While the debounce is still settling we additionally refine
-  // locally so typing feels instant, and so a match on an already-expanded
-  // category's SKU codes still shows up.
   const stockQuery = searchQuery.trim().toLowerCase();
   const searchSettled = stockQuery === debouncedSearch.trim().toLowerCase();
   const filteredItems = !stockQuery || searchSettled
     ? categories
     : categories.filter((item: any) => {
-        // Instant local match (substring) for snappy feedback.
         if (item.categoryName?.toLowerCase().includes(stockQuery)) return true;
         if (
           Array.isArray(item.aliases) &&
@@ -405,8 +386,6 @@ export const StockScreen = () => {
       setShowDiscrepancyModal(false);
       setPrefilledItem(null);
       setDiscrepancyFormData({actualQuantity: 0, discrepancyType: '', reason: '', notes: ''});
-      // Refresh the summary AND the affected category's detail so the new
-      // discrepancy shows immediately in the open category (its detail is cached).
       loadData();
       refreshCategory(affectedCategory);
     } catch (err: any) {
@@ -422,8 +401,6 @@ export const StockScreen = () => {
   const innerWidth = Math.min(bp.width, bp.contentMaxWidth) - bp.gutter * 2;
   const tileGap = bp.isMobile ? TILE_GAP : 16;
   const statCols = bp.isWide ? 6 : bp.isDesktop ? 4 : bp.isTablet ? 3 : 2;
-  // Percentage width (relative to the real parent) — robust on Android where
-  // exact-pixel widths + flexbox `gap` round up and overflow, wrapping to 1/row.
   const tileWidth: DimensionValue = `${Math.floor(100 / statCols) - 2}%`;
   const totalCategories = categoryTotal;
   const totalDiscr =
@@ -431,8 +408,6 @@ export const StockScreen = () => {
       ? currentData.totals.totalDiscrepancyDifference
       : currentData.totals?.totalDiscrepancies || 0;
 
-  // Server-side numbered pagination: the API returns one page of categories and
-  // the total across the full (search-filtered) set.
   const totalCategoriesFiltered = categoryTotal;
   const totalCategoryPages = categoryPages;
   const visibleCategories = filteredItems;

@@ -53,22 +53,17 @@ export const ScreenPermissionsManagementScreen: React.FC<
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Data
   const [allScreens, setAllScreens] = useState<Screen[]>([]);
   const [defaultScreenIds, setDefaultScreenIds] = useState<string[]>([]);
   const [users, setUsers] = useState<UserWithPermissions[]>([]);
 
-  // Selected user
   const [selectedUser, setSelectedUser] = useState<UserWithPermissions | null>(null);
   const [userScreenIds, setUserScreenIds] = useState<string[]>([]);
 
-  // Tabs
   const [activeTab, setActiveTab] = useState<'default' | 'users'>('default');
 
-  // Category expansion
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
-  // Numbered pagination over the employees list.
   const [userPage, setUserPage] = useState(1);
   const [userPageSize, setUserPageSize] = useState(20);
   const userTotalPages = Math.max(1, Math.ceil(users.length / userPageSize));
@@ -77,7 +72,6 @@ export const ScreenPermissionsManagementScreen: React.FC<
     return users.slice(start, start + userPageSize);
   }, [users, userPage, userPageSize]);
 
-  // Reloading can shrink the list past the current page — clamp back.
   useEffect(() => {
     if (userPage > userTotalPages) setUserPage(userTotalPages);
   }, [userPage, userTotalPages]);
@@ -98,21 +92,17 @@ export const ScreenPermissionsManagementScreen: React.FC<
       setLoading(true);
       setError(null);
 
-      // Fetch screens
       const screensData = await screenPermissionService.getAllScreens(token);
       setAllScreens(Array.isArray(screensData) ? screensData : []);
 
-      // Set default screen IDs
       const defaultIds = screensData
         .filter((screen: Screen) => screen.isDefault)
         .map((screen: Screen) => screen._id);
       setDefaultScreenIds(defaultIds);
 
-      // Expand all categories by default
       const categories = [...new Set(screensData.map((s: Screen) => s.category))];
       setExpandedCategories(new Set(categories));
 
-      // Fetch users
       const usersData = await screenPermissionService.getAllUsersWithPermissions(token);
       setUsers(Array.isArray(usersData) ? usersData : []);
     } catch (error: any) {
@@ -330,7 +320,6 @@ export const ScreenPermissionsManagementScreen: React.FC<
   };
 
   const renderUsersTab = () => {
-    // Detail view — full width permissions panel for the selected user
     if (selectedUser) {
       const groupedScreens = groupScreensByCategory(allScreens);
       return (
@@ -457,7 +446,6 @@ export const ScreenPermissionsManagementScreen: React.FC<
       );
     }
 
-    // Master view — full width employees list
     return (
       <ScrollView
         style={styles.tabContent}
@@ -532,7 +520,6 @@ export const ScreenPermissionsManagementScreen: React.FC<
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.topHeader}>
           <View style={styles.headerLeft}>
             <View style={[styles.iconContainer, styles.headerIcon]}>
@@ -552,7 +539,6 @@ export const ScreenPermissionsManagementScreen: React.FC<
           </TouchableOpacity>
         </View>
 
-        {/* Actions */}
         <View style={styles.actions}>
           <Button
             title="Initialize"
@@ -564,7 +550,6 @@ export const ScreenPermissionsManagementScreen: React.FC<
           />
         </View>
 
-        {/* Tabs */}
         <View style={styles.tabs}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'default' && styles.tabActive]}
@@ -592,7 +577,6 @@ export const ScreenPermissionsManagementScreen: React.FC<
           </TouchableOpacity>
         </View>
 
-        {/* Content */}
         {loading && !refreshing && allScreens.length === 0 && users.length === 0 ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />

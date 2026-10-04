@@ -38,7 +38,6 @@ const fmt = (d: Date): string => {
   return `${y}-${m}-${day}`;
 };
 
-// Count CSV data rows (excludes the header line and blank trailing lines).
 const countRows = (csv: string): number => {
   const lines = csv.split(/\r?\n/).filter(l => l.trim().length > 0);
   return Math.max(0, lines.length - 1);
@@ -116,7 +115,6 @@ export const CustomerExportScreen: React.FC<CustomerExportScreenProps> = ({
     }
   };
 
-  // Preview: header + first few data lines so the user can sanity-check.
   const previewLines = useMemo(() => {
     if (!csv) return [];
     return csv.split(/\r?\n/).filter(l => l.trim().length > 0).slice(0, 6);

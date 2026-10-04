@@ -30,7 +30,6 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({children})
           setPreferenceState(stored);
         }
       } catch {
-        // ignore
       } finally {
         setHydrated(true);
       }
@@ -49,7 +48,6 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({children})
     try {
       await EncryptedStorage.setItem(STORAGE_KEY, pref);
     } catch {
-      // ignore
     }
   }, []);
 
@@ -64,7 +62,6 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({children})
   );
 
   if (!hydrated) {
-    // Render with default light theme until preference is loaded — avoids flicker
     return (
       <ThemeContext.Provider value={value}>
         {children}
@@ -78,7 +75,6 @@ export const ThemeProvider: React.FC<{children: React.ReactNode}> = ({children})
 export const useTheme = (): Theme => {
   const ctx = useContext(ThemeContext);
   if (!ctx) {
-    // Fallback: outside provider, return default light theme
     return lightTheme;
   }
   return ctx.theme;

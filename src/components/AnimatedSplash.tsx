@@ -5,9 +5,7 @@ import {Typography} from './atoms/Typography';
 import {BoxIcon} from './icons';
 
 interface AnimatedSplashProps {
-  // When true, auth/bootstrap is still in progress — keep the splash up.
   holding?: boolean;
-  // Called once the splash has finished its intro and faded out.
   onFinish: () => void;
 }
 
@@ -30,7 +28,6 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({holding = false, 
   const [introDone, setIntroDone] = useState(false);
 
   useEffect(() => {
-    // Ambient blob pulse
     Animated.loop(
       Animated.sequence([
         Animated.timing(blob, {toValue: 1, duration: 2000, easing: Easing.inOut(Easing.quad), useNativeDriver: true}),
@@ -38,12 +35,10 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({holding = false, 
       ]),
     ).start();
 
-    // Expanding glow ring behind the logo
     Animated.loop(
       Animated.timing(ring, {toValue: 1, duration: 1800, easing: Easing.out(Easing.ease), useNativeDriver: true}),
     ).start();
 
-    // Bouncing loading dots
     const bounce = (v: Animated.Value, delay: number) =>
       Animated.loop(
         Animated.sequence([
@@ -57,7 +52,6 @@ export const AnimatedSplash: React.FC<AnimatedSplashProps> = ({holding = false, 
     bounce(dot2, 180).start();
     bounce(dot3, 360).start();
 
-    // Entrance: logo pops, then wordmark rises
     Animated.sequence([
       Animated.parallel([
         Animated.spring(logoScale, {toValue: 1, tension: 60, friction: 6, useNativeDriver: true}),

@@ -52,7 +52,6 @@ export const PickerModal: React.FC<PickerModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -64,7 +63,6 @@ export const PickerModal: React.FC<PickerModalProps> = ({
           </Typography>
           <View style={styles.closeButton} />
         </View>
-        {/* Search */}
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -74,7 +72,6 @@ export const PickerModal: React.FC<PickerModalProps> = ({
             placeholderTextColor={theme.colors.gray[400]}
           />
         </View>
-        {/* List */}
         <FlatList
           data={filteredItems}
           keyExtractor={(item, index) => getValue(item) || index.toString()}

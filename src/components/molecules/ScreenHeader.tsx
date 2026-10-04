@@ -12,10 +12,6 @@ interface ScreenHeaderProps {
   right?: React.ReactNode;
 }
 
-// Custom navigation header used in place of the native stack header. It applies
-// exactly ONE status-bar inset (via useSafeAreaInsets) so the title/back button
-// don't get the inflated/double top margin the native header shows on Android
-// edge-to-edge — and it stays consistent with iOS.
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({title, canGoBack, onBack, right}) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();

@@ -50,15 +50,11 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  // Mac / desktop-class width gets a dedicated table layout instead of the
-  // stacked phone cards (which look sparse on a wide window).
   const isWideLayout = bp.isDesktop || bp.isWide;
   const {token, user} = useAuth();
   const isAdmin = user?.role === 'admin';
   const {handleApiError} = useApiErrorHandler();
   const [loading, setLoading] = useState(false);
-  // Full-screen spinner only until the first load finishes, so a search that
-  // returns nothing doesn't unmount the search box on the next keystroke.
   const [hasLoaded, setHasLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -78,9 +74,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
   const [range, setRange] = useState<{lowest: any; highest: any; totalOrders: number} | null>(null);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [autoSyncInterval, setAutoSyncInterval] = useState(30);
-  // Sync limit: 0 = AUTO (only new since last sync) / All available.
   const [syncLimit, setSyncLimit] = useState(0);
-  // Distinguishes the "All" chip (also 0 on the wire) from the "AUTO" chip.
   const [syncLimitAll, setSyncLimitAll] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
@@ -99,12 +93,10 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
     }
   }, [visible, token]);
 
-  // Search now runs on the backend; just mirror the returned page into the list.
   useEffect(() => {
     setFilteredOrders(orders);
   }, [orders]);
 
-  // Refetch from page 1 whenever the debounced search query changes.
   useEffect(() => {
     if (visible && token) {
       setCurrentPage(1);
@@ -195,8 +187,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
     loadData(1);
   };
 
-  // Build a "Synced: X new, Y updated, Z skipped" summary, omitting any
-  // count the backend didn't return (mirrors web OrdersList feedback).
   const buildSyncSummary = (data: any, detailsSynced?: number) => {
     if (!data) return 'Sync complete';
     const parts: string[] = [];
@@ -591,8 +581,6 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
                   {key: 500, label: '500'},
                   {key: -1, label: 'All'},
                 ] as const).map(o => {
-                  // AUTO and All both map to unlimited (0) on the backend; keep
-                  // them visually distinct so users can pick either.
                   const value = o.key === -1 ? 0 : o.key;
                   const active =
                     o.key === -1 ? syncLimit === 0 && syncLimitAll : syncLimit === value && !(o.key === 0 && syncLimitAll);
@@ -1164,7 +1152,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     scrollView: {flex: 1, backgroundColor: theme.colors.background.secondary},
     scrollContent: {paddingBottom: theme.spacing.xxxl},
 
-    // Centers & caps post-hero content on large / XL screens.
     contentWrap: {
       width: '100%',
       maxWidth: bp.contentMaxWidth,
@@ -1388,7 +1375,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
 
     ordersList: {gap: theme.spacing.md},
 
-    // ── Mac / desktop table layout ──────────────────────────────────────
     table: {
       backgroundColor: theme.colors.white,
       borderRadius: 16,

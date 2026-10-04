@@ -54,7 +54,6 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedVendors, setExpandedVendors] = useState<Set<string>>(new Set());
 
-  // Add / edit vendor form
   const [formVisible, setFormVisible] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [formName, setFormName] = useState('');
@@ -65,7 +64,6 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
   const [formIsActive, setFormIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Server-side numbered pagination: 20 vendors per page.
   const {
     items: vendors,
     page,
@@ -199,7 +197,6 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -418,7 +415,6 @@ export const VendorManagementScreen: React.FC<VendorManagementScreenProps> = ({
         )}
       </SafeAreaView>
 
-      {/* Add / Edit Vendor form */}
       <Modal
         visible={formVisible}
         animationType="slide"

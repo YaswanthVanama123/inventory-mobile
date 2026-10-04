@@ -101,9 +101,6 @@ class StorageService {
   async removeSavedCredentials(): Promise<void> {
     await this.safeRemove(STORAGE_KEYS.SAVED_CREDENTIALS, 'credentials');
   }
-  // Removing a key that was never written makes RNEncryptedStorage throw
-  // ("An error occured while removing value"). Only remove when present, and
-  // never let a benign removal failure bubble up to the caller.
   private async safeRemove(key: string, label: string): Promise<void> {
     try {
       const existing = await EncryptedStorage.getItem(key);

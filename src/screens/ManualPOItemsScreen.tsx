@@ -54,9 +54,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   const debouncedSearch = useDebounce(searchQuery, 400);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  // Form modal state — handles both create and edit. Mirrors the webapp
-  // ManualPOItems.jsx behavior: SKU is optional on create (auto-generated
-  // server-side if blank) and editable on update with cascade rename.
   const [formVisible, setFormVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<ManualPOItem | null>(null);
   const [formSku, setFormSku] = useState('');
@@ -65,8 +62,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   const [formIsActive, setFormIsActive] = useState(true);
   const [formVendorId, setFormVendorId] = useState('');
   const [formVendorName, setFormVendorName] = useState('');
-  // Mapped inventory item (canonical / RouteStar item). Persisting this on
-  // edit is CRITICAL — omitting it silently drops the mapping server-side.
   const [formMappedItemId, setFormMappedItemId] = useState('');
   const [formMappedItemName, setFormMappedItemName] = useState('');
   const [formItemType, setFormItemType] = useState('');
@@ -76,7 +71,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
   const [vendorPickerVisible, setVendorPickerVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Load active vendors and the mapped-item picker source.
   useEffect(() => {
     if (visible && token) {
       vendorService
@@ -90,7 +84,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
     }
   }, [visible, token]);
 
-  // Server-side pagination: 20 items per page, more load on scroll.
   const {
     items,
     loading,
@@ -154,10 +147,8 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
     setFormName(item.name || '');
     setFormDescription(item.description || '');
     setFormIsActive(item.isActive);
-    // vendorId may be a populated object or a raw id.
     setFormVendorId(item.vendorId?._id || item.vendorId || '');
     setFormVendorName(item.vendorName || item.vendorId?.name || '');
-    // Preserve the existing mapping so it isn't dropped on save.
     setFormMappedItemId(item.mappedCategoryItemId || '');
     setFormMappedItemName(item.mappedCategoryItemName || '');
     setFormItemType(item.itemType || (item.mappedCategoryItemId ? 'canonical' : ''));
@@ -194,16 +185,12 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
       name: formName.trim(),
       description: formDescription.trim() || undefined,
       isActive: formIsActive,
-      // Vendor is informational/tracking only (mirrors the webapp form).
       vendorId: formVendorId || null,
       vendorName: formVendorName || null,
-      // CRITICAL: always send the mapping so editing doesn't drop it.
       mappedCategoryItemId: formMappedItemId || null,
       mappedCategoryItemName: formMappedItemName || null,
       itemType: formItemType || undefined,
     } as Partial<ManualPOItem>;
-    // Only forward SKU when the user supplied something — blank means
-    // "auto-generate" on create, "leave unchanged" on edit.
     if (trimmedSku) {
       (payload as any).sku = trimmedSku;
     }
@@ -258,7 +245,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -311,7 +297,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>
-                {/* Add New Button */}
                 <View style={styles.addButtonContainer}>
                   <Button
                     title="Add New Item"
@@ -322,7 +307,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                   />
                 </View>
 
-                {/* Search Bar */}
                 <View style={styles.searchContainer}>
                   <RNTextInput
                     style={styles.searchInput}
@@ -333,7 +317,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                   />
                 </View>
 
-                {/* Error State */}
                 {error && (
                   <Card variant="outlined" padding="lg" style={styles.errorCard}>
                     <View style={styles.errorContent}>
@@ -420,7 +403,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                     </View>
                   </TouchableOpacity>
 
-                  {/* Item Meta */}
                   <View style={styles.itemMeta}>
                     <View style={styles.metaRow}>
                       <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -452,7 +434,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                     )}
                   </View>
 
-                  {/* Expanded Content */}
                   {isExpanded && (
                     <View style={styles.expandedContent}>
                       <View style={styles.actionButtons}>
@@ -497,7 +478,6 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
         )}
       </SafeAreaView>
 
-      {/* Create / Edit form */}
       <Modal
         visible={formVisible}
         animationType="slide"
@@ -660,7 +640,7 @@ export const ManualPOItemsScreen: React.FC<ManualPOItemsScreenProps> = ({
                 fullWidth
               />
             </View>
-            </View>{/* contentWrap */}
+            </View>
           </ScrollView>
 
           <PickerModal

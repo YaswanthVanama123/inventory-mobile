@@ -1,11 +1,5 @@
 import {API_BASE_URL} from '../config/api';
 
-/**
- * Permanent data purge (admin only).
- *
- * Every call here HARD-deletes production records — no trash, no undo. The
- * purge-all calls send the literal confirm phrase, which the backend re-checks.
- */
 export const PURGE_CONFIRM_PHRASE = 'DELETE';
 
 export interface PurgeType {
@@ -58,7 +52,6 @@ class DataPurgeService {
     throw new Error('Invalid response format');
   }
 
-  /** Permanently delete specific records of one type. */
   async purgeSelected(token: string, type: string, ids: string[]): Promise<PurgeResult> {
     const result = await request(token, `/data-purge/${type}/purge`, {
       method: 'POST',
@@ -67,7 +60,6 @@ class DataPurgeService {
     return result?.data;
   }
 
-  /** Permanently delete every record of one type. */
   async purgeAll(token: string, type: string): Promise<PurgeResult> {
     const result = await request(token, `/data-purge/${type}/purge-all`, {
       method: 'POST',
@@ -76,7 +68,6 @@ class DataPurgeService {
     return result?.data;
   }
 
-  /** Permanently delete every record across several types in one pass. */
   async purgeManyTypes(
     token: string,
     types: string[],

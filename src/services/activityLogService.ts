@@ -1,14 +1,6 @@
 import {API_BASE_URL} from '../config/api';
 
-/**
- * Activity Log Service
- * Handles all activity log related API calls
- */
-
 class ActivityLogService {
-  /**
-   * Get activity logs with filtering
-   */
   async getActivityLogs(token: string, params: any = {}) {
     try {
       const queryParams = new URLSearchParams(params);
@@ -32,9 +24,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Get activity statistics
-   */
   async getActivityStats(token: string, params: any = {}) {
     try {
       const queryParams = new URLSearchParams(params);
@@ -58,9 +47,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Get current user's activity logs
-   */
   async getMyActivities(token: string, params: any = {}) {
     try {
       const queryParams = new URLSearchParams(params);
@@ -84,9 +70,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Get recent activities
-   */
   async getRecentActivities(token: string, limit: number = 20) {
     try {
       const response = await fetch(
@@ -109,9 +92,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Get activity breakdown
-   */
   async getActivityBreakdown(token: string, params: any = {}) {
     try {
       const queryParams = new URLSearchParams(params);
@@ -135,9 +115,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Get top active users
-   */
   async getTopActiveUsers(token: string, limit: number = 10, params: any = {}) {
     try {
       const queryParams = new URLSearchParams({...params, limit: limit.toString()});
@@ -161,9 +138,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Get failed activities
-   */
   async getFailedActivities(token: string, params: any = {}) {
     try {
       const queryParams = new URLSearchParams(params);
@@ -187,13 +161,6 @@ class ActivityLogService {
     }
   }
 
-  /**
-   * Get employee activities (tabbed view).
-   * tab: 'all' | 'sales' | 'stock' | 'deletions'
-   * Endpoints: /activities, /activities/sales, /activities/stock, /activities/deletions
-   * Response data keys differ by tab: activities | sales | activities | deletions.
-   * Returns a normalized {activities, pagination}.
-   */
   async getEmployeeActivities(
     token: string,
     tab: 'all' | 'sales' | 'stock' | 'deletions',
@@ -206,7 +173,6 @@ class ActivityLogService {
       deletions: '/activities/deletions',
     };
     const endpoint = endpointMap[tab] || '/activities';
-    // Only forward non-empty params.
     const cleaned: Record<string, string> = {};
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') {
@@ -232,10 +198,6 @@ class ActivityLogService {
     return {activities, pagination: data.pagination || {}};
   }
 
-  /**
-   * Get the employee list used to populate the activity filter dropdown.
-   * Uses the /activities/page-data endpoint which returns a `users` array.
-   */
   async getActivityEmployees(token: string): Promise<any[]> {
     const response = await fetch(
       `${API_BASE_URL}/activities/page-data?page=1&limit=1`,
@@ -253,9 +215,6 @@ class ActivityLogService {
     return json.data?.users || [];
   }
 
-  /**
-   * Export activity logs
-   */
   async exportActivityLogs(token: string, params: any = {}, format: string = 'json') {
     try {
       const queryParams = new URLSearchParams({...params, format});

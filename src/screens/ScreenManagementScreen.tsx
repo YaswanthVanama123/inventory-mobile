@@ -84,7 +84,6 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
     'Other',
   ];
 
-  // Server-side pagination: search + category + 20/page all applied on the backend.
   const {
     items: filteredScreens,
     loading,
@@ -309,7 +308,6 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={[styles.iconContainer, styles.headerIcon]}>
@@ -329,7 +327,6 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Actions */}
         <View style={styles.actions}>
           <Button
             title="Initialize Screens"
@@ -349,7 +346,6 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
           />
         </View>
 
-        {/* Search and Filter */}
         <View style={styles.filterSection}>
           <View style={styles.searchContainer}>
             <SearchIcon size={18} color={theme.colors.gray[400]} />
@@ -368,7 +364,6 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
           </View>
         </View>
 
-        {/* Category Filter Pills */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -411,7 +406,6 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
           ))}
         </ScrollView>
 
-        {/* Content */}
         {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />
@@ -479,7 +473,6 @@ export const ScreenManagementScreen: React.FC<ScreenManagementScreenProps> = ({
         )}
       </SafeAreaView>
 
-      {/* Add / Edit Screen Modal */}
       <Modal
         visible={showAddModal}
         animationType="slide"

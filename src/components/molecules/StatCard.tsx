@@ -5,51 +5,15 @@ import {useTheme} from '../../contexts/ThemeContext';
 import {Theme} from '../../theme';
 
 export interface StatCardProps {
-  /**
-   * Card title/label
-   */
   title: string;
 
-  /**
-   * Main value to display
-   */
   value: string | number;
-  /**
-   * Optional subtitle/description
-   */
   subtitle?: string;
-  /**
-   * Optional icon element
-   */
   icon?: React.ReactNode;
-  /**
-   * Background color of the card
-   */
   backgroundColor?: string;
-  /**
-   * Size variant
-   */
   size?: 'sm' | 'md' | 'lg';
-  /**
-   * Custom container style
-   */
   style?: ViewStyle;
 }
-/**
- * StatCard - Reusable statistics card component
- *
- * Provides consistent styling for stat cards across all dashboard and summary screens.
- * Displays title, value, optional subtitle, and optional icon.
- *
- * @example
- * <StatCard
- *   title="Total Revenue"
- *   value="$45.2K"
- *   subtitle="+12.5%"
- *   icon={<DollarIcon size={20} color="#ffffff" />}
- *   backgroundColor="#3b82f6"
- * />
- */
 export const StatCard: React.FC<StatCardProps> = ({
   title,
   value,

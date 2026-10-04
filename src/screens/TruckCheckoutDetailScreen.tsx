@@ -48,7 +48,6 @@ export const TruckCheckoutDetailScreen: React.FC<
   const [refreshing, setRefreshing] = useState(false);
   const [checkout, setCheckout] = useState<any>(null);
 
-  // Complete / Add-invoices modal state
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [invoiceNumbers, setInvoiceNumbers] = useState<string[]>([]);
@@ -57,7 +56,6 @@ export const TruckCheckoutDetailScreen: React.FC<
   const [comparisonData, setComparisonData] = useState<any>(null);
   const [checkWorkDone, setCheckWorkDone] = useState(false);
   const [addMoreMode, setAddMoreMode] = useState(false);
-  // Cancel modal state
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
@@ -67,7 +65,6 @@ export const TruckCheckoutDetailScreen: React.FC<
     }
   }, [token, checkoutId]);
 
-  // Refresh the detail when returning to this screen (e.g. after an edit elsewhere).
   useRefetchOnFocus(() => loadCheckout());
 
   const loadCheckout = async () => {
@@ -122,7 +119,6 @@ export const TruckCheckoutDetailScreen: React.FC<
     );
   };
 
-  // ---- Invoice chip input helpers ----
   const addInvoice = (value: string) => {
     const trimmed = value.trim();
     if (trimmed && !invoiceNumbers.includes(trimmed)) {
@@ -171,7 +167,6 @@ export const TruckCheckoutDetailScreen: React.FC<
   };
 
   const openAddMoreModal = () => {
-    // Seed with the existing invoices; completing sends the full merged list.
     setInvoiceNumbers([...(checkout?.invoiceNumbers || [])]);
     setCurrentInput('');
     setInvoiceType((checkout?.invoiceType as any) || 'closed');
@@ -337,7 +332,6 @@ export const TruckCheckoutDetailScreen: React.FC<
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
         <View style={styles.contentWrap}>
-        {/* Header Card */}
         <Card style={styles.headerCard}>
           <View style={styles.headerTop}>
             <View style={styles.headerIcon}>
@@ -367,7 +361,6 @@ export const TruckCheckoutDetailScreen: React.FC<
           </View>
         </Card>
 
-        {/* Status-driven actions */}
         {checkout.status === 'checked_out' && (
           <Card style={styles.actionCard}>
             <Button
@@ -410,9 +403,7 @@ export const TruckCheckoutDetailScreen: React.FC<
           </Card>
         )}
 
-        {/* Info Grid */}
         <View style={styles.infoGrid}>
-          {/* Employee & Checkout Info */}
           <Card style={styles.infoCard}>
             <Typography
               variant="small"
@@ -498,7 +489,6 @@ export const TruckCheckoutDetailScreen: React.FC<
             )}
           </Card>
 
-          {/* Invoices */}
           <Card style={styles.infoCard}>
             <Typography
               variant="small"
@@ -570,7 +560,6 @@ export const TruckCheckoutDetailScreen: React.FC<
           </Card>
         </View>
 
-        {/* Items Taken */}
         <Card style={styles.itemsCard}>
           <View style={styles.itemsHeader}>
             <Typography variant="small" weight="bold" color={theme.colors.gray[700]}>
@@ -640,7 +629,6 @@ export const TruckCheckoutDetailScreen: React.FC<
           )}
         </Card>
 
-        {/* Tally Results */}
         {checkout.tallyResults &&
           checkout.tallyResults.discrepancies &&
           checkout.tallyResults.discrepancies.length > 0 && (
@@ -653,7 +641,6 @@ export const TruckCheckoutDetailScreen: React.FC<
                 Tally Results
               </Typography>
 
-              {/* Summary Stats */}
               <View style={styles.tallyStats}>
                 <View style={[styles.tallyStat, {backgroundColor: '#dbeafe'}]}>
                   <Typography variant="caption" color="#1d4ed8" weight="semibold">
@@ -694,7 +681,6 @@ export const TruckCheckoutDetailScreen: React.FC<
                 </View>
               </View>
 
-              {/* Item List */}
               {checkout.tallyResults.discrepancies.map(
                 (item: any, idx: number) => (
                   <View
@@ -777,7 +763,6 @@ export const TruckCheckoutDetailScreen: React.FC<
             </Card>
           )}
 
-        {/* Delete Button (admin only) */}
         {isAdmin && (
           <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
             <Typography variant="small" weight="semibold" color="#dc2626">
@@ -788,7 +773,6 @@ export const TruckCheckoutDetailScreen: React.FC<
         </View>
       </ScrollView>
 
-      {/* Complete / Add-More Invoices Modal */}
       <Modal
         visible={showCompleteModal}
         transparent
@@ -1023,7 +1007,6 @@ export const TruckCheckoutDetailScreen: React.FC<
         </View>
       </Modal>
 
-      {/* Cancel Modal */}
       <Modal
         visible={showCancelModal}
         transparent
@@ -1280,7 +1263,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     justifyContent: 'center',
     gap: 6,
   },
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.45)',

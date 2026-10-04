@@ -149,16 +149,6 @@ class ItemAliasService {
       throw error;
     }
   }
-  /**
-   * OPTIMIZED: Get all page data in one API call
-   * Combines mappings, unique items, and stats into single request
-   */
-  /**
-   * Fetch one page of unique items. The backend paginates (default limit 20)
-   * and applies `search`/`status` server-side over the FULL set, so these
-   * params must be forwarded — otherwise only the first 20 items are ever
-   * reachable and search can't see the rest.
-   */
   async getPageData(
     token: string,
     params: {
@@ -199,7 +189,6 @@ class ItemAliasService {
         return {
           mappings: result.data.mappings?.mappings || [],
           items: result.data.uniqueItems?.items || [],
-          // Full unpaginated set — quick-map / suggestions need every item.
           allItems: result.data.uniqueItems?.allItems || [],
           pagination: result.data.uniqueItems?.pagination || {
             total: result.data.uniqueItems?.items?.length || 0,

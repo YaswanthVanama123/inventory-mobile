@@ -67,8 +67,6 @@ export const InventoryScreen = () => {
 
   const scrollRef = useRef<ScrollView>(null);
 
-  // Server-side numbered pagination: backend returns the current 20-item page
-  // (+ search + aggregate qty/value totals).
   const {
     items: filteredItems,
     setItems: setGroupedItems,
@@ -103,23 +101,19 @@ export const InventoryScreen = () => {
   const fetchData = refetch;
   const onRefresh = refresh;
 
-  // Jump back to the top of the list whenever the page changes.
   useEffect(() => {
     scrollRef.current?.scrollTo({y: 0, animated: true});
   }, [page]);
 
-  // Guards against setState after unmount in the async expand/verify handlers.
   const mountedRef = useRef(true);
   useEffect(() => () => {
     mountedRef.current = false;
   }, []);
 
-  // Collapse expanded rows whenever the tab or search changes.
   useEffect(() => {
     setExpandedItems({});
   }, [activeTab, debouncedSearch]);
 
-  // Refresh when returning to this tab (after creates/deletes/sync elsewhere).
   useRefetchOnFocus(() => refetch());
 
   useEffect(() => {

@@ -69,8 +69,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   const [permissionsVisible, setPermissionsVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
 
-  // Server-side numbered pagination: the active tab becomes a role / isActive
-  // query param so filtering spans ALL users, not just the current page.
   const {
     items: users,
     page,
@@ -116,12 +114,10 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   const loadData = refetch;
   const onRefresh = refresh;
 
-  // Stat cards track the search but ignore the active tab (server-computed).
   useEffect(() => {
     if (extra) setStats(extra);
   }, [extra]);
 
-  // Backend responses mix `_id` and `id` for the signed-in user.
   const currentUserId = currentUser?._id || currentUser?.id;
 
   const handleUserPress = (userId: string) => {
@@ -218,7 +214,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -268,7 +263,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>
-                {/* Stats Cards - Neutral, professional */}
                 <View style={styles.statsGrid}>
                   <View style={styles.statCardWrapper}>
                     <View style={styles.statCard}>
@@ -324,9 +318,7 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   </View>
                 </View>
 
-                {/* Filter Tabs + Search */}
                 <View style={styles.stickyHeaderContainer}>
-                  {/* Filter Tabs */}
                   <View style={styles.tabsContainer}>
                     <TouchableOpacity
                       style={[
@@ -414,7 +406,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                       </Typography>
                     </TouchableOpacity>
                   </View>
-                  {/* Search Bar */}
                   <View style={styles.searchContainer}>
                     <RNTextInput
                       style={styles.searchInput}
@@ -426,7 +417,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                   </View>
                 </View>
 
-                {/* Error State */}
                 {error && (
                   <Card variant="outlined" padding="lg" style={styles.errorCard}>
                     <View style={styles.errorContent}>
@@ -512,7 +502,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                       </View>
                     </View>
                   </TouchableOpacity>
-                  {/* User Meta */}
                   <View style={styles.userMeta}>
                     <View style={styles.metaRow}>
                       <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -546,7 +535,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
                       </View>
                     )}
                   </View>
-                  {/* Expanded Content - Actions */}
                   {isExpanded && (
                     <View style={styles.expandedContent}>
                       <View style={styles.actionsRow}>
@@ -600,7 +588,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
             }}
           />
         )}
-        {/* User Form Modal */}
         <UserFormModal
           visible={userFormVisible}
           onClose={() => setUserFormVisible(false)}
@@ -608,7 +595,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
           token={token!}
           user={selectedUser}
         />
-        {/* Reset Password Modal */}
         <ResetPasswordModal
           visible={resetPasswordVisible}
           onClose={() => setResetPasswordVisible(false)}
@@ -616,7 +602,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
           token={token!}
           user={selectedUser}
         />
-        {/* Screen Permissions Modal */}
         <UserScreenPermissionsModal
           visible={permissionsVisible}
           onClose={() => setPermissionsVisible(false)}
@@ -629,7 +614,6 @@ export const UserManagementScreen: React.FC<UserManagementScreenProps> = ({
   );
 };
 const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
-  // Stat grid: 2 cols on phone, 4 on tablet+
   const statCols = bp.isWide ? 4 : bp.isDesktop ? 4 : bp.isTablet ? 4 : 2;
   const statCardBasis = `${100 / statCols}%` as any;
 

@@ -120,7 +120,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -133,7 +132,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           <View style={styles.closeButton} />
         </View>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* User Info Card */}
           <Card variant="elevated" padding="md" style={styles.userInfoCard}>
             <Typography variant="small" color={theme.colors.gray[600]}>
               Resetting password for:
@@ -145,7 +143,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               @{user?.username}
             </Typography>
           </Card>
-          {/* Warning Notice */}
           <Card variant="outlined" padding="md" style={styles.warningCard}>
             <View style={styles.warningContent}>
               <AlertCircleIcon size={20} color={theme.colors.primary[600]} />
@@ -154,7 +151,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               </Typography>
             </View>
           </Card>
-          {/* New Password */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
               New Password *
@@ -180,7 +176,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
                 )}
               </TouchableOpacity>
             </View>
-            {/* Password Strength Indicators */}
             {newPassword && (
               <Card variant="outlined" padding="sm" style={styles.strengthCard}>
                 <Typography variant="caption" weight="semibold" style={{marginBottom: 6}}>
@@ -244,7 +239,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               </Card>
             )}
           </View>
-          {/* Confirm Password */}
           <View style={styles.inputSection}>
             <Typography variant="small" weight="semibold" style={styles.inputLabel}>
               Confirm Password *
@@ -279,7 +273,6 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
               </View>
             )}
           </View>
-          {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <Button
               title="Reset Password"

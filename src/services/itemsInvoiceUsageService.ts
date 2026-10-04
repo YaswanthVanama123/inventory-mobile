@@ -28,8 +28,6 @@ export interface InvoiceUsageTotals {
 }
 
 class ItemsInvoiceUsageService {
-  // Backend route is /routestar/items/invoice-usage and now supports a ?search=
-  // query param (matches itemName + aliases server-side).
   async getItemsUsage(
     token: string,
     params: {search?: string; page?: number; limit?: number} = {},

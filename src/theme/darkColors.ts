@@ -1,7 +1,3 @@
-// Dark mode palette. Strategy: invert the gray scale so existing code that uses
-// gray[50] for backgrounds and gray[900] for text continues to work. The colored
-// 50/100 shades are remapped to muted dark equivalents so badge backgrounds stay
-// readable. Vivid 400-700 shades are kept (slightly tweaked for contrast).
 export const darkColors = {
   primary: {
     50: '#172554',
@@ -27,9 +23,6 @@ export const darkColors = {
     800: '#e9d5ff',
     900: '#f3e8ff',
   },
-  // Inverted gray: gray[50] dark bg ↔ gray[900] light text.
-  // Tuned for clear layer separation: app bg is darkest, card surface lifts noticeably,
-  // borders sit between for crisp 1px hairlines.
   gray: {
     50: '#0b1220',
     100: '#1a2236',
@@ -100,9 +93,6 @@ export const darkColors = {
     indigo: ['#312e81', '#4c1d95'],
     cyan: ['#164e63', '#0e7490'],
   },
-  // White becomes a dark card surface so existing `backgroundColor: theme.colors.white`
-  // styling still produces a card-on-bg effect. Lifted slightly above gray[50] for
-  // visible layer separation without harsh contrast.
   white: '#1a2236',
   black: '#ffffff',
   transparent: 'transparent',

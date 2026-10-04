@@ -44,22 +44,17 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
-  // Mac / desktop width gets a compact table; phone & tablet keep the cards.
   const isWideLayout = bp.isDesktop || bp.isWide;
   const {token, user} = useAuth();
   const {handleApiError} = useApiErrorHandler();
   const isAdmin = user?.role === 'admin';
   const [loading, setLoading] = useState(false);
-  // Full-screen spinner only until the first load finishes, so a search that
-  // returns nothing doesn't unmount the search box on the next keystroke.
   const [hasLoaded, setHasLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
-  // Source filter (mirrors the webapp dropdown) shown as a tab switcher:
-  // all = both sources, customerconnect = synced, manual = manual orders.
   const [sourceFilter, setSourceFilter] = useState<'all' | 'customerconnect' | 'manual'>('all');
   const [statusFilter, setStatusFilter] = useState('');
   const [stockProcessedFilter, setStockProcessedFilter] = useState('');
@@ -88,17 +83,14 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       loadData(1);
     }
   }, [token]);
-  // Refresh when returning to the Orders list (e.g. after creating a manual order).
   useRefetchOnFocus(() => {
     setCurrentPage(1);
     loadData(1);
   });
-  // Search now runs on the backend; just mirror the returned page into the list.
   useEffect(() => {
     setFilteredOrders(orders);
   }, [orders]);
 
-  // Refetch from page 1 whenever the debounced search or the source filter changes.
   useEffect(() => {
     if (token) {
       setCurrentPage(1);
@@ -208,9 +200,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       newExpanded.delete(orderNumber);
     } else {
       newExpanded.add(orderNumber);
-      // Lazy-load items on first expand. The list endpoint only returns
-      // itemCount, not the items array, so we fetch the full order detail
-      // and cache it keyed by orderNumber.
       if (!orderDetails[orderNumber] && !loadingDetails.has(orderNumber) && token) {
         const next = new Set(loadingDetails);
         next.add(orderNumber);
@@ -280,7 +269,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
       ) : (
         <>
           <View style={styles.contentWrap}>
-          {/* Stats - Fixed */}
           <View style={styles.statsContainer}>
             <Card style={styles.statCard}>
               <Typography variant="small" color={theme.colors.gray[600]}>
@@ -322,7 +310,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
             </View>
           )}
 
-          {/* Search - Fixed */}
           <View style={styles.searchContainer}>
             <RNTextInput
               style={styles.searchInput}
@@ -333,7 +320,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
             />
           </View>
 
-          {/* Source filter — tab switcher (All / Synced / Manual) */}
           <View style={styles.sourceTabs}>
             {([
               {key: 'all', label: 'All Sources'},
@@ -358,7 +344,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
             })}
           </View>
 
-          {/* Filters toggle */}
           <TouchableOpacity
             style={styles.filterToggle}
             onPress={() => setShowFilters(v => !v)}
@@ -376,7 +361,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
 
           {showFilters && (
             <View style={styles.filterPanel}>
-              {/* Status */}
               <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
                 STATUS
               </Typography>
@@ -404,7 +388,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                 })}
               </View>
 
-              {/* Stock processed */}
               <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
                 STOCK
               </Typography>
@@ -429,7 +412,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                 })}
               </View>
 
-              {/* Verified */}
               <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
                 VERIFICATION
               </Typography>
@@ -454,7 +436,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                 })}
               </View>
 
-              {/* Date range */}
               <View style={styles.dateRow}>
                 <View style={styles.dateField}>
                   <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.filterLabel}>
@@ -493,9 +474,7 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               )}
             </View>
           )}
-          </View>{/* end contentWrap */}
-
-          {/* Scrollable Content */}
+          </View>
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
@@ -503,7 +482,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }>
-          {/* Orders List */}
           {error ? (
             <View style={styles.errorContainer}>
               <AlertCircleIcon size={48} color={theme.colors.error[600]} />
@@ -731,7 +709,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                     </View>
                   </View>
                 </TouchableOpacity>
-                {/* Verify Order Button */}
                 {!order.verified && (
                     <TouchableOpacity
                       style={styles.verifyButton}
@@ -748,7 +725,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                       </Typography>
                     </TouchableOpacity>
                   )}
-                {/* Expanded Details */}
                 {expandedOrders.has(order.orderNumber) && (() => {
                   const detail = orderDetails[order.orderNumber];
                   const detailItems: any[] = detail?.items || [];
@@ -812,7 +788,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               </Card>
             ))
           )}
-          {/* Pagination Info and Page Numbers */}
           {!error && !loading && filteredOrders.length > 0 && totalPages > 0 && (
             <View style={styles.paginationContainer}>
               <Typography variant="small" color={theme.colors.gray[600]} align="center" style={{marginBottom: 16}}>
@@ -820,7 +795,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
               </Typography>
 
               <View style={styles.paginationControls}>
-                {/* Previous Button */}
                 <TouchableOpacity
                   style={[
                     styles.pageButton,
@@ -837,7 +811,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                   </Typography>
                 </TouchableOpacity>
 
-                {/* Page Numbers */}
                 <View style={styles.pageNumbersContainer}>
                   {getPageNumbers().map((page, index) => {
                     if (page === '...') {
@@ -871,7 +844,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
                   })}
                 </View>
 
-                {/* Next Button */}
                 <TouchableOpacity
                   style={[
                     styles.pageButton,
@@ -893,7 +865,6 @@ export const OrdersScreenWrapper: React.FC<OrdersScreenWrapperProps> = ({
         </ScrollView>
         </>
       )}
-      {/* Floating Action Buttons */}
       {isAdmin && (
         <View style={styles.floatingButtonContainer}>
           <TouchableOpacity
@@ -936,7 +907,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Centers & caps content on large / XL screens.
   contentWrap: {
     width: '100%',
     maxWidth: bp.contentMaxWidth,
@@ -1100,7 +1070,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     borderColor: theme.colors.primary[200],
   },
 
-  // ── Mac / desktop table layout ────────────────────────────────────────
   table: {
     backgroundColor: theme.colors.white,
     borderRadius: 16,

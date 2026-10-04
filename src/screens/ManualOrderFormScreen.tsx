@@ -66,12 +66,10 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
   const [vendorPickerVisible, setVendorPickerVisible] = useState(false);
   const [activeItemPicker, setActiveItemPicker] = useState<number | null>(null);
 
-  // Sentinel option appended to the vendor picker to trigger the inline form.
   const NEW_VENDOR_VALUE = '__new__';
 
   const validateOrderDate = (value: string): string => {
     if (!value) return 'Order date is required';
-    // Enforce strict YYYY-MM-DD format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
       return 'Use YYYY-MM-DD format';
     }
@@ -160,7 +158,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
       (newItems[index] as any)[field] = value;
     }
 
-    // Recalculate line total
     if (field === 'qty' || field === 'unitPrice') {
       const qty = parseFloat(String(newItems[index].qty)) || 0;
       const unitPrice = parseFloat(String(newItems[index].unitPrice)) || 0;
@@ -187,7 +184,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
   };
 
   const handleSubmit = async () => {
-    // Validation
     if (!selectedVendorId && !showNewVendorForm) {
       Alert.alert('Validation Error', 'Please select a vendor');
       return;
@@ -220,7 +216,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
     try {
       setSubmitting(true);
 
-      // Resolve vendor details, creating a new vendor inline if requested.
       let vendorData: any = null;
 
       if (showNewVendorForm) {
@@ -238,8 +233,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
         throw new Error('Invalid vendor data received');
       }
 
-      // Prepare order data. Backend reads `qty`/`unitPrice` and recomputes
-      // lineTotal; we include lineTotal for web parity.
       const orderData = {
         vendor: {
           name: vendorData.name,
@@ -307,13 +300,11 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}>
         <View style={styles.contentWrap}>
-        {/* Order Information Card */}
         <Card style={styles.section}>
           <Typography variant="h3" weight="bold" style={styles.sectionTitle}>
             Order Information
           </Typography>
 
-          {/* Order Number */}
           <View style={styles.field}>
             <Typography variant="body" weight="medium" style={styles.label}>
               Order Number
@@ -325,7 +316,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
             </View>
           </View>
 
-          {/* Vendor Selection */}
           <View style={styles.field}>
             <Typography variant="body" weight="medium" style={styles.label}>
               Vendor *
@@ -400,7 +390,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
             )}
           </View>
 
-          {/* Order Date */}
           <View style={styles.field}>
             <Typography variant="body" weight="medium" style={styles.label}>
               Order Date *
@@ -425,7 +414,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
           </View>
         </Card>
 
-        {/* Items Card */}
         <Card style={styles.section}>
           <View style={styles.sectionHeader}>
             <Typography variant="h3" weight="bold">
@@ -446,7 +434,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
 
           {items.map((item, index) => (
             <View key={index} style={styles.itemContainer}>
-              {/* Item Selection */}
               <View style={styles.field}>
                 <Typography variant="small" weight="medium" style={styles.label}>
                   Item *
@@ -484,7 +471,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
                 </View>
               </View>
 
-              {/* Quantity and Unit Price Row */}
               <View style={styles.row}>
                 <View style={[styles.field, {flex: 1}]}>
                   <Typography
@@ -525,7 +511,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
                 </View>
               </View>
 
-              {/* Line Total and Remove Button */}
               <View style={styles.itemFooter}>
                 <View style={styles.lineTotal}>
                   <Typography variant="small" color={theme.colors.gray[600]}>
@@ -556,7 +541,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
             </View>
           ))}
 
-          {/* Order Total */}
           <View style={styles.orderTotal}>
             <Typography variant="body" color={theme.colors.gray[600]}>
               Order Total
@@ -570,7 +554,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
           </View>
         </Card>
 
-        {/* Notes Card */}
         <Card style={styles.section}>
           <Typography variant="h3" weight="bold" style={styles.sectionTitle}>
             Notes (Optional)
@@ -587,7 +570,6 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
           />
         </Card>
 
-        {/* Submit Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={[styles.button, styles.cancelButton]}
@@ -616,7 +598,7 @@ export const ManualOrderFormScreen: React.FC<ManualOrderFormScreenProps> = ({
             )}
           </TouchableOpacity>
         </View>
-        </View>{/* contentWrap */}
+        </View>
       </ScrollView>
 
       <PickerModal

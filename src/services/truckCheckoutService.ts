@@ -1,9 +1,6 @@
 import {API_BASE_URL} from '../config/api';
 
 class TruckCheckoutService {
-  /**
-   * Search RouteStarItems with stock info for checkout dropdown
-   */
   async searchItems(
     token: string,
     query: string = '',
@@ -37,9 +34,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-  /**
-   * Get current stock for a specific item
-   */
   async getItemStock(token: string, itemName: string) {
     try {
       const url = `${API_BASE_URL}/truck-checkouts/stock/${encodeURIComponent(
@@ -67,10 +61,6 @@ class TruckCheckoutService {
     }
   }
 
-  /**
-   * Get current truck inventory for a specific truck and item
-   * Returns: totalCheckedOut, totalSold, discrepancyAdjustment, currentTruckInventory
-   */
   async getTruckInventory(
     token: string,
     truckNumber: string,
@@ -119,9 +109,6 @@ class TruckCheckoutService {
     }
   }
 
-  /**
-   * Create new checkout with validation and auto-discrepancy
-   */
   async createCheckout(token: string, checkoutData: any) {
     try {
       const url = `${API_BASE_URL}/truck-checkouts/create-new`;
@@ -146,9 +133,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-  /**
-   * Get all checkouts with filtering
-   */
   async getCheckouts(
     token: string,
     filters: {
@@ -191,9 +175,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-  /**
-   * Get active checkouts
-   */
   async getActiveCheckouts(token: string) {
     try {
       const url = `${API_BASE_URL}/truck-checkouts/active`;
@@ -218,9 +199,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-  /**
-   * Get checkout sales tracking
-   */
   async getSalesTracking(
     token: string,
     filters: {
@@ -260,9 +238,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-  /**
-   * Get all employees with their checkout statistics
-   */
   async getAllEmployeesWithStats(
     token: string,
     filters: {
@@ -298,10 +273,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-  /**
-   * Get checkout statistics for a single employee
-   * Returns: totalCheckouts, completedCheckouts, activeCheckouts, totalInvoices
-   */
   async getEmployeeStats(
     token: string,
     employeeName: string,
@@ -342,9 +313,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-  /**
-   * Get a single checkout by ID
-   */
   async getCheckout(token: string, checkoutId: string) {
     try {
       const url = `${API_BASE_URL}/truck-checkouts/${checkoutId}`;
@@ -368,10 +336,6 @@ class TruckCheckoutService {
       throw error;
     }
   }
-  /**
-   * Check work: fetch the given invoices and compare sold vs taken quantities
-   * without finalizing the checkout. Returns { comparison, summary }.
-   */
   async checkWork(
     token: string,
     checkoutId: string,
@@ -401,9 +365,6 @@ class TruckCheckoutService {
     }
   }
 
-  /**
-   * Complete a checkout with the given invoice numbers.
-   */
   async completeCheckout(
     token: string,
     checkoutId: string,
@@ -433,9 +394,6 @@ class TruckCheckoutService {
     }
   }
 
-  /**
-   * Cancel a checkout with an optional reason.
-   */
   async cancelCheckout(token: string, checkoutId: string, reason: string = '') {
     try {
       const url = `${API_BASE_URL}/truck-checkouts/${checkoutId}/cancel`;
@@ -460,9 +418,6 @@ class TruckCheckoutService {
     }
   }
 
-  /**
-   * Delete a checkout
-   */
   async deleteCheckout(token: string, checkoutId: string) {
     try {
       const url = `${API_BASE_URL}/truck-checkouts/${checkoutId}`;

@@ -1,16 +1,6 @@
-/**
- * Date formatting utilities with Virginia US timezone (America/New_York)
- * All dates are automatically converted to Eastern Time (ET)
- */
 
 const VIRGINIA_TIMEZONE = 'America/New_York';
 
-/**
- * Format date to localized string in Virginia timezone
- * @param date - Date to format (string or Date object)
- * @param options - Intl.DateTimeFormat options
- * @returns Formatted date string
- */
 export const formatDate = (
   date: string | Date | null | undefined,
   options: Intl.DateTimeFormatOptions = {}
@@ -35,12 +25,6 @@ export const formatDate = (
   }
 };
 
-/**
- * Format date and time to localized string in Virginia timezone
- * @param date - Date to format (string or Date object)
- * @param options - Intl.DateTimeFormat options
- * @returns Formatted date and time string
- */
 export const formatDateTime = (
   date: string | Date | null | undefined,
   options: Intl.DateTimeFormatOptions = {}
@@ -67,12 +51,6 @@ export const formatDateTime = (
   }
 };
 
-/**
- * Format time only in Virginia timezone
- * @param date - Date to format (string or Date object)
- * @param options - Intl.DateTimeFormat options
- * @returns Formatted time string
- */
 export const formatTime = (
   date: string | Date | null | undefined,
   options: Intl.DateTimeFormatOptions = {}
@@ -97,11 +75,6 @@ export const formatTime = (
   }
 };
 
-/**
- * Format date with full details including timezone abbreviation
- * @param date - Date to format (string or Date object)
- * @returns Formatted date string with timezone
- */
 export const formatDateTimeFull = (
   date: string | Date | null | undefined
 ): string => {
@@ -126,11 +99,6 @@ export const formatDateTimeFull = (
   }
 };
 
-/**
- * Format date for display in lists (short format)
- * @param date - Date to format (string or Date object)
- * @returns Formatted date string
- */
 export const formatDateShort = (
   date: string | Date | null | undefined
 ): string => {
@@ -151,11 +119,6 @@ export const formatDateShort = (
   }
 };
 
-/**
- * Format date and time for display in lists (compact format)
- * @param date - Date to format (string or Date object)
- * @returns Formatted date and time string
- */
 export const formatDateTimeShort = (
   date: string | Date | null | undefined
 ): string => {
@@ -178,12 +141,6 @@ export const formatDateTimeShort = (
   }
 };
 
-/**
- * Get relative time string (e.g., "2 hours ago", "3 days ago")
- * Calculated based on Virginia timezone
- * @param date - Date to format (string or Date object)
- * @returns Relative time string
- */
 export const formatRelativeTime = (
   date: string | Date | null | undefined
 ): string => {
@@ -213,10 +170,6 @@ export const formatRelativeTime = (
   }
 };
 
-/**
- * Legacy compatibility - converts date to Virginia timezone locale string
- * @deprecated Use formatDate or formatDateTime instead
- */
 export const toVirginiaTime = (
   date: string | Date | null | undefined
 ): string => {

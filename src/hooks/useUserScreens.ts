@@ -34,16 +34,13 @@ export const useUserScreens = () => {
   const hasAccessToScreen = (path: string) => {
     if (!path) return false;
 
-    // Normalize paths for comparison (remove query params and trailing slashes)
     const normalizedPath = path.split('?')[0].replace(/\/$/, '');
 
     return userScreens.some(screen => {
       const screenPath = screen.path.split('?')[0].replace(/\/$/, '');
 
-      // Exact match
       if (screenPath === normalizedPath) return true;
 
-      // Child route match (e.g., /inventory/:id matches /inventory)
       if (normalizedPath.startsWith(screenPath + '/') && screenPath !== '') {
         return true;
       }

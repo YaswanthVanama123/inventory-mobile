@@ -50,7 +50,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
   const [refreshing, setRefreshing] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
 
-  // Client-side numbered pagination over the filtered list.
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const totalPages = Math.max(1, Math.ceil(history.length / pageSize));
@@ -69,7 +68,6 @@ export const FetchHistoryScreen: React.FC<FetchHistoryScreenProps> = ({visible, 
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDays, setFilterDays] = useState(10);
 
-  // Filter/search changes send the list back to page 1.
   useEffect(() => {
     setPage(1);
   }, [`${filterSource}|${filterStatus}|${filterDays}`, pageSize]);
@@ -809,7 +807,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     heroMetricLabel: {letterSpacing: 1.2},
     heroMetricDivider: {width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.18)'},
 
-    // Content wrap: centers & caps all post-hero content
     contentWrap: {
       width: '100%',
       maxWidth: bp.contentMaxWidth,

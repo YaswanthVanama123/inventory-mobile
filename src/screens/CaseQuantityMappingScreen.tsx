@@ -42,8 +42,6 @@ interface CaseQuantityMappingScreenProps {
 
 type FilterKey = 'all' | 'mapped' | 'unmapped' | 'bulk';
 
-// While a row is being edited the units-per-case field holds the raw text so
-// the user can clear it before typing a new number.
 type EditableItem = Omit<CaseQuantityItem, 'unitsPerCase'> & {
   unitsPerCase: number | string;
 };
@@ -75,8 +73,6 @@ export const CaseQuantityMappingScreen: React.FC<CaseQuantityMappingScreenProps>
   const heroSlide = useRef(new Animated.Value(0)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
-  // Server-side numbered pagination: search + status filter run on the backend
-  // over the FULL purchased-item set, not just the page held locally.
   const {
     items: pageItems,
     page,
@@ -113,7 +109,6 @@ export const CaseQuantityMappingScreen: React.FC<CaseQuantityMappingScreenProps>
     },
   );
 
-  // Editable copy of the freshly-fetched page.
   useEffect(() => {
     setItems(pageItems);
   }, [pageItems]);

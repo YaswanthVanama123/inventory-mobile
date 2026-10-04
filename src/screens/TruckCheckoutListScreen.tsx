@@ -60,7 +60,6 @@ export const TruckCheckoutListScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
   const [checkouts, setCheckouts] = useState<any[]>([]);
-  // Ticked rows for the admin bulk-purge bar.
   const [selectedCheckoutIds, setSelectedCheckoutIds] = useState<Set<string>>(new Set());
 
   const toggleCheckoutSelected = (id: string) => {
@@ -119,7 +118,6 @@ export const TruckCheckoutListScreen = () => {
     }
   }, [activeTab, checkoutsSubTab, salesSubTab, statusFilter, employeeFilter, searchTerm, pagination.page, pagination.limit]);
 
-  // Refresh the active tab/sub-tab when returning to this screen (e.g. after a checkout).
   useRefetchOnFocus(() => {
     if (activeTab === 'checkouts') {
       if (checkoutsSubTab === 'all') {
@@ -861,7 +859,6 @@ export const TruckCheckoutListScreen = () => {
                 CHECKOUTS · {pagination.total}
               </Typography>
             </View>
-            {/* Admin-only permanent delete controls */}
             <View style={styles.purgeBarWrap}>
               <BulkPurgeBar
                 type="truck-checkouts"
@@ -1608,7 +1605,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingBottom: 120,
     },
 
-    // Centers all post-hero content and caps its width on large/XL screens.
     contentWrap: {
       width: '100%',
       maxWidth: bp.contentMaxWidth,

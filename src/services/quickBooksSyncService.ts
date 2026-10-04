@@ -41,7 +41,6 @@ const authHeaders = (token: string) => ({
 });
 
 class QuickBooksSyncService {
-  // GET /qb-sync/stats
   async getStats(token: string): Promise<QbSyncStats> {
     const res = await fetch(`${API_BASE_URL}/qb-sync/stats`, {
       headers: authHeaders(token),
@@ -60,7 +59,6 @@ class QuickBooksSyncService {
     };
   }
 
-  // GET /qb-sync/queue
   async getQueue(
     token: string,
     params: {status?: string; type?: string; page?: number; limit?: number} = {},
@@ -86,7 +84,6 @@ class QuickBooksSyncService {
     };
   }
 
-  // POST /qb-sync/trigger-snapshot
   async triggerSnapshot(token: string): Promise<QbSyncSnapshotResult> {
     const res = await fetch(`${API_BASE_URL}/qb-sync/trigger-snapshot`, {
       method: 'POST',
@@ -98,7 +95,6 @@ class QuickBooksSyncService {
     return payload || {};
   }
 
-  // POST /qb-sync/retry/{id}
   async retry(token: string, id: string): Promise<QbSyncQueueRecord> {
     const res = await fetch(`${API_BASE_URL}/qb-sync/retry/${id}`, {
       method: 'POST',

@@ -168,10 +168,6 @@ class RouteStarItemsService {
       throw error;
     }
   }
-  /**
-   * OPTIMIZED: Get items with stats in one call
-   * Combines items list and stats into single request
-   */
   async getItemsWithStats(
     token: string,
     params: {

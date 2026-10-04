@@ -57,7 +57,6 @@ export const SalesReportScreen: React.FC<SalesReportScreenProps> = ({visible, on
   const heroSlide = useRef(new Animated.Value(0)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
-  // Server-side pagination: 20 rows per page (+ aggregate totals for the hero).
   const {
     items,
     loading,

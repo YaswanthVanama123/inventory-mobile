@@ -25,8 +25,6 @@ export interface UserWithPermissions {
 }
 
 class ScreenPermissionService {
-  // Get all screens
-  // Server-paginated screens (search + category + page/limit applied on the backend).
   async getScreensPaged(
     token: string,
     params: {search?: string; category?: string; page?: number; limit?: number} = {},
@@ -91,7 +89,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Get a single screen by ID
   async getScreenById(token: string, screenId: string): Promise<Screen> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/screens/${screenId}`;
@@ -117,7 +114,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Create a new screen
   async createScreen(token: string, screenData: Partial<Screen>): Promise<Screen> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/screens`;
@@ -145,7 +141,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Update a screen
   async updateScreen(token: string, screenId: string, screenData: Partial<Screen>): Promise<Screen> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/screens/${screenId}`;
@@ -173,7 +168,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Delete a screen
   async deleteScreen(token: string, screenId: string): Promise<void> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/screens/${screenId}`;
@@ -197,7 +191,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Get default screens (the ones every employee gets automatically)
   async getDefaultScreens(token: string): Promise<Screen[]> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/screens/default`;
@@ -219,7 +212,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Update default screens
   async updateDefaultScreens(token: string, screenIds: string[]): Promise<void> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/screens/default`;
@@ -244,7 +236,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Initialize screens
   async initializeScreens(token: string): Promise<void> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/screens/initialize`;
@@ -268,7 +259,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Get my screens (logged-in user)
   async getMyScreens(token: string): Promise<Screen[]> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/my-screens`;
@@ -294,7 +284,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Get all users with their permissions summary
   async getAllUsersWithPermissions(token: string): Promise<UserWithPermissions[]> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/users`;
@@ -320,7 +309,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Get screens for a specific user
   async getUserScreens(token: string, userId: string): Promise<Screen[]> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/users/${userId}/screens`;
@@ -346,8 +334,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Get user-specific (non-default) permissions for a user.
-  // Backend route: GET /screen-permissions/users/:userId/permissions
   async getUserSpecificPermissions(token: string, userId: string): Promise<Screen[]> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/users/${userId}/permissions`;
@@ -369,7 +355,6 @@ class ScreenPermissionService {
     }
   }
 
-  // Update user-specific permissions
   async updateUserPermissions(token: string, userId: string, screenIds: string[]): Promise<void> {
     try {
       const url = `${API_BASE_URL}/screen-permissions/users/${userId}/permissions`;

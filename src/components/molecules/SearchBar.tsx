@@ -16,7 +16,6 @@ interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  /** Shows a spinner in place of the search icon while a request is in flight. */
   loading?: boolean;
   onClear?: () => void;
   autoFocus?: boolean;
@@ -26,11 +25,6 @@ interface SearchBarProps {
   onSubmitEditing?: () => void;
 }
 
-/**
- * Reusable search input used across screens that search via the BACKEND.
- * Pair the value with `useDebounce` and feed the debounced text into the
- * screen's fetch params — do NOT filter already-fetched data in memory.
- */
 export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,

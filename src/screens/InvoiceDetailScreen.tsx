@@ -150,7 +150,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.modalHeader}>
           <View style={styles.modalHeaderLeft}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -211,7 +210,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}>
-            {/* Invoice Header Card */}
             <Card variant="elevated" padding="lg" style={styles.invoiceHeaderCard}>
               <View style={styles.invoiceHeaderTop}>
                 <FileTextIcon size={32} color={theme.colors.primary[600]} />
@@ -251,7 +249,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </Typography>
               )}
             </Card>
-            {/* Customer Information */}
             <Card variant="elevated" padding="lg" style={styles.section}>
               <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
                 Customer Information
@@ -298,7 +295,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </View>
               )}
             </Card>
-            {/* Invoice Details */}
             <Card variant="elevated" padding="lg" style={styles.section}>
               <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
                 Invoice Details
@@ -362,7 +358,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </View>
               )}
             </Card>
-            {/* Time & Duration */}
             {(invoice.arrivalTime || invoice.departureTime || invoice.elapsedTime) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
                 <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
@@ -400,7 +395,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 )}
               </Card>
             )}
-            {/* Payment Information */}
             {(invoice.payment || invoice.paymentMethod) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
                 <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
@@ -428,7 +422,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 )}
               </Card>
             )}
-            {/* Posting Information */}
             {(invoice.postedBy || invoice.postedTimestamp || invoice.isPosted !== undefined) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
                 <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
@@ -479,7 +472,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 )}
               </Card>
             )}
-            {/* Additional Information */}
             {(invoice.assignedTo ||
               invoice.serviceNotes ||
               invoice.notes ||
@@ -563,7 +555,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 )}
               </Card>
             )}
-            {/* Line Items */}
             {((invoice.items && invoice.items.length > 0) || (invoice.lineItems && invoice.lineItems.length > 0)) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
                 <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
@@ -627,7 +618,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 })}
               </Card>
             )}
-            {/* Invoice Total */}
             <Card variant="elevated" padding="lg" style={styles.section}>
               <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
                 Invoice Total
@@ -670,7 +660,6 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
                 </Typography>
               </View>
             </Card>
-            {/* Sync Information */}
             {(invoice.syncedAt || invoice.createdAt || invoice.lastUpdated || invoice.updatedAt || invoice.stockProcessed !== undefined) && (
               <Card variant="elevated" padding="lg" style={styles.section}>
                 <Typography variant="body" weight="semibold" style={styles.sectionTitle}>
@@ -789,7 +778,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  // Centers & caps the detail content column on large / XL screens.
   scrollContent: {
     paddingHorizontal: bp.gutter,
     paddingBottom: theme.spacing.xxxl,

@@ -1,11 +1,5 @@
 import {colors} from './colors';
 
-/**
- * Centralized status color system
- * Provides consistent colors for status indicators, badges, and tags across the app
- * Each status has both text (color) and background (bgColor) variants
- */
-
 export const status = {
   invoice: {
     draft: {
@@ -128,10 +122,6 @@ export const status = {
     },
   },
 };
-/**
- * Helper functions to get status colors
- * These provide a fallback to prevent runtime errors
- */
 export const getInvoiceStatusColors = (invoiceStatus: string) => {
   const key = invoiceStatus?.toLowerCase() as keyof typeof status.invoice;
   return status.invoice[key] || status.invoice.draft;

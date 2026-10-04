@@ -3,7 +3,6 @@ import {API_BASE_URL} from '../config/api';
 export interface ManualOrderItem {
   sku: string;
   name: string;
-  // Backend manual-order route reads `qty` and computes `lineTotal` itself.
   qty: number;
   unitPrice: number;
   lineTotal?: number;
@@ -58,7 +57,6 @@ class ManualOrderService {
     });
     if (!response.ok) throw new Error('Failed to fetch manual orders');
     const result = await response.json();
-    // Backend returns: { success: true, data: { orders: [...], total: 1 } }
     const orders = result.data?.orders || result.data || result.orders || [];
     return Array.isArray(orders) ? orders : [];
   }

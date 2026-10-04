@@ -79,7 +79,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
     totalInvoices: 0,
   });
 
-  // Server-side pagination: 20 rows per page (+ aggregate totals for the stat cards).
   const {
     items,
     loading,
@@ -114,7 +113,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
   const loadData = refetch;
   const onRefresh = refresh;
 
-  // Backend applies the search (itemName + aliases); render the result as-is.
   const filteredItems = items;
 
   const renderItemCard = (item: ItemUsage, index: number) => {
@@ -210,7 +208,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
 
         {isExpanded && (
           <View style={styles.expandedContainer}>
-            {/* Alias chips */}
             {item.aliases.length > 0 && (
               <View style={styles.aliasSection}>
                 <View style={styles.expandHeading}>
@@ -237,7 +234,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
               </View>
             )}
 
-            {/* Per-invoice table */}
             {item.invoices.length > 0 ? (
               <View style={styles.invoiceSection}>
                 <View style={styles.expandHeading}>
@@ -250,7 +246,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
                   </Typography>
                 </View>
 
-                {/* Table header */}
                 <View style={[styles.invoiceRow, styles.invoiceHeaderRow]}>
                   <Typography
                     variant="caption"
@@ -296,7 +291,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
                   </Typography>
                 </View>
 
-                {/* Table rows */}
                 {item.invoices.map((invoice, invIdx) => {
                   const isDone =
                     invoice.status === 'Completed' || invoice.status === 'Closed';
@@ -388,7 +382,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={[styles.iconContainer, styles.headerIcon]}>
@@ -408,7 +401,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
           </TouchableOpacity>
         </View>
 
-        {/* Stats Summary */}
         {!loading && totals.totalItems > 0 && (
           <View style={styles.statsContainer}>
             <View style={styles.statsCard}>
@@ -446,7 +438,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
           </View>
         )}
 
-        {/* Search */}
         <View style={styles.searchSection}>
           <View style={styles.searchContainer}>
             <SearchIcon size={18} color={theme.colors.gray[400]} />
@@ -465,7 +456,6 @@ export const ItemsInvoiceUsageScreen: React.FC<ItemsInvoiceUsageScreenProps> = (
           </View>
         </View>
 
-        {/* Content */}
         {initialLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.primary[600]} />

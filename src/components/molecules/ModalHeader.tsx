@@ -6,41 +6,13 @@ import {useTheme} from '../../contexts/ThemeContext';
 import {Theme} from '../../theme';
 
 export interface ModalHeaderProps {
-  /**
-   * Main title text
-   */
   title: string;
 
-  /**
-   * Optional subtitle/description text
-   */
   subtitle?: string;
-  /**
-   * Callback when close button is pressed
-   */
   onClose: () => void;
-  /**
-   * Optional custom container style
-   */
   style?: ViewStyle;
-  /**
-   * Hide the close button
-   */
   hideCloseButton?: boolean;
 }
-/**
- * ModalHeader - Reusable header component for modals and sheets
- *
- * Provides consistent styling for modal headers across the app.
- * Includes title, optional subtitle, and close button.
- *
- * @example
- * <ModalHeader
- *   title="Edit User"
- *   subtitle="Update user information"
- *   onClose={handleClose}
- * />
- */
 export const ModalHeader: React.FC<ModalHeaderProps> = ({
   title,
   subtitle,

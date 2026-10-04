@@ -34,11 +34,6 @@ type StatusFilter = 'all' | 'pending';
 const PAGE_SIZE = 20;
 const emptyPagination = {total: 0, page: 1, limit: PAGE_SIZE, pages: 1};
 
-// Employee-facing Discrepancies screen: a clean, READ-ONLY view of only the
-// discrepancies that belong to the signed-in employee. Two tabs — "Checkout /
-// Stock" (truck + stock discrepancies) and "Order" (order discrepancies) — each
-// server-paginated 20/page. The backend scopes the data to the employee by role;
-// this screen adds no admin actions.
 export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenProps> = ({
   visible,
   onClose,
@@ -55,17 +50,14 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Checkout / Stock tab
   const [discrepancies, setDiscrepancies] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(emptyPagination);
 
-  // Order tab
   const [orderDiscrepancies, setOrderDiscrepancies] = useState<any[]>([]);
   const [orderPage, setOrderPage] = useState(1);
   const [orderPagination, setOrderPagination] = useState(emptyPagination);
 
-  // Reset to page 1 whenever the tab or status filter changes.
   useEffect(() => {
     setPage(1);
     setOrderPage(1);
@@ -140,7 +132,6 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
   const activePagination = topTab === 'stock' ? pagination : orderPagination;
   const activeList = topTab === 'stock' ? discrepancies : orderDiscrepancies;
 
-  // ── presentation helpers ───────────────────────────────────────────────
   const stockTypeStyle = (d: any) => {
     const t = (d.discrepancyType || '').toLowerCase();
     if (t.includes('short') || t.includes('missing')) return theme.colors.error;
@@ -153,7 +144,7 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
     const s = (status || '').toLowerCase();
     if (s === 'pending') return theme.colors.warning;
     if (s === 'rejected') return theme.colors.error;
-    return theme.colors.success; // approved / resolved
+    return theme.colors.success;
   };
 
   const renderDetailRow = (label: string, value: any) => {
@@ -249,7 +240,6 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
 
         {isExpanded && (
           <View style={styles.detailPanel}>
-            {/* System → Actual → Diff */}
             <View style={styles.qtyRow}>
               <View style={styles.qtyCell}>
                 <Typography variant="caption" color={theme.colors.gray[400]}>
@@ -315,7 +305,7 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
     const t = (type || '').toLowerCase();
     if (t.includes('short')) return theme.colors.error;
     if (t.includes('over')) return theme.colors.info;
-    return theme.colors.success; // matched
+    return theme.colors.success;
   };
 
   const renderOrderCard = (d: any, index: number) => {
@@ -360,7 +350,6 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
             </View>
           </View>
 
-          {/* Expected → Received → Diff */}
           <View style={styles.qtyRow}>
             <View style={styles.qtyCell}>
               <Typography variant="caption" color={theme.colors.gray[400]}>
@@ -443,7 +432,6 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <Typography variant="body" color={theme.colors.primary[600]} weight="semibold">
@@ -456,7 +444,6 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
           <View style={styles.closeBtn} />
         </View>
 
-        {/* Top tabs: Checkout/Stock vs Order */}
         <View style={styles.topTabsWrap}>
           <View style={styles.topTabs}>
             {([
@@ -496,7 +483,6 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
                 : 'Order receiving differences you reported.'}
             </Typography>
 
-            {/* Summary + status filter */}
             <View style={styles.summaryRow}>
               <Card variant="elevated" padding="md" style={[styles.summaryCard, {width: summaryWidth}]}>
                 <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -516,7 +502,6 @@ export const EmployeeDiscrepanciesScreen: React.FC<EmployeeDiscrepanciesScreenPr
               </Card>
             </View>
 
-            {/* Status filter */}
             <View style={styles.filterTabs}>
               {([
                 {key: 'all', label: 'All'},

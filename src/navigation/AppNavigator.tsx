@@ -34,8 +34,6 @@ export const AppNavigator = () => {
   }, [theme]);
 
   if (loading) {
-    // The animated splash (rendered above the navigator in App) covers this
-    // bootstrap window, so we render nothing here rather than a bare spinner.
     return null;
   }
   return (

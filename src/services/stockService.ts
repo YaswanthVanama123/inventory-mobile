@@ -1,13 +1,6 @@
 import {API_BASE_URL} from '../config/api';
 
 class StockService {
-  /**
-   * Fetch the stock summary. The backend paginates the CATEGORY list server-side
-   * (default limit 20) and returns it as a top-level `categories` array — the
-   * per-tab `useStock`/`sellStock` objects carry totals only, no `items`. So
-   * `page`/`limit`/`search`/`tab` must be forwarded, and callers must read
-   * `categories` for the rows.
-   */
   async getStockSummary(
     token: string,
     params: {
@@ -102,8 +95,6 @@ class StockService {
       throw error;
     }
   }
-  // Fuzzy + partial search across category names, aliases / order item names,
-  // SKUs and item names. Returns { query, total, matches: [{categoryName,...}] }.
   async searchStock(token: string, q: string) {
     try {
       const response = await fetch(
@@ -130,8 +121,6 @@ class StockService {
       throw error;
     }
   }
-  // Admin stock reconciliation: per-SKU purchased vs sold with IN_STOCK /
-  // OUT_OF_STOCK / OVERSOLD status. Returns { items, summary }.
   async getStockReconciliation(token: string) {
     try {
       const response = await fetch(`${API_BASE_URL}/stock-reconciliation`, {

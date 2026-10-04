@@ -1,16 +1,5 @@
 import {API_BASE_URL} from '../config/api';
 
-/**
- * Report service for the mobile app.
- *
- * Mirrors the webapp's reportService, targeting the same backend endpoints:
- *   GET /reports/sales             -> sales analytics
- *   GET /reports/dashboard         -> reports hub summary
- *   GET /reports/export-customers  -> CSV of unique customers (RouteStar closed invoices)
- *
- * Fetch pattern: Bearer token, parse `json.data || json`.
- */
-
 export interface SalesReportSummary {
   totalSales: number;
   totalCost: number;
@@ -87,7 +76,6 @@ const buildQuery = (params: {[key: string]: string | undefined}) => {
 };
 
 class ReportService {
-  /** GET /reports/sales -> sales analytics (summary + category breakdown). */
   async sales(token: string, params: SalesReportParams = {}): Promise<SalesReportData> {
     const url = `${API_BASE_URL}/reports/sales${buildQuery({
       startDate: params.startDate,
@@ -103,7 +91,6 @@ class ReportService {
     return json.data || json;
   }
 
-  /** GET /reports/dashboard -> reports hub summary. */
   async dashboard(token: string): Promise<DashboardReportData> {
     const url = `${API_BASE_URL}/reports/dashboard`;
     const response = await fetch(url, {headers: authHeaders(token)});
@@ -115,10 +102,6 @@ class ReportService {
     return json.data || json;
   }
 
-  /**
-   * GET /reports/export-customers -> raw CSV text (unique customers from closed
-   * RouteStar invoices in the date range).
-   */
   async exportCustomers(
     token: string,
     startDate: string,

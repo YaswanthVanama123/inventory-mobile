@@ -126,7 +126,6 @@ export const ClosedInvoiceCustomersScreen: React.FC<Props> = ({visible, onClose}
           ItemSeparatorComponent={() => <View style={{height: 12}} />}
           ListHeaderComponent={
             <View>
-              {/* Date range */}
               <Card style={styles.filterCard}>
                 <View style={styles.dateRow}>
                   <View style={{flex: 1}}>

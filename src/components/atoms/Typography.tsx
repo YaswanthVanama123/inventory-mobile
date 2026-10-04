@@ -5,7 +5,6 @@ import {Theme} from '../../theme';
 import {getBreakpoint} from '../../utils/breakpoints';
 import {TextRole} from '../../theme/typography';
 
-// Semantic roles + legacy aliases (so older variant names keep working).
 type Variant =
   | 'heading'
   | 'subheading'
@@ -25,7 +24,6 @@ const ROLE_ALIAS: Record<Variant, TextRole> = {
   sideheading: 'sideheading',
   body: 'body',
   caption: 'caption',
-  // legacy names → roles
   h1: 'heading',
   h2: 'subheading',
   h3: 'sideheading',
@@ -42,7 +40,6 @@ export interface TypographyProps extends RNTextProps {
   responsive?: boolean;
 }
 
-// Bigger screens (tablet/Mac) scale text up a touch.
 const fontScaleByBreakpoint = (width: number): number => {
   const bp = getBreakpoint(width);
   if (bp === 'xl') return 1.36;
@@ -88,9 +85,6 @@ const makeStyles = (theme: Theme, scale: number) => {
     lineHeight: Math.round(roles[r].lineHeight * scale),
     fontWeight: roles[r].fontWeight,
     letterSpacing: roles[r].letterSpacing,
-    // Android adds extra vertical font padding by default, which makes text
-    // boxes taller than iOS and causes adjacent fields/labels to visually
-    // overlap. Disable it so metrics match across platforms.
     includeFontPadding: false,
     textAlignVertical: 'center' as const,
   });

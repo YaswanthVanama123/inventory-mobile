@@ -49,7 +49,6 @@ export const RouteStarCustomersScreen: React.FC<Props> = ({visible, onClose}) =>
   const [stats, setStats] = useState({totalCustomers: 0, activeCustomers: 0, inactiveCustomers: 0});
   const [syncing, setSyncing] = useState<null | 'sync' | 'details' | 'delete'>(null);
 
-  // Detail drill-in
   const [detail, setDetail] = useState<any>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailTab, setDetailTab] = useState<DetailTab>('details');
@@ -237,7 +236,6 @@ export const RouteStarCustomersScreen: React.FC<Props> = ({visible, onClose}) =>
             ItemSeparatorComponent={() => <View style={{height: 12}} />}
             ListHeaderComponent={
               <View>
-                {/* Stats */}
                 <View style={styles.statsRow}>
                   <View style={styles.statCard}>
                     <Typography variant="caption" color={theme.colors.gray[500]}>Total</Typography>
@@ -332,7 +330,6 @@ export const RouteStarCustomersScreen: React.FC<Props> = ({visible, onClose}) =>
         )}
       </SafeAreaView>
 
-      {/* Detail Modal */}
       <Modal visible={!!detail} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setDetail(null)}>
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
           <View style={styles.modalHeader}>
@@ -351,7 +348,6 @@ export const RouteStarCustomersScreen: React.FC<Props> = ({visible, onClose}) =>
           ) : detail ? (
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
               <View style={styles.contentWrap}>
-                {/* Summary cards */}
                 <View style={styles.statsRow}>
                   <View style={styles.statCard}>
                     <Typography variant="caption" color={theme.colors.gray[500]}>Balance</Typography>
@@ -367,7 +363,6 @@ export const RouteStarCustomersScreen: React.FC<Props> = ({visible, onClose}) =>
                   </View>
                 </View>
 
-                {/* Tabs */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsRow}>
                   {detailTabs.map(t => (
                     <TouchableOpacity key={t.id} style={[styles.tab, detailTab === t.id && styles.tabActive]} onPress={() => setDetailTab(t.id)}>

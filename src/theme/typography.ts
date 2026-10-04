@@ -1,30 +1,14 @@
-// ─────────────────────────────────────────────────────────────────────────
-// SINGLE SOURCE OF TRUTH FOR TEXT SIZING.
-//
-// `fontSizes` is the raw graded scale (xs → xxxxl). `roles` are the 5 semantic
-// text types every UI text maps to, each derived from a point on that scale.
-//
-// Do NOT hardcode `fontSize: <number>` anywhere — reference one of these:
-//   • <Typography variant="heading|subheading|sideheading|body|caption">
-//   • StyleSheet:  fontSize: theme.typography.roles.body.fontSize
-//                  ...or spread the role:  ...theme.typography.roles.body
-//
-// To resize the whole app, edit the numbers here and nowhere else.
-// ─────────────────────────────────────────────────────────────────────────
-
-// Raw graded type scale — every value distinct and increasing.
 const fontSizes = {
-  xs: 11, // tiny meta / overlines
-  sm: 13, // captions, badges, timestamps
-  md: 15, // body / default text, inputs
-  lg: 16, // emphasized body, card titles
-  xl: 18, // small headings
-  xxl: 20, // section headings
-  xxxl: 24, // large headings
-  xxxxl: 27, // page / hero headings
+  xs: 11,
+  sm: 13,
+  md: 15,
+  lg: 16,
+  xl: 18,
+  xxl: 20,
+  xxxl: 24,
+  xxxxl: 27,
 };
 
-// Semantic roles — what the rest of the app actually uses.
 const roles = {
   heading: {
     fontSize: fontSizes.xxxxl,

@@ -12,16 +12,10 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
   pageSizeOptions?: number[];
-  /** How many numbered page buttons to show (windowed around the current page). */
   maxPageButtons?: number;
   style?: StyleProp<ViewStyle>;
 }
 
-/**
- * Numbered pagination control for mobile lists: result count, a rows-per-page
- * selector, and ‹ › chevrons with windowed page numbers. Pairs with the
- * server-paged (`useServerPagination`) or client-paged screens.
- */
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
@@ -45,7 +39,6 @@ export const Pagination: React.FC<PaginationProps> = ({
     }
   };
 
-  // Windowed page numbers around the current page.
   let start = Math.max(1, currentPage - Math.floor(maxPageButtons / 2));
   const end = Math.min(totalPages, start + maxPageButtons - 1);
   start = Math.max(1, end - maxPageButtons + 1);
@@ -67,7 +60,6 @@ export const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <View style={[styles.container, style]}>
-      {/* Result count + rows-per-page */}
       <View style={styles.topRow}>
         <Typography variant="caption" color={theme.colors.gray[600]}>
           {startItem}–{endItem} of {totalItems}
@@ -105,7 +97,6 @@ export const Pagination: React.FC<PaginationProps> = ({
         ) : null}
       </View>
 
-      {/* Page navigation */}
       {totalPages > 1 ? (
         <View style={styles.navRow}>
           <TouchableOpacity

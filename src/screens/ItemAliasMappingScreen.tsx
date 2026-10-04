@@ -55,8 +55,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   const {handleApiError} = useApiErrorHandler();
   const [saving, setSaving] = useState(false);
   const [mappings, setMappings] = useState<any[]>([]);
-  // Full unpaginated item set — the quick-map / edit-alias pickers must be able
-  // to search every item, not just the rows on the current table page.
   const [uniqueItems, setUniqueItems] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
@@ -77,8 +75,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   const [editAutoMerge, setEditAutoMerge] = useState(true);
   const [showMappingsSection, setShowMappingsSection] = useState(false);
 
-  // From-scratch "Create Mapping" flow (canonical name + free-text aliases +
-  // description + autoMerge), mirroring the webapp modal.
   const [createVisible, setCreateVisible] = useState(false);
   const [createCanonicalName, setCreateCanonicalName] = useState('');
   const [createAliases, setCreateAliases] = useState<string[]>(['']);
@@ -89,9 +85,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   const heroSlide = useRef(new Animated.Value(0)).current;
   const blobPulse = useRef(new Animated.Value(0)).current;
 
-  // Server-side numbered pagination: search + status filter run on the backend
-  // across the FULL item set, so every item is reachable (previously only the
-  // first 20 were fetched and filtering happened locally over just those).
   const {
     items: pagedRows,
     page,
@@ -130,7 +123,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
     },
   );
 
-  // Stats come from the backend, computed over the full set.
   useEffect(() => {
     if (extra) setStats(extra);
   }, [extra]);
@@ -225,7 +217,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
         autoMerge: currentMapping ? currentMapping.autoMerge !== false : true,
       };
       if (currentMapping) {
-        // Atomic update — no delete-then-recreate window.
         await itemAliasService.updateMapping(token!, currentMapping._id, payload);
       } else {
         await itemAliasService.saveMapping(token!, payload);
@@ -369,8 +360,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
     }
     try {
       setSaving(true);
-      // Atomic update via PUT instead of delete-then-recreate (avoids the
-      // non-atomic data-loss window if the recreate fails).
       await itemAliasService.updateMapping(token!, editingMapping._id, {
         canonicalName: editCanonicalName.trim(),
         aliases: Array.from(editSelectedAliases),
@@ -785,7 +774,6 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                 </Typography>
               </View>
             </View>
-            {/* Save pinned at the top for quick access. */}
             <View style={styles.topActionBar}>
               <Button
                 title={saving ? 'Saving...' : `Map ${quickMapSelectedItems.size} items`}

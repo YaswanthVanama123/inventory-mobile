@@ -54,8 +54,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
       setLoading(true);
       setError(null);
       setOrder(null);
-      // getOrderByNumber → GET /customerconnect/orders/:orderNumber, returns the
-      // full order object (result.data) with items, tracking & stock-processing.
       const detail = await ordersService.getOrderByNumber(token, orderNumber);
       setOrder(detail);
     } catch (err: any) {
@@ -100,7 +98,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
       presentationStyle="pageSheet"
       onRequestClose={onClose}>
       <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             onPress={onClose}
@@ -148,7 +145,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}>
             <View style={styles.contentWrap}>
-              {/* Status badges */}
               <View style={styles.badgeRow}>
                 <View style={[styles.pill, {backgroundColor: statusPalette.bg}]}>
                   <Typography variant="caption" weight="semibold" color={statusPalette.fg}>
@@ -179,7 +175,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
                 )}
               </View>
 
-              {/* Order Information */}
               <Card variant="elevated" padding="lg" style={styles.sectionCard}>
                 <View style={styles.sectionHead}>
                   <View style={[styles.sectionIcon, {backgroundColor: theme.colors.primary[50]}]}>
@@ -207,7 +202,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
                 </Row>
               </Card>
 
-              {/* Vendor Information */}
               <Card variant="elevated" padding="lg" style={styles.sectionCard}>
                 <View style={styles.sectionHead}>
                   <View style={[styles.sectionIcon, {backgroundColor: theme.colors.accent[50]}]}>
@@ -230,7 +224,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
                 </Row>
               </Card>
 
-              {/* Stock Processing Status */}
               <Card variant="elevated" padding="lg" style={styles.sectionCard}>
                 <View style={styles.sectionHead}>
                   <View style={[styles.sectionIcon, {backgroundColor: theme.colors.success[50]}]}>
@@ -266,7 +259,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
                 ) : null}
               </Card>
 
-              {/* Order Items */}
               {items.length > 0 && (
                 <Card variant="elevated" padding="none" style={styles.sectionCard}>
                   <View style={[styles.sectionHead, styles.itemsHead]}>
@@ -275,7 +267,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
                     </View>
                     <Typography variant="body" weight="semibold">Order Items ({items.length})</Typography>
                   </View>
-                  {/* Table header */}
                   <View style={styles.tableHeadRow}>
                     <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.colSku}>SKU</Typography>
                     <Typography variant="caption" weight="semibold" color={theme.colors.gray[500]} style={styles.colName}>NAME</Typography>
@@ -312,7 +303,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
                       </View>
                     </View>
                   ))}
-                  {/* Footer total */}
                   <View style={styles.tableFootRow}>
                     <Typography variant="small" weight="semibold" color={theme.colors.gray[700]} style={{flex: 1, textAlign: 'right', paddingRight: 12}}>
                       Total:
@@ -324,7 +314,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
                 </Card>
               )}
 
-              {/* Notes */}
               {order.notes ? (
                 <Card variant="elevated" padding="lg" style={styles.sectionCard}>
                   <View style={styles.sectionHead}>
@@ -346,7 +335,6 @@ export const OrderDetailScreen: React.FC<OrderDetailScreenProps> = ({
   );
 };
 
-// Small labelled key/value row used across the info cards.
 const Row: React.FC<{label: string; last?: boolean; children: React.ReactNode}> = ({
   label,
   last,
