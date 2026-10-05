@@ -8,6 +8,7 @@ import {
   TextInput as RNTextInput,
   Switch,
   Alert,
+  Modal,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -16,6 +17,7 @@ import {Button} from '../components/atoms/Button';
 import {Checkbox} from '../components/atoms/Checkbox';
 import {PaginatedList} from '../components/molecules/PaginatedList';
 import {Pagination} from '../components/molecules/Pagination';
+import {ModalHeader} from '../components/molecules/ModalHeader';
 import {useAuth} from '../contexts/AuthContext';
 import {useApiErrorHandler} from '../hooks/useApiErrorHandler';
 import {useTheme} from '../contexts/ThemeContext';
@@ -30,8 +32,32 @@ import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
 type StatusFilter = '' | 'Pending' | 'Completed' | 'Closed' | 'Cancelled';
 type StockProcessedFilter = '' | 'true' | 'false';
+type InvoiceType = 'pending' | 'closed';
 
-export const InvoicesScreen = () => {
+interface InvoicesScreenProps {
+  visible: boolean;
+  onClose: () => void;
+  initialType?: InvoiceType;
+}
+
+export const InvoicesScreen: React.FC<InvoicesScreenProps> = ({
+  visible,
+  onClose,
+  initialType = 'pending',
+}) => (
+  <Modal
+    visible={visible}
+    animationType="slide"
+    presentationStyle="pageSheet"
+    onRequestClose={onClose}>
+    <InvoicesContent onClose={onClose} initialType={initialType} />
+  </Modal>
+);
+
+const InvoicesContent: React.FC<{onClose: () => void; initialType: InvoiceType}> = ({
+  onClose,
+  initialType,
+}) => {
   const theme = useTheme();
   const bp = useBreakpoint();
   const styles = useMemo(() => makeStyles(theme, bp), [theme, bp]);
@@ -45,7 +71,7 @@ export const InvoicesScreen = () => {
   const [syncingDetails, setSyncingDetails] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400);
-  const [invoiceType, setInvoiceType] = useState<'pending' | 'closed'>('pending');
+  const [invoiceType, setInvoiceType] = useState<InvoiceType>(initialType);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
   const [stockProcessedFilter, setStockProcessedFilter] = useState<StockProcessedFilter>('');
   const [dateFrom, setDateFrom] = useState('');
@@ -377,21 +403,32 @@ export const InvoicesScreen = () => {
     };
     return colors[status?.toLowerCase()] || theme.colors.gray[100];
   };
+  const header = (
+    <ModalHeader
+      title={invoiceType === 'pending' ? 'Pending Invoices' : 'Closed Invoices'}
+      subtitle="RouteStar invoices"
+      onClose={onClose}
+    />
+  );
   if (initialLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary[600]} />
-        <Typography
-          variant="body"
-          color={theme.colors.gray[600]}
-          style={{marginTop: 16}}>
-          Loading invoices...
-        </Typography>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        {header}
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary[600]} />
+          <Typography
+            variant="body"
+            color={theme.colors.gray[600]}
+            style={{marginTop: 16}}>
+            Loading invoices...
+          </Typography>
+        </View>
       </SafeAreaView>
     );
   }
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      {header}
       <PaginatedList
         data={invoices}
         keyExtractor={(item, index) => item._id || String(index)}
@@ -418,9 +455,6 @@ export const InvoicesScreen = () => {
         ListHeaderComponent={
           <View>
             <View style={styles.header}>
-              <Typography variant="h2" weight="bold" style={styles.headerTitle}>
-                Invoices
-              </Typography>
               <Typography
                 variant="body"
                 color={theme.colors.gray[500]}
@@ -962,10 +996,6 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
   },
   header: {
     marginBottom: theme.spacing.xl,
-  },
-  headerTitle: {
-    marginBottom: theme.spacing.xs,
-    color: theme.colors.text.primary,
   },
   headerSubtitle: {
     fontSize: theme.typography.fontSizes.md,

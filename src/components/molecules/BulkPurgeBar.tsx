@@ -11,6 +11,7 @@ import {TrashIcon} from '../icons';
 export interface BulkPurgeBarProps {
   type: string;
   label: string;
+  selectedLabel?: string;
   selectedIds?: string[];
   onDone?: () => void;
 }
@@ -18,6 +19,7 @@ export interface BulkPurgeBarProps {
 export const BulkPurgeBar: React.FC<BulkPurgeBarProps> = ({
   type,
   label,
+  selectedLabel = 'Delete Selected',
   selectedIds = [],
   onDone,
 }) => {
@@ -64,7 +66,7 @@ export const BulkPurgeBar: React.FC<BulkPurgeBarProps> = ({
     <>
       <View style={styles.bar}>
         <Button
-          title={`Delete Selected (${selectedIds.length})`}
+          title={`${selectedLabel} (${selectedIds.length})`}
           variant="danger"
           size="sm"
           onPress={() => setConfirmMode('selected')}

@@ -28,6 +28,7 @@ import {CustomerExportScreen} from '../screens/CustomerExportScreen';
 import {SettingsScreen} from '../screens/SettingsScreen';
 import {ApprovalsScreen} from '../screens/ApprovalsScreen';
 import {StockReconciliationScreen} from '../screens/StockReconciliationScreen';
+import {InvoicesScreen} from '../screens/InvoicesScreen';
 
 export type ExtraScreenKey =
   | 'salesReport'
@@ -56,7 +57,9 @@ export type ExtraScreenKey =
   | 'customerExport'
   | 'settings'
   | 'approvals'
-  | 'stockReconciliation';
+  | 'stockReconciliation'
+  | 'pendingInvoices'
+  | 'closedInvoices';
 
 interface ExtraScreensContextValue {
   openKey: ExtraScreenKey | null;
@@ -107,6 +110,8 @@ export const ExtraScreensProvider: React.FC<{children: ReactNode}> = ({children}
       <ReportsHubScreen visible={is('reportsHub')} onClose={close} />
       <CustomerExportScreen visible={is('customerExport')} onClose={close} />
       <ApprovalsScreen visible={is('approvals')} onClose={close} />
+      <InvoicesScreen visible={is('pendingInvoices')} onClose={close} initialType="pending" />
+      <InvoicesScreen visible={is('closedInvoices')} onClose={close} initialType="closed" />
       {isAdmin && <QuickBooksSyncScreen visible={is('quickBooksSync')} onClose={close} />}
       {isAdmin && <SettingsScreen visible={is('settings')} onClose={close} />}
       {isAdmin && <StockReconciliationScreen visible={is('stockReconciliation')} onClose={close} />}

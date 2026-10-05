@@ -405,6 +405,25 @@ export const AccountScreen = () => {
     },
   ];
 
+  const invoiceRows: MenuRow[] = [
+    {
+      Icon: ClockIcon,
+      title: 'Pending Invoices',
+      subtitle: 'RouteStar invoices not closed yet',
+      tone: 'warning',
+      onPress: () => openScreen('pendingInvoices'),
+      visible: canSee('/invoices/routestar/pending'),
+    },
+    {
+      Icon: CheckCircleIcon,
+      title: 'Closed Invoices',
+      subtitle: 'Completed RouteStar invoices',
+      tone: 'success',
+      onPress: () => openScreen('closedInvoices'),
+      visible: canSee('/invoices/routestar/closed'),
+    },
+  ];
+
   const reportsRows: MenuRow[] = [
     {
       Icon: FileTextIcon,
@@ -553,6 +572,7 @@ export const AccountScreen = () => {
               <MenuSection theme={theme} bp={bp} eyebrow="ADMINISTRATION" rows={adminRows} />
               <MenuSection theme={theme} bp={bp} eyebrow="INVENTORY MANAGEMENT" rows={inventoryRows} />
               <MenuSection theme={theme} bp={bp} eyebrow="ORDERS & VENDORS" rows={ordersRows} />
+              <MenuSection theme={theme} bp={bp} eyebrow="INVOICES" rows={invoiceRows} />
               <MenuSection theme={theme} bp={bp} eyebrow="REPORTS" rows={reportsRows} />
             </>
           )}

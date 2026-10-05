@@ -26,6 +26,7 @@ import {
   UserIcon,
   AlertCircleIcon,
   TrashIcon,
+  CheckCircleIcon,
 } from '../components/icons';
 
 export const SIDEBAR_WIDTH = 270;
@@ -58,6 +59,8 @@ const GROUPS: SideGroup[] = [
       {kind: 'tab', label: 'Orders', Icon: ClipboardIcon, tab: 'Orders', paths: ['/orders']},
       {kind: 'tab', label: 'Truck Checkouts', Icon: TruckIcon, tab: 'Checkout', paths: ['/truck-checkouts']},
       {kind: 'extra', label: 'Purchase Orders', Icon: FileTextIcon, screen: 'orders', path: '/orders'},
+      {kind: 'extra', label: 'Pending Invoices', Icon: ClockIcon, screen: 'pendingInvoices', path: '/invoices/routestar/pending'},
+      {kind: 'extra', label: 'Closed Invoices', Icon: CheckCircleIcon, screen: 'closedInvoices', path: '/invoices/routestar/closed'},
     ],
   },
   {

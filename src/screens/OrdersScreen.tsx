@@ -40,6 +40,7 @@ import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 import useDebounce from '../hooks/useDebounce';
 import {OrderDetailScreen} from './OrderDetailScreen';
+import {BulkPurgeBar} from '../components/molecules/BulkPurgeBar';
 
 interface OrdersScreenProps {
   visible: boolean;
@@ -724,6 +725,23 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({visible, onClose}) =>
               </View>
             )}
 
+            {isAdmin && !error && filteredOrders.length > 0 && (
+              <View style={styles.purgeBarWrap}>
+                <BulkPurgeBar
+                  type="order-verifications"
+                  label="Order Verifications"
+                  selectedLabel="Delete Verification"
+                  selectedIds={filteredOrders
+                    .filter((o: any) => selectedOrders.includes(o.orderNumber))
+                    .map((o: any) => o._id)}
+                  onDone={() => {
+                    setSelectedOrders([]);
+                    loadData(currentPage);
+                  }}
+                />
+              </View>
+            )}
+
             {error && (
               <Card variant="outlined" padding="lg" style={styles.errorCard}>
                 <View style={styles.errorContent}>
@@ -1276,6 +1294,7 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 2,
     },
     selectAllLeft: {flexDirection: 'row', alignItems: 'center', gap: 8},
+    purgeBarWrap: {marginTop: theme.spacing.sm},
     checkbox: {
       width: 20, height: 20, borderRadius: 6,
       borderWidth: 2, borderColor: theme.colors.gray[300],
