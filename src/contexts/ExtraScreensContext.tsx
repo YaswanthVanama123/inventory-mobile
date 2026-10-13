@@ -69,6 +69,9 @@ interface ExtraScreensContextValue {
 
 const ExtraScreensContext = createContext<ExtraScreensContextValue | undefined>(undefined);
 
+export const useOptionalExtraScreens = (): ExtraScreensContextValue | undefined =>
+  useContext(ExtraScreensContext);
+
 export const useExtraScreens = (): ExtraScreensContextValue => {
   const ctx = useContext(ExtraScreensContext);
   if (!ctx) {

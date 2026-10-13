@@ -16,6 +16,7 @@ import {
 import {PaginatedList} from '../components/molecules/PaginatedList';
 import {Pagination} from '../components/molecules/Pagination';
 import useDebounce from '../hooks/useDebounce';
+import {fuzzyFilter} from '../utils/fuzzySearch';
 import {useServerPagination} from '../hooks/useServerPagination';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Typography} from '../components/atoms/Typography';
@@ -78,6 +79,8 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   const [createVisible, setCreateVisible] = useState(false);
   const [createCanonicalName, setCreateCanonicalName] = useState('');
   const [createAliases, setCreateAliases] = useState<string[]>(['']);
+  const [aliasSuggestions, setAliasSuggestions] = useState<any[]>([]);
+  const [activeAliasIndex, setActiveAliasIndex] = useState<number | null>(null);
   const [createDescription, setCreateDescription] = useState('');
   const [createAutoMerge, setCreateAutoMerge] = useState(true);
 
@@ -185,17 +188,13 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
 
   const getFilteredItemsForQuickMap = () => {
     const currentMapping = mappings.find(m => m.aliases.some((a: any) => a.name === quickMapItem?.itemName));
-    return uniqueItems.filter(item => {
-      if (item.isMapped && currentMapping && item.canonicalName !== currentMapping.canonicalName) return false;
-      if (quickMapSearchQuery) {
-        const searchLower = quickMapSearchQuery.toLowerCase();
-        return (
-          item.itemName.toLowerCase().includes(searchLower) ||
-          (item.itemParent && item.itemParent.toLowerCase().includes(searchLower))
-        );
-      }
-      return true;
-    });
+    return fuzzyFilter(
+      uniqueItems.filter(
+        item => !(item.isMapped && currentMapping && item.canonicalName !== currentMapping.canonicalName),
+      ),
+      quickMapSearchQuery,
+      item => [item.itemName, item.itemParent],
+    );
   };
 
   const quickMapSubmit = async () => {
@@ -244,7 +243,30 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
   };
 
   const handleCreateAliasChange = (index: number, value: string) => {
-    setCreateAliases(prev => prev.map((a, i) => (i === index ? value : a)));
+    const next = createAliases.map((a, i) => (i === index ? value : a));
+    setCreateAliases(next);
+    const query = value.trim().toLowerCase();
+    if (!query) {
+      setAliasSuggestions([]);
+      setActiveAliasIndex(null);
+      return;
+    }
+    const taken = next.filter((_, i) => i !== index).map(a => a.trim().toLowerCase());
+    setAliasSuggestions(
+      fuzzyFilter(
+        uniqueItems.filter(item => !item.isMapped && !taken.includes(String(item.itemName || '').toLowerCase())),
+        value,
+        item => item.itemName,
+        10,
+      ),
+    );
+    setActiveAliasIndex(index);
+  };
+
+  const selectCreateAliasSuggestion = (index: number, itemName: string) => {
+    setCreateAliases(prev => prev.map((a, i) => (i === index ? itemName : a)));
+    setAliasSuggestions([]);
+    setActiveAliasIndex(null);
   };
 
   const addCreateAliasField = () => {
@@ -334,20 +356,14 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
     setEditSelectedAliases(newSelected);
   };
 
-  const getFilteredItemsForEdit = () => {
-    return uniqueItems.filter(item => {
-      const isAvailable = !item.isMapped || (editingMapping && item.canonicalName === editingMapping.canonicalName);
-      if (!isAvailable) return false;
-      if (editSearchQuery) {
-        const searchLower = editSearchQuery.toLowerCase();
-        return (
-          item.itemName.toLowerCase().includes(searchLower) ||
-          (item.itemParent && item.itemParent.toLowerCase().includes(searchLower))
-        );
-      }
-      return true;
-    });
-  };
+  const getFilteredItemsForEdit = () =>
+    fuzzyFilter(
+      uniqueItems.filter(
+        item => !item.isMapped || (editingMapping && item.canonicalName === editingMapping.canonicalName),
+      ),
+      editSearchQuery,
+      item => [item.itemName, item.itemParent],
+    );
 
   const editMappingSubmit = async () => {
     if (!editCanonicalName.trim()) {
@@ -1048,7 +1064,10 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                 </Typography>
               </View>
             </View>
-            <ScrollView style={{flex: 1}} contentContainerStyle={styles.subModalContent}>
+            <ScrollView
+              style={{flex: 1}}
+              contentContainerStyle={styles.subModalContent}
+              keyboardShouldPersistTaps="handled">
               <View style={styles.inputSection}>
                 <Typography variant="caption" weight="semibold" color={theme.colors.gray[600]} style={styles.inputLabel}>
                   CANONICAL NAME *
@@ -1070,21 +1089,49 @@ export const ItemAliasMappingScreen: React.FC<ItemAliasMappingScreenProps> = ({v
                   ALIASES *
                 </Typography>
                 {createAliases.map((alias, index) => (
-                  <View key={index} style={styles.aliasInputRow}>
-                    <RNTextInput
-                      style={[styles.textInput, {flex: 1}]}
-                      placeholder="e.g., jrt-2ply, jrt 2pLy"
-                      value={alias}
-                      onChangeText={text => handleCreateAliasChange(index, text)}
-                      placeholderTextColor={theme.colors.gray[400]}
-                    />
-                    {createAliases.length > 1 && (
-                      <TouchableOpacity
-                        style={styles.aliasRemoveBtn}
-                        onPress={() => removeCreateAliasField(index)}
-                        activeOpacity={0.7}>
-                        <CloseIcon size={14} color={theme.colors.error[600]} />
-                      </TouchableOpacity>
+                  <View key={index}>
+                    <View style={styles.aliasInputRow}>
+                      <RNTextInput
+                        style={[styles.textInput, {flex: 1}]}
+                        placeholder="e.g., jrt-2ply, jrt 2pLy"
+                        value={alias}
+                        onChangeText={text => handleCreateAliasChange(index, text)}
+                        onFocus={() => {
+                          if (alias.trim()) handleCreateAliasChange(index, alias);
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setActiveAliasIndex(current => (current === index ? null : current)), 150);
+                        }}
+                        placeholderTextColor={theme.colors.gray[400]}
+                      />
+                      {createAliases.length > 1 && (
+                        <TouchableOpacity
+                          style={styles.aliasRemoveBtn}
+                          onPress={() => removeCreateAliasField(index)}
+                          activeOpacity={0.7}>
+                          <CloseIcon size={14} color={theme.colors.error[600]} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    {activeAliasIndex === index && aliasSuggestions.length > 0 && (
+                      <View style={styles.suggestionList}>
+                        {aliasSuggestions.map(item => (
+                          <TouchableOpacity
+                            key={item.itemName}
+                            style={styles.suggestionRow}
+                            onPress={() => selectCreateAliasSuggestion(index, item.itemName)}
+                            activeOpacity={0.7}>
+                            <Typography variant="body" numberOfLines={1} style={{flex: 1}}>
+                              {item.itemName}
+                            </Typography>
+                            {item.itemParent ? (
+                              <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                                {item.itemParent}
+                              </Typography>
+                            ) : null}
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     )}
                   </View>
                 ))}
@@ -1281,6 +1328,17 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
       marginBottom: theme.spacing.md,
     },
     aliasInputRow: {flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8},
+    suggestionList: {
+      marginTop: -4, marginBottom: 8,
+      backgroundColor: theme.colors.white,
+      borderWidth: 1, borderColor: theme.colors.gray[200],
+      borderRadius: 10, overflow: 'hidden',
+    },
+    suggestionRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      paddingVertical: 10, paddingHorizontal: 12,
+      borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.colors.gray[200],
+    },
     aliasRemoveBtn: {
       width: 36, height: 36, borderRadius: 9,
       backgroundColor: theme.colors.error[50],

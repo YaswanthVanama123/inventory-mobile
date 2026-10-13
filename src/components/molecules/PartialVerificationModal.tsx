@@ -27,6 +27,9 @@ interface PartialVerificationModalProps {
   onConfirm: (receivedQty: number, notes: string) => void;
   order: any;
   loading?: boolean;
+  unitsPerCase?: number;
+  purchaseUnit?: string;
+  sellingUnit?: string;
 }
 
 export const PartialVerificationModal: React.FC<PartialVerificationModalProps> = ({
@@ -35,6 +38,9 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
   onConfirm,
   order,
   loading = false,
+  unitsPerCase = 1,
+  purchaseUnit = 'Case',
+  sellingUnit = 'Each',
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
@@ -62,6 +68,7 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
   };
 
   const isValid = receivedQty && parseFloat(receivedQty) > 0;
+  const receivingNow = parseFloat(receivedQty) || 0;
 
   return (
     <Modal
@@ -140,7 +147,7 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                   weight="semibold"
                   color={theme.colors.gray[700]}
                   style={styles.sectionTitle}>
-                  Quantity Details
+                  Quantity Details ({purchaseUnit})
                 </Typography>
                 <View style={styles.quantityGrid}>
                   <View style={styles.quantityCard}>
@@ -150,6 +157,9 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                     <Typography variant="h2" weight="bold" color={theme.colors.gray[900]}>
                       {expectedQty}
                     </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[500]} align="center">
+                      = {expectedQty * unitsPerCase} {sellingUnit}
+                    </Typography>
                   </View>
                   <View style={styles.quantityCard}>
                     <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -158,6 +168,9 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                     <Typography variant="h2" weight="bold" color={theme.colors.success[600]}>
                       {previouslyReceived}
                     </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[500]} align="center">
+                      = {previouslyReceived * unitsPerCase} {sellingUnit}
+                    </Typography>
                   </View>
                   <View style={styles.quantityCard}>
                     <Typography variant="caption" color={theme.colors.gray[500]}>
@@ -165,6 +178,9 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                     </Typography>
                     <Typography variant="h2" weight="bold" color={theme.colors.primary[600]}>
                       {remainingQty}
+                    </Typography>
+                    <Typography variant="caption" color={theme.colors.gray[500]} align="center">
+                      = {remainingQty * unitsPerCase} {sellingUnit}
                     </Typography>
                   </View>
                 </View>
@@ -176,7 +192,7 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                   weight="semibold"
                   color={theme.colors.gray[700]}
                   style={styles.sectionTitle}>
-                  How many did you receive now?
+                  How many did you receive now? ({purchaseUnit})
                 </Typography>
                 <RNTextInput
                   style={styles.input}
@@ -186,6 +202,9 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                   placeholder="Enter quantity received"
                   placeholderTextColor={theme.colors.gray[400]}
                 />
+                <Typography variant="caption" color={theme.colors.gray[500]} style={styles.conversionHint}>
+                  {receivingNow} {purchaseUnit} × {unitsPerCase} = {receivingNow * unitsPerCase} {sellingUnit} added to stock
+                </Typography>
               </View>
 
               <View style={styles.section}>
@@ -241,7 +260,7 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                               Quantity Received:
                             </Typography>
                             <Typography variant="small" weight="bold" color={theme.colors.primary[600]}>
-                              {entry.receivedQty}
+                              {entry.receivedQty} {purchaseUnit}
                             </Typography>
                           </View>
                           {entry.notes && (
@@ -262,7 +281,7 @@ export const PartialVerificationModal: React.FC<PartialVerificationModalProps> =
                         Total Previously Received:
                       </Typography>
                       <Typography variant="h3" weight="bold" color={theme.colors.success[600]}>
-                        {previouslyReceived}
+                        {previouslyReceived} {purchaseUnit}
                       </Typography>
                     </View>
                   </View>
@@ -382,6 +401,9 @@ const makeStyles = (theme: Theme) => StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     fontSize: theme.typography.roles.sideheading.fontSize,
     color: theme.colors.gray[900],
+  },
+  conversionHint: {
+    marginTop: 6,
   },
   textArea: {
     minHeight: 80,

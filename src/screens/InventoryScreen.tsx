@@ -41,6 +41,12 @@ import {PartialVerificationModal} from '../components/molecules/PartialVerificat
 import {formatDate} from '../utils/dateUtils';
 import {useBreakpoint, BreakpointInfo} from '../utils/breakpoints';
 
+const getCaseInfo = (group: any) => ({
+  unitsPerCase: Number(group?.unitsPerCase) > 0 ? Number(group.unitsPerCase) : 1,
+  purchaseUnit: group?.purchaseUnitLabel || 'Case',
+  sellingUnit: group?.sellingUnitLabel || 'Each',
+});
+
 export const InventoryScreen = () => {
   const theme = useTheme();
   const bp = useBreakpoint();
@@ -100,6 +106,7 @@ export const InventoryScreen = () => {
   );
   const fetchData = refetch;
   const onRefresh = refresh;
+  const verifyCaseInfo = getCaseInfo(filteredItems.find(item => item.sku === verifyingSku));
 
   useEffect(() => {
     scrollRef.current?.scrollTo({y: 0, animated: true});
@@ -226,7 +233,7 @@ export const InventoryScreen = () => {
       );
       const message = result.data?.fullyReceived
         ? 'Item fully received and verified'
-        : `Partial receipt recorded - ${result.data?.remaining || 0} unit(s) remaining`;
+        : `Partial receipt recorded - ${result.data?.remaining || 0} ${verifyCaseInfo.purchaseUnit} remaining`;
       Alert.alert('Success', message);
       const updatedOrders = await inventoryService.getOrdersForItem(token, verifyingSku);
       if (mountedRef.current) {
@@ -488,6 +495,8 @@ export const InventoryScreen = () => {
         <View style={styles.itemsList}>
           {filteredItems.map((group, index) => {
             const isExpanded = expandedItems[group.sku];
+            const caseInfo = getCaseInfo(group);
+            const isBulk = caseInfo.unitsPerCase > 1;
             return (
               <Card
                 key={group._id || `${group.sku}-${index}`}
@@ -518,7 +527,27 @@ export const InventoryScreen = () => {
                           ? 'invoice'
                           : 'invoices'}
                       </Typography>
+                      {activeTab === 'purchases' && (
+                        <Typography variant="caption" color={theme.colors.gray[500]} numberOfLines={1}>
+                          {group.totalCases ?? group.totalQuantity} {caseInfo.purchaseUnit} ={' '}
+                          {group.totalQuantity} {caseInfo.sellingUnit}
+                        </Typography>
+                      )}
                     </View>
+                    {activeTab === 'purchases' && (
+                      <View
+                        style={[
+                          styles.qtyPill,
+                          {backgroundColor: isBulk ? theme.colors.primary[50] : theme.colors.gray[100]},
+                        ]}>
+                        <Typography
+                          variant="caption"
+                          weight="bold"
+                          color={isBulk ? theme.colors.primary[700] : theme.colors.gray[600]}>
+                          ×{caseInfo.unitsPerCase}
+                        </Typography>
+                      </View>
+                    )}
                     <View style={styles.chevronCircle}>
                       {isExpanded ? (
                         <ChevronDownIcon size={16} color={theme.colors.gray[700]} />
@@ -634,7 +663,7 @@ export const InventoryScreen = () => {
                                         variant="caption"
                                         weight="semibold"
                                         color={theme.colors.warning[700]}>
-                                        Partial {receivedQty}/{expectedQty}
+                                        Partial {receivedQty}/{expectedQty} {caseInfo.purchaseUnit}
                                       </Typography>
                                     </View>
                                   ) : (
@@ -682,7 +711,8 @@ export const InventoryScreen = () => {
                                     Quantity
                                   </Typography>
                                   <Typography variant="small" weight="bold">
-                                    {order.qty}
+                                    {expectedQty} {caseInfo.purchaseUnit} ={' '}
+                                    {expectedQty * caseInfo.unitsPerCase} {caseInfo.sellingUnit}
                                   </Typography>
                                 </View>
                                 {hasPartialReceipts && (
@@ -695,7 +725,8 @@ export const InventoryScreen = () => {
                                         variant="small"
                                         weight="bold"
                                         color={theme.colors.success[700]}>
-                                        {receivedQty}
+                                        {receivedQty} {caseInfo.purchaseUnit} ={' '}
+                                        {receivedQty * caseInfo.unitsPerCase} {caseInfo.sellingUnit}
                                       </Typography>
                                     </View>
                                     <View style={styles.detailRow}>
@@ -706,7 +737,8 @@ export const InventoryScreen = () => {
                                         variant="small"
                                         weight="bold"
                                         color={theme.colors.primary[700]}>
-                                        {remainingQty}
+                                        {remainingQty} {caseInfo.purchaseUnit} ={' '}
+                                        {remainingQty * caseInfo.unitsPerCase} {caseInfo.sellingUnit}
                                       </Typography>
                                     </View>
                                     <View style={styles.detailRow}>
@@ -931,6 +963,9 @@ export const InventoryScreen = () => {
         onClose={handleCloseVerifyModal}
         onConfirm={handleConfirmVerification}
         order={selectedOrderForVerify}
+        unitsPerCase={verifyCaseInfo.unitsPerCase}
+        purchaseUnit={verifyCaseInfo.purchaseUnit}
+        sellingUnit={verifyCaseInfo.sellingUnit}
         loading={
           selectedOrderForVerify
             ? verifyingItems[`${selectedOrderForVerify.orderNumber}-${selectedOrderForVerify.itemIndex}`]
@@ -1240,6 +1275,11 @@ const makeStyles = (theme: Theme, bp: BreakpointInfo) => {
     groupInfo: {
       flex: 1,
       gap: 2,
+    },
+    qtyPill: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
     },
     chevronCircle: {
       width: 30,
